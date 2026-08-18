@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>JobFoundry</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <h1>JobFoundry</h1>
+      <form id="settings">
+        <label class="field">
+          <span>Server URL</span>
+          <input
+            id="server-url"
+            type="url"
+            placeholder="http://localhost:8080"
+            autocomplete="off"
+          />
+        </label>
+        <label class="field">
+          <span>API key</span>
+          <input id="api-key" type="password" placeholder="ingest API key" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span>Scan interval (hours)</span>
+          <input id="scan-interval" type="number" min="1" step="1" />
+        </label>
+        <label class="check">
+          <input id="passive-mode" type="checkbox" />
+          <span>Passive mode</span>
+        </label>
+        <label class="check">
+          <input id="active-mode" type="checkbox" />
+          <span>Active mode</span>
+        </label>
+        <label class="field">
+          <span>Fit threshold (0-100)</span>
+          <input id="fit-threshold" type="number" min="0" max="100" step="1" />
+        </label>
+        <div class="actions">
+          <button id="save" type="submit">Save</button>
+          <button id="scan-now" type="button">Scan now</button>
+        </div>
+      </form>
+      <p id="status" role="status"></p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

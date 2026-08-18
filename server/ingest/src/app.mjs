@@ -20,15 +20,18 @@ export function buildApp({ db, apiKeys }) {
     }
 
     const body = request.body;
-    if (!Array.isArray(body)) {
-      return reply.code(400).send({ error: 'body must be a JSON array of jobs' });
+    const jobs = Array.isArray(body) ? body : body?.jobs;
+    if (!Array.isArray(jobs)) {
+      return reply
+        .code(400)
+        .send({ error: 'body must be a JSON array of jobs or { jobs: [...] }' });
     }
-    if (body.length === 0) {
+    if (jobs.length === 0) {
       return reply.code(400).send({ error: 'body must not be empty' });
     }
 
     const rows = [];
-    for (const raw of body) {
+    for (const raw of jobs) {
       let row;
       try {
         row = normalizeJob({ ...raw, fingerprint: fingerprintFor(raw) });

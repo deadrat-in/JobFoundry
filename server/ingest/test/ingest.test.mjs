@@ -76,6 +76,19 @@ test('valid key + valid payload ingests and returns counts', async () => {
   await app.close();
 });
 
+test('wrapped { jobs: [...] } body form is accepted', async () => {
+  const { app } = makeApp();
+  const res = await app.inject({
+    method: 'POST',
+    url: '/api/v1/jobs/ingest',
+    headers: { authorization: 'Bearer testkey' },
+    payload: { jobs: payload() },
+  });
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.json().ingested, 1);
+  await app.close();
+});
+
 test('second ingest of the same URL is deduped and ids stay stable', async () => {
   const { app } = makeApp();
   const first = await app.inject({

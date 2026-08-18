@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "JobFoundry",
+  "version": "0.1.0",
+  "description": "Capture job postings in your browser and push them to your JobFoundry server.",
+  "action": {
+    "default_title": "JobFoundry",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["storage", "alarms"]
+}
