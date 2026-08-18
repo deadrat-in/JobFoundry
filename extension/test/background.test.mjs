@@ -132,3 +132,61 @@ test('dispose removes all listeners', async () => {
   assert.equal(snapshot().messageListeners.size, 0);
   assert.equal(snapshot().storageChangeListeners.size, 0);
 });
+
+test('content:jobsDiscovered ingests valid jobs via sendJobs', async () => {
+  const sent = [];
+  const { browser, snapshot } = createBrowserMock();
+  const bgWithSend = createBackground({
+    browser,
+    getConfig: async () => ({
+      serverUrl: 'http://localhost:3000',
+      apiKey: 'test-key',
+    }),
+    sendJobs: async (payload) => {
+      sent.push(payload);
+    },
+  });
+
+  const messageHandler = listener(snapshot, 'messageListeners');
+  const res = await messageHandler({
+    type: 'content:jobsDiscovered',
+    jobs: [
+      {
+        title: 'Backend Dev',
+        company: 'Acme',
+        url: 'https://example.com/job/1',
+        description: 'Building microservices in Node and Go with distributed tracing and queues.',
+      },
+    ],
+  });
+
+  assert.equal(res.ok, true);
+  assert.equal(res.ingested, 1);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].jobs.length, 1);
+  assert.equal(sent[0].jobs[0].title, 'Backend Dev');
+  assert.equal(sent[0].apiKey, 'test-key');
+
+  bgWithSend.dispose();
+});
+
+test('content:jobsDiscovered returns error if server is unconfigured', async () => {
+  const { browser, snapshot } = createBrowserMock();
+  const bg = createBackground({
+    browser,
+    getConfig: async () => ({
+      serverUrl: '',
+      apiKey: '',
+    }),
+  });
+
+  const messageHandler = listener(snapshot, 'messageListeners');
+  const res = await messageHandler({
+    type: 'content:jobsDiscovered',
+    jobs: [{ title: 'A', url: 'https://example.com/a' }],
+  });
+
+  assert.equal(res.ok, false);
+  assert.ok(res.error.includes('not configured'));
+  bg.dispose();
+});

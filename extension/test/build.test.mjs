@@ -21,7 +21,14 @@ function webExtLint() {
 test('build produces chrome and firefox dist with required files', () => {
   runBuild();
   for (const target of ['chrome', 'firefox']) {
-    for (const file of ['background.js', 'popup.html', 'popup.js', 'popup.css', 'manifest.json']) {
+    for (const file of [
+      'background.js',
+      'popup.html',
+      'popup.js',
+      'popup.css',
+      'content.js',
+      'manifest.json',
+    ]) {
       assert.ok(
         existsSync(resolve(EXT, 'dist', target, file)),
         `${target}/${file} missing after build`

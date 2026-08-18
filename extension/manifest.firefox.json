@@ -10,7 +10,40 @@
   "background": {
     "scripts": ["background.js"]
   },
-  "permissions": ["storage", "alarms"],
+  "permissions": [
+    "storage",
+    "alarms",
+    "*://*.linkedin.com/*",
+    "*://*.indeed.com/*",
+    "*://*.indeed.co.uk/*",
+    "*://*.indeed.ca/*",
+    "*://*.indeed.de/*",
+    "*://*.indeed.fr/*",
+    "*://*.indeed.co.in/*",
+    "*://*.glassdoor.com/*",
+    "*://*.glassdoor.co.in/*",
+    "*://*.glassdoor.co.uk/*",
+    "*://*.naukri.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.linkedin.com/*",
+        "*://*.indeed.com/*",
+        "*://*.indeed.co.uk/*",
+        "*://*.indeed.ca/*",
+        "*://*.indeed.de/*",
+        "*://*.indeed.fr/*",
+        "*://*.indeed.co.in/*",
+        "*://*.glassdoor.com/*",
+        "*://*.glassdoor.co.in/*",
+        "*://*.glassdoor.co.uk/*",
+        "*://*.naukri.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "browser_specific_settings": {
     "gecko": {
       "id": "jobfoundry@local"

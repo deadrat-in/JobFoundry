@@ -12,6 +12,7 @@ await import('./scripts/gen-provider-index.mjs');
 const entryPoints = {
   background: 'src/background/index.js',
   popup: 'src/popup/index.js',
+  content: 'src/content/index.js',
 };
 
 const staticFiles = [
