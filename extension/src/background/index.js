@@ -1,14 +1,21 @@
 import { getConfig as readConfig } from '../shared/config.js';
+import { sendJobs as ingestSendJobs } from '../shared/ingest-client.js';
 import { ensureScanAlarm, SCAN_ALARM_NAME } from './alarms.js';
+import { runScanPipeline } from './scan.js';
 
-const defaultRunScan = async () => {
-  console.log('[JobFoundry] scan requested — no providers wired yet (Phase 03)');
-  return [];
-};
+const defaultRunScan = async () =>
+  runScanPipeline({ getConfig: readConfig, sendJobs: ingestSendJobs });
 
 export function createBackground({ browser, runScan = defaultRunScan, getConfig = readConfig }) {
   const api = browser;
   if (!api) throw new Error('browser API unavailable');
+  // When the caller injects getConfig but keeps the default runScan, the
+  // default pipeline must read that same config (tests inject a storage-mock
+  // getConfig so the pipeline can run without a browser global).
+  const effectiveRunScan =
+    runScan === defaultRunScan
+      ? async () => runScanPipeline({ getConfig, sendJobs: ingestSendJobs })
+      : runScan;
 
   const onInstalled = async () => {
     const config = await getConfig();
@@ -20,7 +27,7 @@ export function createBackground({ browser, runScan = defaultRunScan, getConfig 
 
   const onAlarm = async (alarm) => {
     if (alarm?.name === SCAN_ALARM_NAME) {
-      await runScan();
+      await effectiveRunScan();
     }
   };
 
@@ -28,7 +35,7 @@ export function createBackground({ browser, runScan = defaultRunScan, getConfig 
     if (message?.type !== 'popup:scanNow') return undefined;
     return (async () => {
       try {
-        const jobs = await runScan();
+        const jobs = await effectiveRunScan();
         return { ok: true, scanned: Array.isArray(jobs) ? jobs.length : 0 };
       } catch (err) {
         return { ok: false, error: err?.message ?? String(err) };

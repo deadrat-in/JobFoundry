@@ -6,7 +6,11 @@
   "license": "AGPL-3.0-only",
   "scripts": {
     "build": "node build.mjs",
-    "test": "node --test test/*.test.mjs"
+    "gen:provider-index": "node scripts/gen-provider-index.mjs",
+    "pretest": "node scripts/gen-provider-index.mjs",
+    "test": "node --test test/*.test.mjs",
+    "vendor": "node scripts/vendor.mjs",
+    "sync:providers": "node scripts/sync-providers.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

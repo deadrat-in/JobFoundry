@@ -1,0 +1,8 @@
+# Vendored career-ops provider layer (MIT) — kept byte-identical to upstream
+# so `extension/scripts/sync-providers.mjs` content-hash drift checks stay
+# stable. Upstream files intentionally do not match this repo's prettier
+# config; reformatting them would report every vendored file as drifted.
+extension/src/background/providers/
+extension/src/background/user-agent.mjs
+extension/scripts/ports/
+extension/src/background/tests/fixtures/

@@ -58,3 +58,28 @@ test('web-ext lint passes on the firefox build', () => {
   runBuild();
   webExtLint();
 });
+
+test('bundled background.js contains the static provider registry', () => {
+  runBuild();
+  const js = readFileSync(resolve(EXT, 'dist', 'chrome', 'background.js'), 'utf8');
+  // The static index must be tree-shaken/bundled with every provider module.
+  assert.ok(js.includes('providerMap'), 'providerMap is present in the bundle');
+  const ids = [...js.matchAll(/"((?:[a-z0-9]+-)*[a-z0-9]+)":\s*[a-z0-9_$]+_default/g)].map(
+    (m) => m[1]
+  );
+  assert.ok(
+    ids.length >= 75,
+    `expected >= 75 provider ids in the bundled registry, got ${ids.length}`
+  );
+  assert.equal(new Set(ids).size, ids.length, 'bundled provider ids are unique');
+});
+
+test('bundled background.js contains no node: builtins', () => {
+  runBuild();
+  for (const target of ['chrome', 'firefox']) {
+    const js = readFileSync(resolve(EXT, 'dist', target, 'background.js'), 'utf8');
+    const nodeBuiltins = js.match(/from\s*"node:[^"]+"/g) ?? [];
+    assert.deepEqual(nodeBuiltins, [], `${target} bundle must not import node: builtins`);
+    assert.ok(!js.includes('require('), `${target} bundle must not use require()`);
+  }
+});

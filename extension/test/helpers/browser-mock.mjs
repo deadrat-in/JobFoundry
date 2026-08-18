@@ -1,5 +1,6 @@
 export function createBrowserMock(initial = {}) {
   const store = { ...initial };
+  const sessionStore = {};
   const storageChangeListeners = new Set();
   const installedListeners = new Set();
   const alarmListeners = new Set();
@@ -11,35 +12,16 @@ export function createBrowserMock(initial = {}) {
 
   const browser = {
     storage: {
-      sync: {
-        async get(keys) {
-          if (keys == null) return { ...store };
-          if (typeof keys === 'string') return { [keys]: store[keys] };
-          if (Array.isArray(keys)) {
-            const out = {};
-            for (const k of keys) out[k] = store[k];
-            return out;
-          }
-          const out = {};
-          for (const [k, def] of Object.entries(keys)) {
-            out[k] = k in store ? store[k] : def;
-          }
-          return out;
-        },
-        async set(items) {
-          const changes = {};
-          for (const [k, v] of Object.entries(items)) {
-            const oldValue = store[k];
-            store[k] = v;
-            changes[k] = { oldValue, newValue: v };
-          }
-          for (const fn of storageChangeListeners) fn(changes, 'sync');
-        },
-        async remove(keys) {
-          const list = Array.isArray(keys) ? keys : [keys];
-          for (const k of list) delete store[k];
-        },
-      },
+      sync: makeArea(store, (items) => {
+        const changes = {};
+        for (const [k, v] of Object.entries(items)) {
+          const oldValue = store[k];
+          store[k] = v;
+          changes[k] = { oldValue, newValue: v };
+        }
+        for (const fn of storageChangeListeners) fn(changes, 'sync');
+      }),
+      session: makeArea(sessionStore),
       onChanged: {
         addListener(fn) {
           storageChangeListeners.add(fn);
@@ -95,9 +77,37 @@ export function createBrowserMock(initial = {}) {
     },
   };
 
+  function makeArea(target, onSet) {
+    return {
+      async get(keys) {
+        if (keys == null) return { ...target };
+        if (typeof keys === 'string') return { [keys]: target[keys] };
+        if (Array.isArray(keys)) {
+          const out = {};
+          for (const k of keys) out[k] = target[k];
+          return out;
+        }
+        const out = {};
+        for (const [k, def] of Object.entries(keys)) {
+          out[k] = k in target ? target[k] : def;
+        }
+        return out;
+      },
+      async set(items) {
+        for (const [k, v] of Object.entries(items)) target[k] = v;
+        onSet?.(items);
+      },
+      async remove(keys) {
+        const list = Array.isArray(keys) ? keys : [keys];
+        for (const k of list) delete target[k];
+      },
+    };
+  }
+
   function snapshot() {
     return {
       store: { ...store },
+      sessionStore: { ...sessionStore },
       createdAlarms: [...createdAlarms],
       clearedAlarms: [...clearedAlarms],
       sentMessages: [...sentMessages],

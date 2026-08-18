@@ -6,6 +6,9 @@ const EXT = resolve(import.meta.dirname, '.');
 const DIST = resolve(EXT, 'dist');
 const TARGETS = ['chrome', 'firefox'];
 
+// The static provider registry must exist before bundling (see _registry.mjs).
+await import('./scripts/gen-provider-index.mjs');
+
 const entryPoints = {
   background: 'src/background/index.js',
   popup: 'src/popup/index.js',

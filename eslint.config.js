@@ -3,7 +3,18 @@ import globals from 'globals';
 
 export default [
   {
-    ignores: ['**/node_modules/**', '**/dist/**', '**/build/**', '**/.venv/**'],
+    ignores: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/build/**',
+      '**/.venv/**',
+      // Vendored career-ops provider layer (MIT): files are byte-identical to
+      // upstream so `sync:providers` content hashes stay stable. Upstream
+      // carries its own lint noise (unused vars, irregular whitespace); do not
+      // "fix" them here or the drift check will flag every vendored file.
+      'extension/src/background/providers/**',
+      'extension/scripts/ports/**',
+    ],
   },
   js.configs.recommended,
   {
