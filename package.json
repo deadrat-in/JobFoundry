@@ -1,0 +1,30 @@
+{
+  "name": "jobfoundry",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "Job search → fit scoring → resume tailoring → PDF/ATS export, with a web dashboard.",
+  "workspaces": [
+    "extension",
+    "server/ingest",
+    "server/web"
+  ],
+  "scripts": {
+    "test": "npm run check:meta && node --test test/*.test.mjs",
+    "check:meta": "node scripts/check-meta.mjs",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.13.0",
+    "eslint": "^9.13.0",
+    "globals": "^15.11.0",
+    "prettier": "^3.3.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

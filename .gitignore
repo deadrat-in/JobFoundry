@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Env & secrets
+.env
+.env.local
+*.local
+
+# Build output
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.uv/
+*.egg-info/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Runtime data
+server/data/
+data/
+
+# Logs
+*.log
+npm-debug.log*
