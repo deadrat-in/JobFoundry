@@ -8,6 +8,8 @@ class ScorerConfig:
     scorer_provider: str | None = None
     scorer_threshold: int = 75
     db_path: str = "./jobs.db"
+    resume_ops_url: str | None = None
+    artifacts_dir: str = "./data/artifacts"
     port: int = 8001
     host: str = "0.0.0.0"
 
@@ -26,6 +28,8 @@ def load_config() -> ScorerConfig:
         raise ValueError(f"Threshold must be between 0 and 100, got: {scorer_threshold}")
 
     db_path = os.getenv("DB_PATH", "./jobs.db")
+    resume_ops_url = os.getenv("RESUME_OPS_URL")
+    artifacts_dir = os.getenv("ARTIFACTS_DIR", "./data/artifacts")
     
     raw_port = os.getenv("PORT", "8001")
     try:
@@ -40,6 +44,8 @@ def load_config() -> ScorerConfig:
         scorer_provider=scorer_provider,
         scorer_threshold=scorer_threshold,
         db_path=db_path,
+        resume_ops_url=resume_ops_url,
+        artifacts_dir=artifacts_dir,
         port=port,
         host=host,
     )

@@ -56,5 +56,28 @@ class JobStore:
         row = cursor.fetchone()
         return dict(row) if row else {}
 
+    def update_job_tailoring(
+        self,
+        job_id: str,
+        tailored_resume_id: str,
+        status: str = "tailored",
+    ) -> dict[str, Any]:
+        now = int(time.time() * 1000)
+        self.conn.execute(
+            """
+            UPDATE jobs
+            SET tailored_resume_id = ?,
+                status = ?,
+                updated_at = ?
+            WHERE id = ?
+            """,
+            (tailored_resume_id, status, now, job_id),
+        )
+        self.conn.commit()
+
+        cursor = self.conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else {}
+
     def close(self) -> None:
         self.conn.close()
