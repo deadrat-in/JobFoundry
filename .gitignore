@@ -34,3 +34,5 @@ data/
 # Logs
 *.log
 npm-debug.log*
+
+Scratch/
