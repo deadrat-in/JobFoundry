@@ -1,0 +1,8 @@
+{
+  "min_score": 80,
+  "max_score": 100,
+  "score": 92,
+  "reasoning": "Strong match across Python, React, PostgreSQL, and Docker requirements.",
+  "matching_skills": ["Python", "React", "PostgreSQL", "Docker"],
+  "missing_skills": []
+}

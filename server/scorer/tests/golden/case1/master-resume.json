@@ -1,0 +1,13 @@
+{
+  "name": "Alex Smith",
+  "title": "Lead Software Engineer",
+  "skills": ["Python", "React", "PostgreSQL", "Docker", "TypeScript", "FastAPI"],
+  "summary": "8+ years building modern distributed web applications with Python and React.",
+  "experience": [
+    {
+      "company": "CloudScale Inc",
+      "role": "Senior Engineer",
+      "description": "Architected Python backend services and React frontends deployed on Docker."
+    }
+  ]
+}

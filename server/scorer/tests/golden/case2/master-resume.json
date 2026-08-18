@@ -1,0 +1,13 @@
+{
+  "name": "Jordan Lee",
+  "title": "Backend Python Developer",
+  "skills": ["Python", "Airflow", "PostgreSQL", "Redis", "FastAPI", "AWS"],
+  "summary": "Backend developer with 4 years of Python experience, managing workflows using Apache Airflow and PostgreSQL.",
+  "experience": [
+    {
+      "company": "API Works",
+      "role": "Python Developer",
+      "description": "Developed backend APIs in Python and scheduled daily batch jobs using Airflow."
+    }
+  ]
+}

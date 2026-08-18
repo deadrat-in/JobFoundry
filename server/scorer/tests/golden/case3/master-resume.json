@@ -1,0 +1,13 @@
+{
+  "name": "Taylor Green",
+  "title": "Frontend UI/UX Developer",
+  "skills": ["JavaScript", "HTML5", "CSS3", "React", "Figma", "TailwindCSS"],
+  "summary": "Creative frontend developer focused on accessible web interfaces and design systems in React.",
+  "experience": [
+    {
+      "company": "Pixel Studio",
+      "role": "Frontend Designer",
+      "description": "Implemented design systems and interactive UI components in React."
+    }
+  ]
+}

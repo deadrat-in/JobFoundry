@@ -1,0 +1,8 @@
+{
+  "min_score": 50,
+  "max_score": 75,
+  "score": 62,
+  "reasoning": "Strong Python and Airflow foundation, but lacks Apache Spark, Snowflake, and Kafka experience required for real-time streaming.",
+  "matching_skills": ["Python", "Airflow"],
+  "missing_skills": ["Apache Spark", "Snowflake", "Kafka"]
+}

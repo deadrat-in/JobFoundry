@@ -1,0 +1,8 @@
+{
+  "min_score": 0,
+  "max_score": 30,
+  "score": 10,
+  "reasoning": "Candidate specializes in frontend design and web development; completely lacks required embedded C/C++, ARM Cortex, and hardware expertise.",
+  "matching_skills": [],
+  "missing_skills": ["C/C++", "ARM Cortex", "FreeRTOS", "PCB"]
+}
