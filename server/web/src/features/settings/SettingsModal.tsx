@@ -38,18 +38,36 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content" style={{ maxWidth: '500px' }} onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-content"
+        style={{ maxWidth: '500px' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header">
           <h2 style={{ fontSize: '1.2rem' }}>Dashboard Settings</h2>
-          <button onClick={onClose} className="btn btn-secondary btn-sm" style={{ borderRadius: 'var(--radius-full)' }}>
+          <button
+            onClick={onClose}
+            className="btn btn-secondary btn-sm"
+            style={{ borderRadius: 'var(--radius-full)' }}
+          >
             ✕
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div
+            className="modal-body"
+            style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+          >
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.35rem' }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  marginBottom: '0.35rem',
+                }}
+              >
                 Ingest & Server API URL
               </label>
               <input
@@ -64,7 +82,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.35rem' }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  marginBottom: '0.35rem',
+                }}
+              >
                 Server API Key (Authorization Bearer)
               </label>
               <input
@@ -75,13 +100,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 className="input-text"
                 style={{ paddingLeft: '0.875rem' }}
               />
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--text-muted)',
+                  marginTop: '0.25rem',
+                  display: 'block',
+                }}
+              >
                 Leave empty if running locally in unauthenticated development mode.
               </span>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.35rem' }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  marginBottom: '0.35rem',
+                }}
+              >
                 Fit Score Pass Threshold (0 – 100)
               </label>
               <input
@@ -93,8 +132,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 className="input-text"
                 style={{ paddingLeft: '0.875rem' }}
               />
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
-                Jobs scoring at or above this threshold will qualify for automatic tailoring (Default: 75).
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--text-muted)',
+                  marginTop: '0.25rem',
+                  display: 'block',
+                }}
+              >
+                Jobs scoring at or above this threshold will qualify for automatic tailoring
+                (Default: 75).
               </span>
             </div>
           </div>

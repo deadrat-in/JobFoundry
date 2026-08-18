@@ -43,7 +43,15 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
         <div className="modal-header">
           <div>
             <h2 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{job.title}</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                fontSize: '0.875rem',
+                color: 'var(--text-secondary)',
+              }}
+            >
               <span>{job.company}</span>
               {job.location && <span>• {job.location}</span>}
               <span className="badge badge-indigo">{job.source}</span>
@@ -52,14 +60,28 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
           <button
             onClick={onClose}
             className="btn btn-secondary btn-sm"
-            style={{ borderRadius: 'var(--radius-full)', width: '32px', height: '32px', padding: 0 }}
+            style={{
+              borderRadius: 'var(--radius-full)',
+              width: '32px',
+              height: '32px',
+              padding: 0,
+            }}
           >
             ✕
           </button>
         </div>
 
         {/* Subheader / Tabs */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.2)' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '0.75rem 1.5rem',
+            borderBottom: '1px solid var(--border-subtle)',
+            background: 'rgba(0,0,0,0.2)',
+          }}
+        >
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button
               onClick={() => setActiveTab('details')}
@@ -111,10 +133,22 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                   marginBottom: '1.5rem',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                  <h3 style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>Fit Screener Evaluation</h3>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '0.75rem',
+                  }}
+                >
+                  <h3 style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>
+                    Fit Screener Evaluation
+                  </h3>
                   {job.fit_score !== null && job.fit_score !== undefined ? (
-                    <span className={`score-badge score-${scoreCat}`} style={{ fontSize: '1rem', padding: '0.4rem 0.8rem' }}>
+                    <span
+                      className={`score-badge score-${scoreCat}`}
+                      style={{ fontSize: '1rem', padding: '0.4rem 0.8rem' }}
+                    >
                       {job.fit_score} / 100
                     </span>
                   ) : (
@@ -123,14 +157,25 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                 </div>
 
                 {fitNotes.reasoning && (
-                  <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
+                  <p
+                    style={{
+                      fontSize: '0.9rem',
+                      color: 'var(--text-secondary)',
+                      marginBottom: '0.75rem',
+                      lineHeight: 1.5,
+                    }}
+                  >
                     {fitNotes.reasoning}
                   </p>
                 )}
 
                 {fitNotes.matching_skills && fitNotes.matching_skills.length > 0 && (
                   <div style={{ marginBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-green)' }}>Matching Skills: </span>
+                    <span
+                      style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-green)' }}
+                    >
+                      Matching Skills:{' '}
+                    </span>
                     <div className="skills-container" style={{ margin: '0.25rem 0' }}>
                       {fitNotes.matching_skills.map((skill, idx) => (
                         <span key={idx} className="skill-chip skill-matching">
@@ -143,7 +188,11 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
 
                 {fitNotes.missing_skills && fitNotes.missing_skills.length > 0 && (
                   <div>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-red)' }}>Missing Skills: </span>
+                    <span
+                      style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-red)' }}
+                    >
+                      Missing Skills:{' '}
+                    </span>
                     <div className="skills-container" style={{ margin: '0.25rem 0' }}>
                       {fitNotes.missing_skills.map((skill, idx) => (
                         <span key={idx} className="skill-chip skill-missing">
@@ -164,7 +213,14 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
 
               {/* Job Description */}
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '0.75rem',
+                  }}
+                >
                   <h3 style={{ fontSize: '1rem' }}>Job Description</h3>
                   <a
                     href={job.url}

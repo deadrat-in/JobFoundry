@@ -23,7 +23,10 @@ export interface ResumeDiff {
   skills: SkillDiff[];
 }
 
-export function computeListDiff(originalList: string[] = [], tailoredList: string[] = []): DiffItem[] {
+export function computeListDiff(
+  originalList: string[] = [],
+  tailoredList: string[] = []
+): DiffItem[] {
   const originalSet = new Set(originalList);
   const tailoredSet = new Set(tailoredList);
   const items: DiffItem[] = [];
@@ -76,7 +79,10 @@ export function computeResumeDiff(
 
   const work: WorkDiff[] = [];
   const allCompanies = Array.from(
-    new Set([...origWork.map((w) => w.company || w.name), ...tailWork.map((w) => w.company || w.name)])
+    new Set([
+      ...origWork.map((w) => w.company || w.name),
+      ...tailWork.map((w) => w.company || w.name),
+    ])
   ).filter(Boolean);
 
   for (const company of allCompanies) {

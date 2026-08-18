@@ -9,7 +9,7 @@ function bearerToken(header) {
   return header.startsWith('Bearer ') ? header.slice(7).trim() : '';
 }
 
-export function buildApp({ db, apiKeys, artifactsDir = './data/artifacts' }) {
+export function buildApp({ db, apiKeys, artifactsDir = './data/artifacts', serverUrl = '' }) {
   const keys = new Set(apiKeys ?? []);
   const app = Fastify({ logger: false });
 
@@ -34,6 +34,23 @@ export function buildApp({ db, apiKeys, artifactsDir = './data/artifacts' }) {
   }
 
   app.get('/health', async () => ({ ok: true }));
+
+  // GET /api/v1/extension/config - Seed config bundle for browser extension
+  app.get('/api/v1/extension/config', async (request) => {
+    const hostHeader = request.headers.host;
+    const protocol = request.headers['x-forwarded-proto'] || request.protocol || 'http';
+    const computedUrl =
+      serverUrl || (hostHeader ? `${protocol}://${hostHeader}` : 'http://localhost:8080');
+    return {
+      serverUrl: computedUrl,
+      apiKey: keys.size > 0 ? Array.from(keys)[0] : '',
+      scanIntervalHours: 6,
+      passiveMode: true,
+      activeMode: false,
+      fitThreshold: 75,
+      portals: {},
+    };
+  });
 
   app.post('/api/v1/jobs/ingest', async (request, reply) => {
     if (!authenticate(request, reply)) return;

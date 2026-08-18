@@ -90,3 +90,19 @@ test('bundled background.js contains no node: builtins', () => {
     assert.ok(!js.includes('require('), `${target} bundle must not use require()`);
   }
 });
+
+test('build --release produces unpacked chrome and packaged firefox artifacts', () => {
+  execFileSync(process.execPath, [resolve(EXT, 'build.mjs'), '--release'], {
+    cwd: EXT,
+    stdio: 'pipe',
+  });
+  assert.ok(
+    existsSync(resolve(EXT, 'dist', 'chrome', 'manifest.json')),
+    'dist/chrome manifest missing'
+  );
+  assert.ok(
+    existsSync(resolve(EXT, 'dist', 'firefox', 'manifest.json')),
+    'dist/firefox manifest missing'
+  );
+  assert.ok(existsSync(resolve(EXT, 'dist', 'firefox.xpi')), 'dist/firefox.xpi missing');
+});

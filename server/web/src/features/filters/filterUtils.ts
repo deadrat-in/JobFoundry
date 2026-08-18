@@ -44,13 +44,21 @@ export function filterJobs(jobs: Job[], criteria: FilterCriteria): Job[] {
 
     // 4. Score range filters
     if (criteria.minScore !== undefined) {
-      if (job.fit_score === null || job.fit_score === undefined || job.fit_score < criteria.minScore) {
+      if (
+        job.fit_score === null ||
+        job.fit_score === undefined ||
+        job.fit_score < criteria.minScore
+      ) {
         return false;
       }
     }
 
     if (criteria.maxScore !== undefined) {
-      if (job.fit_score !== null && job.fit_score !== undefined && job.fit_score > criteria.maxScore) {
+      if (
+        job.fit_score !== null &&
+        job.fit_score !== undefined &&
+        job.fit_score > criteria.maxScore
+      ) {
         return false;
       }
     }

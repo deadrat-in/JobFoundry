@@ -74,12 +74,23 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                     onDragStart={(e) => handleDragStart(e, job.id)}
                     onClick={() => onSelectJob(job)}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        gap: '0.5rem',
+                        marginBottom: '0.35rem',
+                      }}
+                    >
                       <div style={{ fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.3 }}>
                         {job.title}
                       </div>
                       {job.fit_score !== null && job.fit_score !== undefined && (
-                        <span className={`score-badge score-${scoreCat}`} style={{ padding: '0.15rem 0.4rem', fontSize: '0.75rem' }}>
+                        <span
+                          className={`score-badge score-${scoreCat}`}
+                          style={{ padding: '0.15rem 0.4rem', fontSize: '0.75rem' }}
+                        >
                           {job.fit_score}%
                         </span>
                       )}

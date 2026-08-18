@@ -1,45 +1,85 @@
 name: jobfoundry
 
-# Phase 00 skeleton — parse/validate only, NOT runnable yet.
-# Services are wired into a real stack in Phase 08. Each service lists the
-# phase that builds it.
-
 services:
   # Phase 01/08 — server/ingest (Node/ESM ingest API + SQLite + dedup)
   ingest:
-    build: ./server/ingest
+    build:
+      context: .
+      dockerfile: server/ingest/Dockerfile
+    ports:
+      - '8080:8080'
     environment:
       PORT: '8080'
       DB_PATH: /data/jobfoundry.db
-      API_KEYS: ${API_KEYS:?set API_KEYS in .env}
+      ARTIFACTS_DIR: /data/artifacts
+      API_KEYS: ${API_KEYS:-}
     volumes:
       - jobfoundry-data:/data
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:8080/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
   # Phase 05/08 — server/scorer (Python fit screener + tailoring bridge)
   scorer:
-    build: ./server/scorer
+    build:
+      context: .
+      dockerfile: server/scorer/Dockerfile
+    ports:
+      - '8001:8001'
     environment:
+      PORT: '8001'
       DB_PATH: /data/jobfoundry.db
-      SCORER_MODEL: ${SCORER_MODEL:-}
+      ARTIFACTS_DIR: /data/artifacts
+      SCORER_MODEL: ${SCORER_MODEL:-gpt-4o-mini}
       SCORER_PROVIDER: ${SCORER_PROVIDER:-}
       SCORER_THRESHOLD: ${SCORER_THRESHOLD:-75}
-      RESUME_OPS_URL: http://resume-ops:8081
+      RESUME_OPS_URL: ${RESUME_OPS_URL:-http://resume-ops:8081}
     volumes:
       - jobfoundry-data:/data
+    depends_on:
+      ingest:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
-  # Phase 06/08 — external tailoring engine (resume-ops), image TBD in Phase 08
+  # Phase 06/08 — external tailoring engine (resume-ops)
   resume-ops:
     image: resume-ops:local
+    ports:
+      - '8081:8081'
     environment:
       PORT: '8081'
+    profiles:
+      - full-tailor
 
   # Phase 07/08 — server/web (Vite + React dashboard)
   web:
-    build: ./server/web
-    environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
+    build:
+      context: .
+      dockerfile: server/web/Dockerfile
     ports:
       - '5173:5173'
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
     depends_on:
       - ingest
       - scorer

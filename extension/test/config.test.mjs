@@ -112,3 +112,70 @@ test('falls back to the chrome global when browser is unavailable', async () => 
     else delete globalThis.chrome;
   }
 });
+
+test('fetchSeedConfig retrieves config bundle from server', async () => {
+  const mod = await freshConfig();
+  const mockFetch = async (url) => {
+    assert.equal(url, 'http://127.0.0.1:8080/api/v1/extension/config');
+    return {
+      ok: true,
+      json: async () => ({
+        serverUrl: 'http://127.0.0.1:8080',
+        apiKey: 'seed-token-123',
+        fitThreshold: 80,
+      }),
+    };
+  };
+
+  const seed = await mod.fetchSeedConfig('http://127.0.0.1:8080', { fetchImpl: mockFetch });
+  assert.equal(seed.serverUrl, 'http://127.0.0.1:8080');
+  assert.equal(seed.apiKey, 'seed-token-123');
+  assert.equal(seed.fitThreshold, 80);
+});
+
+test('syncSeedConfig writes seed values to extension storage', async () => {
+  const { browser, snapshot } = createBrowserMock();
+  const mod = await freshConfig();
+  const mockFetch = async () => ({
+    ok: true,
+    json: async () => ({
+      serverUrl: 'https://jobfoundry.internal',
+      apiKey: 'authed-seed-key',
+      fitThreshold: 85,
+    }),
+  });
+
+  await withBrowser(browser, () =>
+    mod.syncSeedConfig('https://jobfoundry.internal', {
+      fetchImpl: mockFetch,
+      storageImpl: browser.storage.sync,
+    })
+  );
+
+  assert.equal(snapshot().store.serverUrl, 'https://jobfoundry.internal');
+  assert.equal(snapshot().store.apiKey, 'authed-seed-key');
+  assert.equal(snapshot().store.fitThreshold, 85);
+});
+
+test('getConfig with seedUrl seeds storage when unconfigured', async () => {
+  const { browser } = createBrowserMock();
+  const mod = await freshConfig();
+  const mockFetch = async () => ({
+    ok: true,
+    json: async () => ({
+      serverUrl: 'http://localhost:8080',
+      apiKey: 'auto-seed-key',
+    }),
+  });
+
+  const cfg = await withBrowser(browser, () =>
+    mod.getConfig({
+      seedUrl: 'http://localhost:8080',
+      fetchImpl: mockFetch,
+      storageImpl: browser.storage.sync,
+    })
+  );
+
+  assert.equal(cfg.serverUrl, 'http://localhost:8080');
+  assert.equal(cfg.apiKey, 'auto-seed-key');
+});

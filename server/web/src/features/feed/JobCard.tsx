@@ -10,12 +10,7 @@ interface JobCardProps {
   onTailored?: (updatedJob: Job) => void;
 }
 
-export const JobCard: React.FC<JobCardProps> = ({
-  job,
-  threshold = 75,
-  onSelect,
-  onTailored,
-}) => {
+export const JobCard: React.FC<JobCardProps> = ({ job, threshold = 75, onSelect, onTailored }) => {
   let fitNotes: FitNotes = {};
   if (job.fit_notes) {
     try {
@@ -36,9 +31,7 @@ export const JobCard: React.FC<JobCardProps> = ({
             <div className="job-card-company">{job.company}</div>
           </div>
           {job.fit_score !== null && job.fit_score !== undefined ? (
-            <span className={`score-badge score-${scoreCat}`}>
-              {job.fit_score}%
-            </span>
+            <span className={`score-badge score-${scoreCat}`}>{job.fit_score}%</span>
           ) : (
             <span className="score-badge score-unscored">Unscored</span>
           )}
@@ -47,7 +40,9 @@ export const JobCard: React.FC<JobCardProps> = ({
         <div className="job-card-meta">
           {job.location && <span className="meta-item">📍 {job.location}</span>}
           <span className="badge badge-indigo">{job.source}</span>
-          <span className={`badge ${job.status === 'tailored' ? 'badge-purple' : job.status === 'rejected_by_score' ? 'badge-red' : 'badge-blue'}`}>
+          <span
+            className={`badge ${job.status === 'tailored' ? 'badge-purple' : job.status === 'rejected_by_score' ? 'badge-red' : 'badge-blue'}`}
+          >
             {job.status.replace(/_/g, ' ')}
           </span>
         </div>
@@ -61,7 +56,10 @@ export const JobCard: React.FC<JobCardProps> = ({
               </span>
             ))}
             {fitNotes.matching_skills.length > 3 && (
-              <span className="skill-chip" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>
+              <span
+                className="skill-chip"
+                style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}
+              >
                 +{fitNotes.matching_skills.length - 3} more
               </span>
             )}

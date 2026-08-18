@@ -14,6 +14,8 @@ const defaultSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function sendJobs({
   jobs,
+  serverUrl,
+  apiKey,
   getConfig = readConfig,
   fetchImpl = globalThis.fetch,
   timeoutMs = 15000,
@@ -21,12 +23,14 @@ export async function sendJobs({
   backoffMs = 500,
   sleep = defaultSleep,
 }) {
-  const config = await getConfig();
-  const { serverUrl, apiKey } = config;
-  if (!serverUrl) throw new ConfigError('serverUrl is not configured');
-  if (!apiKey) throw new ConfigError('apiKey is not configured');
+  const config = serverUrl && apiKey ? { serverUrl, apiKey } : await getConfig();
+  const effectiveServerUrl = serverUrl ?? config.serverUrl;
+  const effectiveApiKey = apiKey ?? config.apiKey;
+  if (!effectiveServerUrl) throw new ConfigError('serverUrl is not configured');
+  if (!effectiveApiKey) throw new ConfigError('apiKey is not configured');
 
-  const url = `${String(serverUrl).replace(/\/+$/, '')}/api/v1/jobs/ingest`;
+  const url = `${String(effectiveServerUrl).replace(/\/+$/, '')}/api/v1/jobs/ingest`;
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 

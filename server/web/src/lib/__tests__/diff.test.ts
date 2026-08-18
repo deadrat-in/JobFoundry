@@ -12,10 +12,7 @@ describe('computeResumeDiff', () => {
       {
         company: 'Cloud Corp',
         position: 'Backend Dev',
-        highlights: [
-          'Maintained legacy Python 2 codebase',
-          'Built REST APIs in Flask',
-        ],
+        highlights: ['Maintained legacy Python 2 codebase', 'Built REST APIs in Flask'],
       },
     ],
     skills: [
@@ -30,7 +27,8 @@ describe('computeResumeDiff', () => {
     basics: {
       name: 'Alex Smith',
       label: 'Senior Distributed Systems Architect',
-      summary: 'Senior distributed systems engineer specializing in high-throughput Python and FastAPI microservices.',
+      summary:
+        'Senior distributed systems engineer specializing in high-throughput Python and FastAPI microservices.',
     },
     work: [
       {
@@ -64,7 +62,7 @@ describe('computeResumeDiff', () => {
     expect(diff.work).toHaveLength(1);
     const workDiff = diff.work[0];
     expect(workDiff.company).toBe('Cloud Corp');
-    
+
     const addedHighlights = workDiff.highlights.filter((h) => h.type === 'added');
     const removedHighlights = workDiff.highlights.filter((h) => h.type === 'removed');
     const unchangedHighlights = workDiff.highlights.filter((h) => h.type === 'unchanged');

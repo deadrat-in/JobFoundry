@@ -167,14 +167,36 @@ test('invalid payload shape returns 400 with detail', async () => {
   await app.close();
 });
 
+test('GET /api/v1/extension/config returns seed configuration bundle', async () => {
+  const { app } = makeApp();
+  const res = await app.inject({ method: 'GET', url: '/api/v1/extension/config' });
+  assert.equal(res.statusCode, 200);
+  const data = res.json();
+  assert.equal(data.apiKey, 'testkey');
+  assert.equal(data.scanIntervalHours, 6);
+  assert.equal(data.fitThreshold, 75);
+  assert.ok(data.serverUrl);
+  await app.close();
+});
+
 test('loadConfig reads env with defaults', () => {
   const config = loadConfig({});
   assert.equal(config.port, 8080);
   assert.deepEqual(config.apiKeys, []);
   assert.equal(config.dbPath, './data/jobfoundry.db');
+  assert.equal(config.artifactsDir, './data/artifacts');
+  assert.equal(config.serverUrl, 'http://localhost:8080');
 
-  const custom = loadConfig({ PORT: '9000', API_KEYS: 'a, b,,c', DB_PATH: ':memory:' });
+  const custom = loadConfig({
+    PORT: '9000',
+    API_KEYS: 'a, b,,c',
+    DB_PATH: ':memory:',
+    ARTIFACTS_DIR: '/custom/artifacts',
+    SERVER_URL: 'https://jobs.example.com',
+  });
   assert.equal(custom.port, 9000);
   assert.deepEqual(custom.apiKeys, ['a', 'b', 'c']);
   assert.equal(custom.dbPath, ':memory:');
+  assert.equal(custom.artifactsDir, '/custom/artifacts');
+  assert.equal(custom.serverUrl, 'https://jobs.example.com');
 });

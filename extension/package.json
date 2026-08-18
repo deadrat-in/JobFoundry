@@ -6,6 +6,7 @@
   "license": "AGPL-3.0-only",
   "scripts": {
     "build": "node build.mjs",
+    "build:release": "node build.mjs --release",
     "gen:provider-index": "node scripts/gen-provider-index.mjs",
     "pretest": "node scripts/gen-provider-index.mjs",
     "test": "node --test test/*.test.mjs",

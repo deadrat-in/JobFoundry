@@ -20,7 +20,8 @@ export function loadSettings(): AppSettings {
     return {
       apiKey: parsed.apiKey || '',
       apiUrl: parsed.apiUrl || DEFAULT_SETTINGS.apiUrl,
-      threshold: typeof parsed.threshold === 'number' ? parsed.threshold : DEFAULT_SETTINGS.threshold,
+      threshold:
+        typeof parsed.threshold === 'number' ? parsed.threshold : DEFAULT_SETTINGS.threshold,
     };
   } catch {
     return DEFAULT_SETTINGS;

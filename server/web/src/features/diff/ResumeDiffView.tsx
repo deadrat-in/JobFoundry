@@ -28,7 +28,9 @@ export const ResumeDiffView: React.FC<ResumeDiffViewProps> = ({
     <div className="diff-container">
       {hasBasicsDiff && (
         <div className="diff-section">
-          <h4 style={{ fontSize: '0.95rem', marginBottom: '0.5rem', color: 'var(--accent-primary)' }}>
+          <h4
+            style={{ fontSize: '0.95rem', marginBottom: '0.5rem', color: 'var(--accent-primary)' }}
+          >
             Profile & Summary
           </h4>
           {diff.basics.labelChange && (
@@ -54,13 +56,16 @@ export const ResumeDiffView: React.FC<ResumeDiffViewProps> = ({
 
       {hasWorkDiff && (
         <div className="diff-section">
-          <h4 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', color: 'var(--accent-primary)' }}>
+          <h4
+            style={{ fontSize: '0.95rem', marginBottom: '0.75rem', color: 'var(--accent-primary)' }}
+          >
             Work Experience Highlights
           </h4>
           {diff.work.map((w, idx) => (
             <div key={idx} style={{ marginBottom: '1rem' }}>
               <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.35rem' }}>
-                {w.company} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({w.position})</span>
+                {w.company}{' '}
+                <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({w.position})</span>
               </div>
               <div style={{ paddingLeft: '0.5rem' }}>
                 {w.highlights.map((h, hIdx) => {
@@ -92,12 +97,16 @@ export const ResumeDiffView: React.FC<ResumeDiffViewProps> = ({
 
       {hasSkillsDiff && (
         <div className="diff-section">
-          <h4 style={{ fontSize: '0.95rem', marginBottom: '0.75rem', color: 'var(--accent-primary)' }}>
+          <h4
+            style={{ fontSize: '0.95rem', marginBottom: '0.75rem', color: 'var(--accent-primary)' }}
+          >
             Skills & Keywords
           </h4>
           {diff.skills.map((s, idx) => (
             <div key={idx} style={{ marginBottom: '0.75rem' }}>
-              <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.25rem' }}>{s.name}</div>
+              <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.25rem' }}>
+                {s.name}
+              </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
                 {s.keywords.map((k, kIdx) => {
                   if (k.type === 'added') {
@@ -115,7 +124,11 @@ export const ResumeDiffView: React.FC<ResumeDiffViewProps> = ({
                     );
                   }
                   return (
-                    <span key={kIdx} className="skill-chip" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                    <span
+                      key={kIdx}
+                      className="skill-chip"
+                      style={{ background: 'rgba(255,255,255,0.06)' }}
+                    >
                       {k.text}
                     </span>
                   );

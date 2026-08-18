@@ -104,7 +104,11 @@ export const App: React.FC = () => {
           <button onClick={fetchJobs} className="btn btn-secondary btn-sm" title="Refresh Feed">
             🔄 Refresh
           </button>
-          <button onClick={() => setIsSettingsOpen(true)} className="btn btn-secondary btn-sm" title="Settings">
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="btn btn-secondary btn-sm"
+            title="Settings"
+          >
             ⚙️ Settings
           </button>
         </div>

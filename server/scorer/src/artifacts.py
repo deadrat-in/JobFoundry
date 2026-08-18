@@ -69,6 +69,8 @@ class ArtifactManager:
         if plain_text is not None:
             txt_path = job_dir / "resume.txt"
             txt_path.write_text(plain_text, encoding="utf-8")
+            (job_dir / "resume-text.txt").write_text(plain_text, encoding="utf-8")
+
 
         return {
             "json": str(json_path),

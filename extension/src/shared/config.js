@@ -39,8 +39,50 @@ export function validate(patch) {
   }
 }
 
-export async function getConfig() {
-  const stored = await storage().get(defaults);
+export async function fetchSeedConfig(
+  serverUrl = 'http://localhost:8080',
+  { fetchImpl = globalThis.fetch } = {}
+) {
+  const normalized = serverUrl.replace(/\/+$/, '');
+  const url = `${normalized}/api/v1/extension/config`;
+  const res = await fetchImpl(url);
+  if (!res.ok) {
+    throw new Error(`failed to fetch seed config: HTTP ${res.status}`);
+  }
+  return await res.json();
+}
+
+export async function syncSeedConfig(
+  serverUrl,
+  { fetchImpl = globalThis.fetch, storageImpl } = {}
+) {
+  const store = storageImpl ?? storage();
+  const seed = await fetchSeedConfig(serverUrl, { fetchImpl });
+  const patch = {};
+  for (const key of KNOWN_KEYS) {
+    if (seed[key] !== undefined) {
+      patch[key] = seed[key];
+    }
+  }
+  if (Object.keys(patch).length > 0) {
+    validate(patch);
+    await store.set(patch);
+  }
+  const current = await store.get(defaults);
+  return { ...defaults, ...current };
+}
+
+export async function getConfig({ seedUrl, fetchImpl = globalThis.fetch, storageImpl } = {}) {
+  const store = storageImpl ?? storage();
+  let stored = await store.get(defaults);
+  if (seedUrl && (!stored.serverUrl || !stored.apiKey)) {
+    try {
+      const seeded = await syncSeedConfig(seedUrl, { fetchImpl, storageImpl: store });
+      return seeded;
+    } catch {
+      // ignore network errors on seed fetch
+    }
+  }
   const out = {};
   for (const key of KNOWN_KEYS) {
     if (stored[key] !== undefined) out[key] = stored[key];

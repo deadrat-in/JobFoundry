@@ -94,7 +94,11 @@ describe('ApiClient', () => {
   });
 
   it('tailor sends POST request to tailor endpoint', async () => {
-    const tailored = { ...mockJob, status: 'tailored' as const, tailored_resume_id: 'tailored-job-1' };
+    const tailored = {
+      ...mockJob,
+      status: 'tailored' as const,
+      tailored_resume_id: 'tailored-job-1',
+    };
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,

@@ -48,3 +48,21 @@ for (const target of TARGETS) {
 
   console.log(`built dist/${target}/`);
 }
+
+const isRelease = process.argv.includes('--release');
+if (isRelease) {
+  const webExtModule = await import('web-ext');
+  const webExt = webExtModule.default || webExtModule;
+  const releaseDir = resolve(DIST, 'release');
+  mkdirSync(releaseDir, { recursive: true });
+  const buildResult = await webExt.cmd.build({
+    sourceDir: resolve(DIST, 'firefox'),
+    artifactsDir: releaseDir,
+    overwriteDest: true,
+  });
+  if (buildResult?.extensionPath) {
+    const xpiTarget = resolve(DIST, 'firefox.xpi');
+    copyFileSync(buildResult.extensionPath, xpiTarget);
+    console.log(`built release package: ${xpiTarget} (${buildResult.extensionPath})`);
+  }
+}

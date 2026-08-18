@@ -67,7 +67,9 @@ export const ArtifactViewer: React.FC<ArtifactViewerProps> = ({ jobId }) => {
 
   return (
     <div style={{ marginTop: '1rem' }}>
-      <h4 style={{ marginBottom: '0.75rem', fontSize: '0.95rem' }}>Tailored Documents & Artifacts</h4>
+      <h4 style={{ marginBottom: '0.75rem', fontSize: '0.95rem' }}>
+        Tailored Documents & Artifacts
+      </h4>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
         <button
           onClick={() => handleDownloadPdf('folio')}
@@ -109,15 +111,34 @@ export const ArtifactViewer: React.FC<ArtifactViewerProps> = ({ jobId }) => {
       )}
 
       {previewUrl && (
-        <div style={{ marginTop: '1rem', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 1rem', background: 'rgba(0,0,0,0.3)' }}>
+        <div
+          style={{
+            marginTop: '1rem',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              padding: '0.5rem 1rem',
+              background: 'rgba(0,0,0,0.3)',
+            }}
+          >
             <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>PDF Live Preview</span>
             <button
               onClick={() => {
                 window.URL.revokeObjectURL(previewUrl);
                 setPreviewUrl(null);
               }}
-              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+              }}
             >
               Close
             </button>
