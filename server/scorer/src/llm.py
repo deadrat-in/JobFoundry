@@ -37,7 +37,8 @@ class LiteLLMClient:
         self.model = model
         self.api_key = api_key
         self.api_base = api_base
-        self.client = instructor.from_litellm(acompletion)
+        self.client = instructor.from_litellm(acompletion, mode=instructor.Mode.MD_JSON)
+
 
     async def score(self, job: dict[str, Any], resume: dict[str, Any]) -> ScoreResult:
         prompt = (

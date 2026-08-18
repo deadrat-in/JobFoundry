@@ -39,9 +39,14 @@ services:
       PORT: '8001'
       DB_PATH: /data/jobfoundry.db
       ARTIFACTS_DIR: /data/artifacts
-      SCORER_MODEL: ${SCORER_MODEL:-gpt-4o-mini}
-      SCORER_PROVIDER: ${SCORER_PROVIDER:-}
+      SCORER_MODEL: ${SCORER_MODEL:-openrouter/google/gemma-4-26b-a4b-it:free}
+      SCORER_PROVIDER: ${SCORER_PROVIDER:-openrouter}
+
       SCORER_THRESHOLD: ${SCORER_THRESHOLD:-75}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_API_BASE: ${OPENROUTER_API_BASE:-https://openrouter.ai/api/v1}
+      SCORER_API_KEY: ${SCORER_API_KEY:-}
+      SCORER_API_BASE: ${SCORER_API_BASE:-}
       RESUME_OPS_URL: ${RESUME_OPS_URL:-http://resume-ops:8081}
     volumes:
       - jobfoundry-data:/data

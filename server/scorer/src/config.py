@@ -6,12 +6,15 @@ from dataclasses import dataclass
 class ScorerConfig:
     scorer_model: str = "gpt-4o-mini"
     scorer_provider: str | None = None
+    scorer_api_key: str | None = None
+    scorer_api_base: str | None = None
     scorer_threshold: int = 75
     db_path: str = "./jobs.db"
     resume_ops_url: str | None = None
     artifacts_dir: str = "./data/artifacts"
     port: int = 8001
     host: str = "0.0.0.0"
+
 
 
 def load_config() -> ScorerConfig:
@@ -30,6 +33,16 @@ def load_config() -> ScorerConfig:
     db_path = os.getenv("DB_PATH", "./jobs.db")
     resume_ops_url = os.getenv("RESUME_OPS_URL")
     artifacts_dir = os.getenv("ARTIFACTS_DIR", "./data/artifacts")
+    scorer_api_key = (
+        os.getenv("OPENROUTER_API_KEY")
+        or os.getenv("SCORER_API_KEY")
+        or os.getenv("OPENAI_API_KEY")
+    )
+    scorer_api_base = (
+        os.getenv("OPENROUTER_API_BASE")
+        or os.getenv("SCORER_API_BASE")
+        or os.getenv("OPENAI_API_BASE")
+    )
     
     raw_port = os.getenv("PORT", "8001")
     try:
@@ -42,6 +55,8 @@ def load_config() -> ScorerConfig:
     return ScorerConfig(
         scorer_model=scorer_model,
         scorer_provider=scorer_provider,
+        scorer_api_key=scorer_api_key,
+        scorer_api_base=scorer_api_base,
         scorer_threshold=scorer_threshold,
         db_path=db_path,
         resume_ops_url=resume_ops_url,
@@ -49,3 +64,4 @@ def load_config() -> ScorerConfig:
         port=port,
         host=host,
     )
+

@@ -13,8 +13,11 @@ def build_app():
     else:
         llm_client = LiteLLMClient(
             model=config.scorer_model,
+            api_key=config.scorer_api_key,
+            api_base=config.scorer_api_base,
         )
     return create_app(llm_client=llm_client, config=config)
+
 
 
 app = build_app()
