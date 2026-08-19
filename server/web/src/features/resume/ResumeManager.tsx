@@ -87,7 +87,7 @@ export const ResumeManager: React.FC = () => {
       const isValid = schemaValidator(parsed);
       if (!isValid && schemaValidator.errors) {
         const errors = schemaValidator.errors.map(
-          (err) => `${err.instancePath || '/'} ${err.message}`
+          (err: any) => `${err.instancePath || '/'} ${err.message}`
         );
         setValidationErrors(errors);
         return false;
