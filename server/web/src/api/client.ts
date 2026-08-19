@@ -62,9 +62,12 @@ export class ApiClient {
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
       ...(options.headers as Record<string, string>),
     };
+
+    if (options.body && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (this.apiKey) {
       headers['Authorization'] = `Bearer ${this.apiKey}`;
@@ -85,6 +88,11 @@ export class ApiClient {
       } catch {
         // Response wasn't JSON
       }
+      console.error(
+        `[API Error] ${options.method || 'GET'} ${url} (${response.status}):`,
+        errorMessage,
+        details
+      );
       throw new ApiError(response.status, errorMessage, details);
     }
 

@@ -25,9 +25,25 @@ export function buildApp({
   jwtSecret = 'jobfoundry-default-jwt-secret',
   artifactsDir = './data/artifacts',
   serverUrl = '',
+  logger = process.env.NODE_ENV === 'test' ? false : true,
 }) {
   const legacyKeys = new Set(apiKeys ?? []);
-  const app = Fastify({ logger: false });
+  const app = Fastify({ logger });
+
+  // Handle empty JSON bodies gracefully across DELETE, PUT, POST
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
+    if (!body || body.length === 0) {
+      done(null, {});
+      return;
+    }
+    try {
+      const json = JSON.parse(body);
+      done(null, json);
+    } catch (err) {
+      err.statusCode = 400;
+      done(err, undefined);
+    }
+  });
 
   // Enable CORS
   app.addHook('onRequest', async (request, reply) => {

@@ -1,8 +1,15 @@
+import logging
 import os
 import uvicorn
 from src.app import create_app
 from src.config import load_config
 from src.llm import LiteLLMClient, StubLLM
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger("jobfoundry-scorer")
 
 
 def build_app():
