@@ -82,24 +82,31 @@ Verify all services are up and healthy:
 - **Scorer Service**: http://localhost:8001
 - **Documentation**: [`docs/index.html`](docs/index.html)
 
-### 3. Build & Install Browser Extension
+### 3. Build & Install Browser Extension (WXT MV3)
 
-Build release packages for Chrome and Firefox:
+Build packages for Chrome and Firefox:
 
 ```bash
-npm --workspace=extension run build:release
+# Chrome / Edge / Brave (MV3)
+npm --workspace=extension run build
+
+# Firefox (MV3)
+npm --workspace=extension run build:firefox
+
+# Or live dev mode with automatic reloading
+npm --workspace=extension run dev
 ```
 
 #### Chrome / Chromium / Brave / Edge:
 
 1. Open `chrome://extensions/`
 2. Enable **Developer mode** (top right).
-3. Click **Load unpacked** and select `extension/dist/chrome/`.
+3. Click **Load unpacked** and select `extension/.output/chrome-mv3/`.
 
 #### Firefox (Desktop & Android):
 
 1. Open `about:debugging#/runtime/this-firefox`
-2. Click **Load Temporary Add-on...** and select `extension/dist/firefox/manifest.json` (or install `extension/dist/firefox.xpi`).
+2. Click **Load Temporary Add-on...** and select `extension/.output/firefox-mv3/manifest.json`.
 3. Click the JobFoundry extension icon to configure server URL (`http://localhost:8080`) and your user API key.
 
 ---

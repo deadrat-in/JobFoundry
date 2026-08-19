@@ -7,6 +7,8 @@ export default [
       '**/node_modules/**',
       '**/dist/**',
       '**/build/**',
+      '**/.output/**',
+      '**/.wxt/**',
       '**/.venv/**',
       // Vendored career-ops provider layer (MIT): files are byte-identical to
       // upstream so `sync:providers` content hashes stay stable. Upstream

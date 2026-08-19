@@ -1,4 +1,4 @@
-import { getConfig as readConfig } from './config.js';
+import { getConfig as readConfig } from './config.ts';
 
 export class ConfigError extends Error {}
 export class AuthError extends Error {}

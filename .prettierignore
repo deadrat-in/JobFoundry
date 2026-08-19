@@ -6,3 +6,6 @@ extension/src/background/providers/
 extension/src/background/user-agent.mjs
 extension/scripts/ports/
 extension/src/background/tests/fixtures/
+**/.output/
+**/.wxt/
+
