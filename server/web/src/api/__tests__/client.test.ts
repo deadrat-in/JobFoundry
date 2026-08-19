@@ -114,6 +114,62 @@ describe('ApiClient', () => {
     expect(res.job.status).toBe('tailored');
   });
 
+  it('login sends credentials and returns user and token', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        user: { id: 'u1', email: 'test@example.com', name: 'Tester', apiKey: 'jf_123' },
+        token: 'jwt-token-123',
+      }),
+    });
+    global.fetch = fetchMock;
+
+    const res = await client.login({ email: 'test@example.com', password: 'password123' });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://api.test/api/v1/auth/login',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ email: 'test@example.com', password: 'password123' }),
+      })
+    );
+    expect(res.user.email).toBe('test@example.com');
+    expect(res.token).toBe('jwt-token-123');
+  });
+
+  it('resume operations: get, upload, setActive, delete', async () => {
+    const mockResume = {
+      id: 'res-1',
+      userId: 'u1',
+      title: 'Master Resume',
+      resume: { basics: { name: 'Tester' } },
+      isActive: true,
+      createdAt: 1700000000000,
+      updatedAt: 1700000000000,
+    };
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ resumes: [mockResume], resume: mockResume, ok: true }),
+    });
+
+    const resumes = await client.getResumes();
+    expect(resumes).toEqual([mockResume]);
+
+    const uploaded = await client.uploadResume({
+      title: 'Master Resume',
+      resumeJson: { basics: { name: 'Tester' } },
+    });
+    expect(uploaded).toEqual(mockResume);
+
+    const activeSet = await client.setActiveResume('res-1');
+    expect(activeSet).toBe(true);
+
+    const deleted = await client.deleteResume('res-1');
+    expect(deleted).toBe(true);
+  });
+
   it('throws typed error on 401/404/500 responses', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,

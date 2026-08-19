@@ -15,6 +15,7 @@ class ArtifactManager:
         self,
         job_id: str,
         resume: dict[str, Any],
+        user_id: str | None = None,
         pdf_bytes: bytes | None = None,
         pdf_base64: str | None = None,
         pdf_concise_bytes: bytes | None = None,
@@ -22,13 +23,16 @@ class ArtifactManager:
         plain_text: str | None = None,
     ) -> dict[str, str | None]:
         """
-        Save tailored resume artifacts to disk under {base_dir}/{job_id}/:
+        Save tailored resume artifacts to disk under {base_dir}/[{user_id}/]{job_id}/:
         - resume.json
         - resume.pdf (primary theme)
         - resume-concise.pdf (concise theme)
         - resume.txt (ATS plain text)
         """
-        job_dir = self.base_dir / job_id
+        if user_id:
+            job_dir = self.base_dir / user_id / job_id
+        else:
+            job_dir = self.base_dir / job_id
         job_dir.mkdir(parents=True, exist_ok=True)
 
         # 1. Save JSON resume
@@ -70,7 +74,6 @@ class ArtifactManager:
             txt_path = job_dir / "resume.txt"
             txt_path.write_text(plain_text, encoding="utf-8")
             (job_dir / "resume-text.txt").write_text(plain_text, encoding="utf-8")
-
 
         return {
             "json": str(json_path),

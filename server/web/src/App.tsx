@@ -2,28 +2,39 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Job, JobStatus } from './types/job';
 import { api } from './api/client';
 import { loadSettings, saveSettings, AppSettings } from './lib/auth';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { LoginView } from './features/auth/LoginView';
+import { RegisterView } from './features/auth/RegisterView';
+import { ResumeManager } from './features/resume/ResumeManager';
 import { JobFeed } from './features/feed/JobFeed';
 import { KanbanBoard } from './features/tracker/KanbanBoard';
 import { JobDetailModal } from './features/detail/JobDetailModal';
 import { SettingsModal } from './features/settings/SettingsModal';
 
-export const App: React.FC = () => {
+const DashboardContent: React.FC = () => {
+  const { user, token, loading: authLoading, logout } = useAuth();
+  const [authView, setAuthView] = useState<'login' | 'register'>('login');
+
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'feed' | 'tracker'>('feed');
+  const [activeTab, setActiveTab] = useState<'feed' | 'tracker' | 'resume'>('feed');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
-  // Sync API client with current settings
+  // Sync API client with current settings & token
   useEffect(() => {
     api.setBaseUrl(settings.apiUrl);
-    api.setApiKey(settings.apiKey || null);
-  }, [settings]);
+    api.setApiKey(token || settings.apiKey || null);
+  }, [settings, token]);
 
   const fetchJobs = useCallback(async () => {
+    if (!token && !settings.apiKey) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -34,11 +45,28 @@ export const App: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [token, settings.apiKey]);
 
   useEffect(() => {
-    fetchJobs();
-  }, [fetchJobs]);
+    if (user) {
+      fetchJobs();
+    }
+  }, [user, fetchJobs]);
+
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+        Authenticating...
+      </div>
+    );
+  }
+
+  if (!user) {
+    if (authView === 'register') {
+      return <RegisterView onSwitchToLogin={() => setAuthView('login')} />;
+    }
+    return <LoginView onSwitchToRegister={() => setAuthView('register')} />;
+  }
 
   const handleStatusChange = async (jobId: string, newStatus: JobStatus) => {
     try {
@@ -98,6 +126,12 @@ export const App: React.FC = () => {
           >
             📊 Application Tracker
           </button>
+          <button
+            onClick={() => setActiveTab('resume')}
+            className={`nav-tab ${activeTab === 'resume' ? 'active' : ''}`}
+          >
+            📄 Profile & Resume
+          </button>
         </div>
 
         <div className="nav-actions">
@@ -111,53 +145,62 @@ export const App: React.FC = () => {
           >
             ⚙️ Settings
           </button>
+          <button
+            onClick={logout}
+            className="btn btn-secondary btn-sm"
+            style={{ borderRadius: 'var(--radius-full)' }}
+            title="Sign Out"
+          >
+            🚪 Logout
+          </button>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="main-content">
-        {/* Live Metrics */}
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-icon-wrapper" style={{ color: 'var(--color-blue)' }}>
-              💼
+        {activeTab !== 'resume' && (
+          <div className="stats-grid">
+            <div className="stat-card">
+              <div className="stat-icon-wrapper" style={{ color: 'var(--color-blue)' }}>
+                💼
+              </div>
+              <div>
+                <div className="stat-val">{totalJobs}</div>
+                <div className="stat-label">Total Ingested Jobs</div>
+              </div>
             </div>
-            <div>
-              <div className="stat-val">{totalJobs}</div>
-              <div className="stat-label">Total Ingested Jobs</div>
-            </div>
-          </div>
 
-          <div className="stat-card">
-            <div className="stat-icon-wrapper" style={{ color: 'var(--color-green)' }}>
-              🎯
+            <div className="stat-card">
+              <div className="stat-icon-wrapper" style={{ color: 'var(--color-green)' }}>
+                🎯
+              </div>
+              <div>
+                <div className="stat-val">{avgScore}%</div>
+                <div className="stat-label">Average Fit Score</div>
+              </div>
             </div>
-            <div>
-              <div className="stat-val">{avgScore}%</div>
-              <div className="stat-label">Average Fit Score</div>
-            </div>
-          </div>
 
-          <div className="stat-card">
-            <div className="stat-icon-wrapper" style={{ color: 'var(--color-purple)' }}>
-              ✨
+            <div className="stat-card">
+              <div className="stat-icon-wrapper" style={{ color: 'var(--color-purple)' }}>
+                ✨
+              </div>
+              <div>
+                <div className="stat-val">{tailoredCount}</div>
+                <div className="stat-label">Tailored Resumes</div>
+              </div>
             </div>
-            <div>
-              <div className="stat-val">{tailoredCount}</div>
-              <div className="stat-label">Tailored Resumes</div>
-            </div>
-          </div>
 
-          <div className="stat-card">
-            <div className="stat-icon-wrapper" style={{ color: 'var(--color-amber)' }}>
-              🔥
-            </div>
-            <div>
-              <div className="stat-val">{highFitCount}</div>
-              <div className="stat-label">Qualified (≥ {settings.threshold}%)</div>
+            <div className="stat-card">
+              <div className="stat-icon-wrapper" style={{ color: 'var(--color-amber)' }}>
+                🔥
+              </div>
+              <div>
+                <div className="stat-val">{highFitCount}</div>
+                <div className="stat-label">Qualified (≥ {settings.threshold}%)</div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {error && (
           <div
@@ -180,7 +223,9 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {loading ? (
+        {activeTab === 'resume' ? (
+          <ResumeManager />
+        ) : loading ? (
           <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
             Loading jobs from database...
           </div>
@@ -217,5 +262,13 @@ export const App: React.FC = () => {
         onSave={handleSaveSettings}
       />
     </div>
+  );
+};
+
+export const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <DashboardContent />
+    </AuthProvider>
   );
 };

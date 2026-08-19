@@ -46,7 +46,7 @@ export async function sendJobs({
       response = await fetchImpl(url, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${effectiveApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ jobs }),

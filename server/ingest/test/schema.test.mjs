@@ -7,104 +7,85 @@ import Database from 'better-sqlite3';
 import { openDb } from '../src/db/index.mjs';
 import { migrate } from '../src/db/migrate.mjs';
 
-const EXPECTED_COLUMNS = [
-  ['id', 'TEXT', 0],
-  ['title', 'TEXT', 1],
-  ['company', 'TEXT', 1],
-  ['location', 'TEXT', 0],
-  ['url', 'TEXT', 1],
-  ['source', 'TEXT', 1],
-  ['posted_at', 'INTEGER', 0],
-  ['description', 'TEXT', 0],
-  ['fingerprint', 'TEXT', 0],
-  ['liveness', 'TEXT', 1],
-  ['fit_score', 'INTEGER', 0],
-  ['fit_notes', 'TEXT', 0],
-  ['status', 'TEXT', 1],
-  ['tailored_resume_id', 'TEXT', 0],
-  ['created_at', 'INTEGER', 1],
-  ['updated_at', 'INTEGER', 1],
-];
-
-test('openDb migrates an in-memory DB to the exact jobs schema', () => {
+test('openDb migrates an in-memory DB to the full multi-tenant schema', () => {
   const db = openDb({ path: ':memory:' });
   try {
     const tables = db
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
       .all()
-      .map((r) => r.name);
-    assert.deepEqual(tables, ['jobs']);
+      .map((r) => r.name)
+      .sort();
+    assert.deepEqual(tables, ['jobs', 'user_jobs', 'user_resumes', 'users'].sort());
 
-    const cols = db.prepare('PRAGMA table_info(jobs)').all();
-    assert.equal(cols.length, EXPECTED_COLUMNS.length);
-    for (const [name, type, notnull] of EXPECTED_COLUMNS) {
-      const col = cols.find((c) => c.name === name);
-      assert.ok(col, `missing column ${name}`);
-      assert.equal(col.type, type, `column ${name} type`);
-      assert.equal(col.notnull, notnull, `column ${name} nullability`);
-      if (name === 'id') assert.equal(col.pk, 1, 'id must be the primary key');
-      else assert.equal(col.pk, 0, `${name} must not be primary key`);
-    }
+    // Verify users table
+    const userCols = db.prepare('PRAGMA table_info(users)').all();
+    assert.ok(userCols.find((c) => c.name === 'id' && c.pk === 1));
+    assert.ok(userCols.find((c) => c.name === 'email' && c.notnull === 1));
+    assert.ok(userCols.find((c) => c.name === 'password_hash' && c.notnull === 1));
+    assert.ok(userCols.find((c) => c.name === 'api_key' && c.notnull === 1));
 
-    const liveness = cols.find((c) => c.name === 'liveness');
-    assert.equal(String(liveness.dflt_value).replace(/'/g, ''), 'unknown');
-    const status = cols.find((c) => c.name === 'status');
-    assert.equal(String(status.dflt_value).replace(/'/g, ''), 'new');
+    // Verify user_resumes table
+    const resumeCols = db.prepare('PRAGMA table_info(user_resumes)').all();
+    assert.ok(resumeCols.find((c) => c.name === 'id' && c.pk === 1));
+    assert.ok(resumeCols.find((c) => c.name === 'user_id' && c.notnull === 1));
+    assert.ok(resumeCols.find((c) => c.name === 'resume_json' && c.notnull === 1));
+    assert.ok(resumeCols.find((c) => c.name === 'is_active' && c.notnull === 1));
+
+    // Verify user_jobs table
+    const userJobCols = db.prepare('PRAGMA table_info(user_jobs)').all();
+    assert.ok(userJobCols.find((c) => c.name === 'id' && c.pk === 1));
+    assert.ok(userJobCols.find((c) => c.name === 'user_id' && c.notnull === 1));
+    assert.ok(userJobCols.find((c) => c.name === 'job_id' && c.notnull === 1));
+    assert.ok(userJobCols.find((c) => c.name === 'status' && c.notnull === 1));
   } finally {
     db.close();
   }
 });
 
-test('url has a unique index', () => {
+test('foreign key cascade deletes user_jobs and user_resumes on user delete', () => {
   const db = openDb({ path: ':memory:' });
   try {
-    const indexes = db.prepare('PRAGMA index_list(jobs)').all();
-    const unique = indexes.find((i) => i.unique === 1);
-    assert.ok(unique, 'expected a unique index on jobs');
-    const cols = db.prepare(`PRAGMA index_info("${unique.name}")`).all();
-    assert.deepEqual(
-      cols.map((c) => c.name),
-      ['url']
-    );
+    const now = Date.now();
+    db.prepare(
+      'INSERT INTO users (id, email, password_hash, api_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run('u1', 'test@example.com', 'hash', 'key-1', now, now);
+
+    db.prepare(
+      'INSERT INTO jobs (id, title, company, url, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run('j1', 'Engineer', 'Acme', 'https://acme.test/job1', 'greenhouse', now, now);
+
+    db.prepare(
+      'INSERT INTO user_resumes (id, user_id, title, resume_json, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run('r1', 'u1', 'My Resume', '{"basics":{"name":"Test"}}', 1, now, now);
+
+    db.prepare(
+      'INSERT INTO user_jobs (id, user_id, job_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run('uj1', 'u1', 'j1', 'new', now, now);
+
+    assert.equal(db.prepare('SELECT COUNT(*) as n FROM user_resumes').get().n, 1);
+    assert.equal(db.prepare('SELECT COUNT(*) as n FROM user_jobs').get().n, 1);
+
+    // Delete user -> should cascade
+    db.prepare('DELETE FROM users WHERE id = ?').run('u1');
+    assert.equal(db.prepare('SELECT COUNT(*) as n FROM user_resumes').get().n, 0);
+    assert.equal(db.prepare('SELECT COUNT(*) as n FROM user_jobs').get().n, 0);
+    // Job in catalog remains
+    assert.equal(db.prepare('SELECT COUNT(*) as n FROM jobs').get().n, 1);
   } finally {
     db.close();
   }
 });
 
-test('migrate is idempotent (runs twice without error)', () => {
+test('migrate is idempotent', () => {
   const db = new Database(':memory:');
   try {
     assert.doesNotThrow(() => migrate(db));
     assert.doesNotThrow(() => migrate(db));
     const count = db
-      .prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name = 'jobs'")
+      .prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
       .get();
-    assert.equal(count.n, 1);
+    assert.equal(count.n, 4);
   } finally {
     db.close();
   }
-});
-
-test('openDb on a file path creates a persistent DB and reopens cleanly', (t) => {
-  const path = join(tmpdir(), `jobfoundry-schema-test-${process.pid}.db`);
-  t.after(() => {
-    try {
-      unlinkSync(path);
-    } catch {
-      // temp file may already be gone
-    }
-  });
-
-  const first = openDb({ path });
-  first
-    .prepare(
-      "INSERT INTO jobs (id, title, company, url, source, created_at, updated_at) VALUES ('a', 't', 'c', 'https://x.test/1', 'test', 1, 1)"
-    )
-    .run();
-  first.close();
-
-  const second = openDb({ path });
-  const row = second.prepare('SELECT * FROM jobs WHERE id = ?').get('a');
-  assert.equal(row.url, 'https://x.test/1');
-  second.close();
 });

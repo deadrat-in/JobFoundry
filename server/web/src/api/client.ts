@@ -1,5 +1,27 @@
 import { Job, JobFilters, TailorResponse } from '../types/job';
 
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  apiKey: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  token: string;
+}
+
+export interface UserResume {
+  id: string;
+  userId: string;
+  title: string;
+  resume: Record<string, any>;
+  isActive: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface ApiClientConfig {
   baseUrl?: string;
   apiKey?: string | null;
@@ -69,6 +91,71 @@ export class ApiClient {
     return response.json();
   }
 
+  // --- Auth Endpoints ---
+  async login(payload: { email: string; password: string }): Promise<AuthResponse> {
+    return this.request<AuthResponse>('/api/v1/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async register(payload: { email: string; password: string; name?: string }): Promise<AuthResponse> {
+    return this.request<AuthResponse>('/api/v1/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getMe(): Promise<User> {
+    const res = await this.request<{ user: User }>('/api/v1/auth/me');
+    return res.user;
+  }
+
+  async rotateApiKey(): Promise<string> {
+    const res = await this.request<{ apiKey: string }>('/api/v1/auth/api-key/rotate', {
+      method: 'POST',
+    });
+    return res.apiKey;
+  }
+
+  // --- Resume Endpoints ---
+  async getResumes(): Promise<UserResume[]> {
+    const res = await this.request<{ resumes: UserResume[] }>('/api/v1/resumes');
+    return res.resumes;
+  }
+
+  async getActiveResume(): Promise<UserResume | null> {
+    const res = await this.request<{ resume: UserResume | null }>('/api/v1/resumes/active');
+    return res.resume;
+  }
+
+  async uploadResume(payload: {
+    title?: string;
+    resumeJson: Record<string, any> | string;
+    setActive?: boolean;
+  }): Promise<UserResume> {
+    const res = await this.request<{ resume: UserResume }>('/api/v1/resumes', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.resume;
+  }
+
+  async setActiveResume(id: string): Promise<boolean> {
+    const res = await this.request<{ ok: boolean }>(`/api/v1/resumes/${id}/active`, {
+      method: 'PUT',
+    });
+    return res.ok;
+  }
+
+  async deleteResume(id: string): Promise<boolean> {
+    const res = await this.request<{ ok: boolean }>(`/api/v1/resumes/${id}`, {
+      method: 'DELETE',
+    });
+    return res.ok;
+  }
+
+  // --- Job Endpoints ---
   async getJobs(filters: JobFilters = {}): Promise<Job[]> {
     const params = new URLSearchParams();
     if (filters.status) params.set('status', filters.status);

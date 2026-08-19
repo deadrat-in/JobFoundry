@@ -1,38 +1,104 @@
 import Fastify from 'fastify';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { normalizeJob } from './jobs/normalize.mjs';
 import { fingerprintFor, insertIfNew } from './jobs/dedup.mjs';
+import { hashPassword, verifyPassword } from './auth/passwords.mjs';
+import { createToken, verifyToken, generateApiKey } from './auth/tokens.mjs';
+import {
+  getUserResumes,
+  getActiveResume,
+  saveUserResume,
+  setActiveResume,
+  deleteUserResume,
+} from './resumes/resumes.mjs';
 
 function bearerToken(header) {
   if (typeof header !== 'string') return '';
   return header.startsWith('Bearer ') ? header.slice(7).trim() : '';
 }
 
-export function buildApp({ db, apiKeys, artifactsDir = './data/artifacts', serverUrl = '' }) {
-  const keys = new Set(apiKeys ?? []);
+export function buildApp({
+  db,
+  apiKeys = [],
+  jwtSecret = 'jobfoundry-default-jwt-secret',
+  artifactsDir = './data/artifacts',
+  serverUrl = '',
+}) {
+  const legacyKeys = new Set(apiKeys ?? []);
   const app = Fastify({ logger: false });
 
   // Enable CORS
   app.addHook('onRequest', async (request, reply) => {
     reply.header('Access-Control-Allow-Origin', '*');
-    reply.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+    reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     if (request.method === 'OPTIONS') {
       return reply.code(200).send();
     }
   });
 
-  function authenticate(request, reply) {
-    if (keys.size === 0) return true; // dev mode if no keys configured
+  // Resolve user from Authorization header
+  function resolveUser(request) {
     const token = bearerToken(request.headers.authorization);
-    if (!keys.has(token)) {
+    if (!token) return null;
+
+    // 1. Check if token is a user API key
+    const userByKey = db
+      .prepare('SELECT id, email, name, api_key FROM users WHERE api_key = ?')
+      .get(token);
+    if (userByKey) {
+      return {
+        id: userByKey.id,
+        email: userByKey.email,
+        name: userByKey.name,
+        apiKey: userByKey.api_key,
+      };
+    }
+
+    // 2. Check if token is a JWT
+    const payload = verifyToken(token, jwtSecret);
+    if (payload && payload.userId) {
+      const userById = db
+        .prepare('SELECT id, email, name, api_key FROM users WHERE id = ?')
+        .get(payload.userId);
+      if (userById) {
+        return {
+          id: userById.id,
+          email: userById.email,
+          name: userById.name,
+          apiKey: userById.api_key,
+        };
+      }
+    }
+
+    // 3. Fallback: check legacy pre-shared API keys
+    if (legacyKeys.has(token)) {
+      return { id: 'legacy-admin', email: 'admin@jobfoundry.local', name: 'Admin', apiKey: token };
+    }
+
+    return null;
+  }
+
+  function authenticate(request, reply) {
+    // If no static keys and no users exist yet, allow open dev access
+    const userCount = db.prepare('SELECT COUNT(*) as n FROM users').get().n;
+    if (legacyKeys.size === 0 && userCount === 0) {
+      request.user = { id: 'dev-user', email: 'dev@jobfoundry.local', name: 'Developer', apiKey: '' };
+      return true;
+    }
+
+    const user = resolveUser(request);
+    if (!user) {
       reply.code(401).send({ error: 'unauthorized' });
       return false;
     }
+    request.user = user;
     return true;
   }
 
+  // Health check
   app.get('/health', async () => ({ ok: true }));
 
   // GET /api/v1/extension/config - Seed config bundle for browser extension
@@ -41,9 +107,11 @@ export function buildApp({ db, apiKeys, artifactsDir = './data/artifacts', serve
     const protocol = request.headers['x-forwarded-proto'] || request.protocol || 'http';
     const computedUrl =
       serverUrl || (hostHeader ? `${protocol}://${hostHeader}` : 'http://localhost:8080');
+    
+    const user = resolveUser(request);
     return {
       serverUrl: computedUrl,
-      apiKey: keys.size > 0 ? Array.from(keys)[0] : '',
+      apiKey: user?.apiKey || (legacyKeys.size > 0 ? Array.from(legacyKeys)[0] : ''),
       scanIntervalHours: 6,
       passiveMode: true,
       activeMode: false,
@@ -52,6 +120,151 @@ export function buildApp({ db, apiKeys, artifactsDir = './data/artifacts', serve
     };
   });
 
+  // --- AUTHENTICATION ROUTES ---
+
+  // POST /api/v1/auth/register
+  app.post('/api/v1/auth/register', async (request, reply) => {
+    const { email, password, name = '' } = request.body || {};
+    if (!email || !password) {
+      return reply.code(400).send({ error: 'email and password are required' });
+    }
+    if (typeof password !== 'string' || password.length < 6) {
+      return reply.code(400).send({ error: 'password must be at least 6 characters' });
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(normalizedEmail);
+    if (existing) {
+      return reply.code(409).send({ error: 'email already registered' });
+    }
+
+    const passwordHash = await hashPassword(password);
+    const userId = `usr_${randomUUID()}`;
+    const apiKey = generateApiKey();
+    const now = Date.now();
+
+    db.prepare(
+      'INSERT INTO users (id, email, password_hash, name, api_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(userId, normalizedEmail, passwordHash, name || normalizedEmail.split('@')[0], apiKey, now, now);
+
+    const user = { id: userId, email: normalizedEmail, name: name || normalizedEmail.split('@')[0], apiKey };
+    const token = createToken({ userId, email: normalizedEmail }, jwtSecret);
+
+    return reply.code(201).send({ user, token });
+  });
+
+  // POST /api/v1/auth/login
+  app.post('/api/v1/auth/login', async (request, reply) => {
+    const { email, password } = request.body || {};
+    if (!email || !password) {
+      return reply.code(400).send({ error: 'email and password are required' });
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const userRow = db.prepare('SELECT * FROM users WHERE email = ?').get(normalizedEmail);
+    if (!userRow) {
+      return reply.code(401).send({ error: 'invalid email or password' });
+    }
+
+    const isValid = await verifyPassword(password, userRow.password_hash);
+    if (!isValid) {
+      return reply.code(401).send({ error: 'invalid email or password' });
+    }
+
+    const user = {
+      id: userRow.id,
+      email: userRow.email,
+      name: userRow.name,
+      apiKey: userRow.api_key,
+    };
+    const token = createToken({ userId: userRow.id, email: userRow.email }, jwtSecret);
+
+    return { user, token };
+  });
+
+  // GET /api/v1/auth/me
+  app.get('/api/v1/auth/me', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+    return { user: request.user };
+  });
+
+  // POST /api/v1/auth/api-key/rotate
+  app.post('/api/v1/auth/api-key/rotate', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+    const newKey = generateApiKey();
+    const now = Date.now();
+
+    db.prepare('UPDATE users SET api_key = ?, updated_at = ? WHERE id = ?').run(
+      newKey,
+      now,
+      request.user.id
+    );
+
+    return { apiKey: newKey };
+  });
+
+  // --- RESUME MANAGEMENT ROUTES ---
+
+  // GET /api/v1/resumes
+  app.get('/api/v1/resumes', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+    const resumes = getUserResumes(db, request.user.id);
+    return { resumes };
+  });
+
+  // GET /api/v1/resumes/active
+  app.get('/api/v1/resumes/active', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+    const active = getActiveResume(db, request.user.id);
+    return { resume: active };
+  });
+
+  // POST /api/v1/resumes
+  app.post('/api/v1/resumes', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+    const { title, resumeJson, setActive } = request.body || {};
+    if (!resumeJson) {
+      return reply.code(400).send({ error: 'resumeJson is required' });
+    }
+
+    try {
+      const saved = saveUserResume(db, {
+        userId: request.user.id,
+        title: title || 'Master Resume',
+        resumeJson,
+        setActive: setActive !== false,
+      });
+      return reply.code(201).send({ resume: saved });
+    } catch (err) {
+      return reply.code(400).send({ error: err.message });
+    }
+  });
+
+  // PUT /api/v1/resumes/:id/active
+  app.put('/api/v1/resumes/:id/active', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+    const { id } = request.params;
+    const success = setActiveResume(db, { userId: request.user.id, resumeId: id });
+    if (!success) {
+      return reply.code(404).send({ error: 'resume not found' });
+    }
+    return { ok: true };
+  });
+
+  // DELETE /api/v1/resumes/:id
+  app.delete('/api/v1/resumes/:id', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+    const { id } = request.params;
+    const success = deleteUserResume(db, { userId: request.user.id, resumeId: id });
+    if (!success) {
+      return reply.code(404).send({ error: 'resume not found' });
+    }
+    return { ok: true };
+  });
+
+  // --- JOB INGEST & QUERY ROUTES (MULTI-TENANT) ---
+
+  // POST /api/v1/jobs/ingest
   app.post('/api/v1/jobs/ingest', async (request, reply) => {
     if (!authenticate(request, reply)) return;
 
@@ -80,37 +293,74 @@ export function buildApp({ db, apiKeys, artifactsDir = './data/artifacts', serve
     let ingested = 0;
     let deduped = 0;
     const ids = [];
-    for (const row of rows) {
-      const { id, deduped: dup } = insertIfNew(db, row);
-      ids.push(id);
-      if (dup) deduped += 1;
-      else ingested += 1;
-    }
+    const userId = request.user.id;
+    const now = Date.now();
+
+    db.transaction(() => {
+      for (const row of rows) {
+        const { id, deduped: dup } = insertIfNew(db, row);
+        ids.push(id);
+        if (dup) deduped += 1;
+        else ingested += 1;
+
+        // Associate job with user in user_jobs
+        if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+          const ujId = `uj_${userId}_${id}`;
+          db.prepare(
+            `INSERT INTO user_jobs (id, user_id, job_id, fit_score, fit_notes, status, tailored_resume_id, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(user_id, job_id) DO NOTHING`
+          ).run(ujId, userId, id, null, null, 'new', null, now, now);
+        }
+      }
+    })();
+
     return { ingested, deduped, ids };
   });
 
-  // GET /api/v1/jobs - Query jobs with optional filters
+  // GET /api/v1/jobs - Query jobs for authenticated user
   app.get('/api/v1/jobs', async (request, reply) => {
     if (!authenticate(request, reply)) return;
 
     const { status, source, min_score, search, limit = 100 } = request.query || {};
-    let query = 'SELECT * FROM jobs WHERE 1=1';
+    const userId = request.user.id;
+
+    let query;
     const params = [];
 
+    if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+      query = `
+        SELECT 
+          j.id, j.title, j.company, j.location, j.url, j.source, j.posted_at, j.description, j.fingerprint, j.liveness,
+          COALESCE(uj.fit_score, j.fit_score) as fit_score,
+          COALESCE(uj.fit_notes, j.fit_notes) as fit_notes,
+          COALESCE(uj.status, j.status) as status,
+          COALESCE(uj.tailored_resume_id, j.tailored_resume_id) as tailored_resume_id,
+          COALESCE(uj.created_at, j.created_at) as created_at,
+          COALESCE(uj.updated_at, j.updated_at) as updated_at
+        FROM user_jobs uj
+        JOIN jobs j ON uj.job_id = j.id
+        WHERE uj.user_id = ?
+      `;
+      params.push(userId);
+    } else {
+      query = 'SELECT * FROM jobs WHERE 1=1';
+    }
+
     if (status) {
-      query += ' AND status = ?';
+      query += userId && userId !== 'legacy-admin' && userId !== 'dev-user' ? ' AND uj.status = ?' : ' AND status = ?';
       params.push(status);
     }
     if (source) {
-      query += ' AND source = ?';
+      query += ' AND j.source = ?';
       params.push(source);
     }
     if (min_score !== undefined && min_score !== '') {
-      query += ' AND fit_score >= ?';
+      query += userId && userId !== 'legacy-admin' && userId !== 'dev-user' ? ' AND uj.fit_score >= ?' : ' AND fit_score >= ?';
       params.push(Number(min_score));
     }
     if (search) {
-      query += ' AND (title LIKE ? OR company LIKE ? OR description LIKE ?)';
+      query += ' AND (j.title LIKE ? OR j.company LIKE ? OR j.description LIKE ?)';
       const term = `%${search}%`;
       params.push(term, term, term);
     }
@@ -127,7 +377,29 @@ export function buildApp({ db, apiKeys, artifactsDir = './data/artifacts', serve
     if (!authenticate(request, reply)) return;
 
     const { id } = request.params;
-    const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+    const userId = request.user.id;
+
+    let job;
+    if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+      job = db
+        .prepare(
+          `SELECT 
+            j.id, j.title, j.company, j.location, j.url, j.source, j.posted_at, j.description, j.fingerprint, j.liveness,
+            COALESCE(uj.fit_score, j.fit_score) as fit_score,
+            COALESCE(uj.fit_notes, j.fit_notes) as fit_notes,
+            COALESCE(uj.status, j.status) as status,
+            COALESCE(uj.tailored_resume_id, j.tailored_resume_id) as tailored_resume_id,
+            COALESCE(uj.created_at, j.created_at) as created_at,
+            COALESCE(uj.updated_at, j.updated_at) as updated_at
+          FROM user_jobs uj
+          JOIN jobs j ON uj.job_id = j.id
+          WHERE uj.user_id = ? AND j.id = ?`
+        )
+        .get(userId, id);
+    } else {
+      job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+    }
+
     if (!job) {
       return reply.code(404).send({ error: 'job not found' });
     }
@@ -145,16 +417,48 @@ export function buildApp({ db, apiKeys, artifactsDir = './data/artifacts', serve
     }
 
     const now = Date.now();
-    const info = db
-      .prepare('UPDATE jobs SET status = ?, updated_at = ? WHERE id = ?')
-      .run(status, now, id);
+    const userId = request.user.id;
 
-    if (info.changes === 0) {
-      return reply.code(404).send({ error: 'job not found' });
+    if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+      const info = db
+        .prepare('UPDATE user_jobs SET status = ?, updated_at = ? WHERE job_id = ? AND user_id = ?')
+        .run(status, now, id, userId);
+
+      if (info.changes === 0) {
+        return reply.code(404).send({ error: 'job not found' });
+      }
+    } else {
+      const info = db
+        .prepare('UPDATE jobs SET status = ?, updated_at = ? WHERE id = ?')
+        .run(status, now, id);
+
+      if (info.changes === 0) {
+        return reply.code(404).send({ error: 'job not found' });
+      }
     }
 
-    const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
-    return { job };
+    let job;
+    if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+      job = db
+        .prepare(
+          `SELECT 
+            j.id, j.title, j.company, j.location, j.url, j.source, j.posted_at, j.description, j.fingerprint, j.liveness,
+            COALESCE(uj.fit_score, j.fit_score) as fit_score,
+            COALESCE(uj.fit_notes, j.fit_notes) as fit_notes,
+            COALESCE(uj.status, j.status) as status,
+            COALESCE(uj.tailored_resume_id, j.tailored_resume_id) as tailored_resume_id,
+            COALESCE(uj.created_at, j.created_at) as created_at,
+            COALESCE(uj.updated_at, j.updated_at) as updated_at
+          FROM user_jobs uj
+          JOIN jobs j ON uj.job_id = j.id
+          WHERE uj.user_id = ? AND j.id = ?`
+        )
+        .get(userId, id);
+    } else {
+      job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+    }
+
+    return { job, ok: true, status };
   });
 
   // POST /api/v1/jobs/:id/tailor - Trigger manual tailor override
@@ -162,19 +466,31 @@ export function buildApp({ db, apiKeys, artifactsDir = './data/artifacts', serve
     if (!authenticate(request, reply)) return;
 
     const { id } = request.params;
-    const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
-    if (!job) {
-      return reply.code(404).send({ error: 'job not found' });
-    }
-
+    const userId = request.user.id;
     const now = Date.now();
     const tailoredId = `tailored-${id}-${Date.now().toString(36)}`;
-    db.prepare(
-      'UPDATE jobs SET status = ?, tailored_resume_id = ?, updated_at = ? WHERE id = ?'
-    ).run('tailored', tailoredId, now, id);
 
-    const updatedJob = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
-    return { job: updatedJob, tailored_resume_id: tailoredId };
+    if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+      const info = db
+        .prepare(
+          'UPDATE user_jobs SET status = ?, tailored_resume_id = ?, updated_at = ? WHERE job_id = ? AND user_id = ?'
+        )
+        .run('tailored', tailoredId, now, id, userId);
+
+      if (info.changes === 0) {
+        return reply.code(404).send({ error: 'job not found' });
+      }
+    } else {
+      const info = db
+        .prepare('UPDATE jobs SET status = ?, tailored_resume_id = ?, updated_at = ? WHERE id = ?')
+        .run('tailored', tailoredId, now, id);
+
+      if (info.changes === 0) {
+        return reply.code(404).send({ error: 'job not found' });
+      }
+    }
+
+    return { tailored_resume_id: tailoredId };
   });
 
   // GET /api/v1/jobs/:id/artifacts/:filename - Serve artifact file
@@ -182,9 +498,14 @@ export function buildApp({ db, apiKeys, artifactsDir = './data/artifacts', serve
     if (!authenticate(request, reply)) return;
 
     const { id, filename } = request.params;
-    // Sanitize filename
+    const userId = request.user.id;
     const safeFilename = filename.replace(/[^a-zA-Z0-9_.-]/g, '');
-    const filePath = resolve(artifactsDir, id, safeFilename);
+
+    // Check user-partitioned artifact path first, then flat fallback
+    let filePath = resolve(artifactsDir, userId, id, safeFilename);
+    if (!existsSync(filePath)) {
+      filePath = resolve(artifactsDir, id, safeFilename);
+    }
 
     if (!existsSync(filePath)) {
       return reply.code(404).send({ error: 'artifact not found' });

@@ -19,6 +19,8 @@ class ScorerConfig:
 
 def load_config() -> ScorerConfig:
     scorer_model = os.getenv("SCORER_MODEL", "gpt-4o-mini")
+
+
     scorer_provider = os.getenv("SCORER_PROVIDER")
     raw_threshold = os.getenv("SCORER_THRESHOLD", "75")
 

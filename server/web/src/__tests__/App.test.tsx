@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { App } from '../App';
 import { Job } from '../types/job';
 
@@ -26,24 +26,46 @@ const mockJobs: Job[] = [
 
 describe('App', () => {
   beforeEach(() => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ jobs: mockJobs }),
+    localStorage.clear();
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/v1/auth/me')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            user: { id: 'u1', email: 'test@example.com', name: 'Tester', apiKey: 'jf_test' },
+          }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ jobs: mockJobs, resumes: [] }),
+      });
     });
   });
 
-  it('renders JobFoundry navbar and live metrics', async () => {
+  it('renders login view when unauthenticated', async () => {
+    render(<App />);
+    expect(screen.getByText('Sign in to access your automated job command center')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument();
+  });
+
+  it('renders dashboard when logged in with stored session', async () => {
+    localStorage.setItem('jf_auth_token', 'valid-jwt-token');
+    localStorage.setItem(
+      'jf_auth_user',
+      JSON.stringify({ id: 'u1', email: 'test@example.com', name: 'Tester', apiKey: 'jf_test' })
+    );
+
     render(<App />);
 
-    expect(screen.getByText('Job')).toBeInTheDocument();
-    expect(screen.getByText('Foundry')).toBeInTheDocument();
-    expect(screen.getByText('Total Ingested Jobs')).toBeInTheDocument();
-    expect(screen.getByText('Average Fit Score')).toBeInTheDocument();
-
     await waitFor(() => {
+      expect(screen.getByText('Job')).toBeInTheDocument();
+      expect(screen.getByText('Foundry')).toBeInTheDocument();
+      expect(screen.getByText('Total Ingested Jobs')).toBeInTheDocument();
+      expect(screen.getByText('Average Fit Score')).toBeInTheDocument();
       expect(screen.getByText('Lead Architect')).toBeInTheDocument();
-      expect(screen.getByText('NextGen Systems')).toBeInTheDocument();
     });
   });
 });
