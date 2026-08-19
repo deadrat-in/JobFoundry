@@ -18,9 +18,10 @@ def create_app(llm_client: LLMClient | None = None, config: Any = None) -> FastA
 
     client: LLMClient = llm_client or StubLLM()
 
-    @app.get("/health")
+    @app.api_route("/health", methods=["GET", "HEAD"])
     async def health():
         return {"status": "ok"}
+
 
     @app.post("/score", response_model=ScoreResult)
     async def score_job(req: ScoreRequest):
