@@ -41,11 +41,15 @@ const DashboardContent: React.FC = () => {
       const data = await api.getJobs({ limit: 200 });
       setJobs(data);
     } catch (err: any) {
+      if (err.status === 401) {
+        logout();
+        return;
+      }
       setError(err.message || 'Failed to load jobs from server');
     } finally {
       setLoading(false);
     }
-  }, [token, settings.apiKey]);
+  }, [token, settings.apiKey, logout]);
 
   useEffect(() => {
     if (user) {

@@ -17,16 +17,18 @@ const TOKEN_STORAGE_KEY = 'jf_auth_token';
 const USER_STORAGE_KEY = 'jf_auth_user';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [token, setToken] = useState<string | null>(() => {
+    return localStorage.getItem(TOKEN_STORAGE_KEY);
+  });
   const [user, setUser] = useState<User | null>(() => {
     try {
+      const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+      if (!storedToken) return null;
       const stored = localStorage.getItem(USER_STORAGE_KEY);
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
     }
-  });
-  const [token, setToken] = useState<string | null>(() => {
-    return localStorage.getItem(TOKEN_STORAGE_KEY);
   });
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -45,6 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })
         .finally(() => setLoading(false));
     } else {
+      setUser(null);
       setLoading(false);
     }
   }, [token]);
