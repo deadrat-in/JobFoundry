@@ -1,6 +1,13 @@
 # JobFoundry
 
+[![CI](https://github.com/anubra266/jobfoundry/actions/workflows/ci.yml/badge.svg)](https://github.com/anubra266/jobfoundry/actions/workflows/ci.yml)
+[![Deploy GitHub Pages](https://github.com/anubra266/jobfoundry/actions/workflows/pages.yml/badge.svg)](https://github.com/anubra266/jobfoundry/actions/workflows/pages.yml)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
+[![Local First](https://img.shields.io/badge/Privacy-100%25%20Local--First-emerald.svg)](docs/privacy.html)
+
 A unified, AGPL-licensed pipeline for job search → fit scoring → resume tailoring → PDF/ATS export, with a modern web dashboard. Built from scratch; MIT-licensed components lifted from `career-ops` and `jobs-auto-apply` where compatible.
+
+📚 **[Explore the Documentation & Guides](docs/index.html)** &bull; 🚀 **[Quickstart Onboarding Guide](docs/welcome.html)** &bull; 🔒 **[Privacy & Invariants](docs/privacy.html)**
 
 > **Architectural invariant (non-negotiable):**
 > The JobFoundry server never performs outbound job-board scraping. All scraping and job-board HTTP requests originate from the user's browser extension.
@@ -37,11 +44,12 @@ A unified, AGPL-licensed pipeline for job search → fit scoring → resume tail
 ## Repo layout
 
 ```
+docs/             Documentation portal & GitHub Pages static website
 extension/        Browser extension (Chrome MV3 / Firefox MV2 / Android)
 server/
-  ingest/         Node/ESM ingest API + SQLite + authoritative SimHash dedup
-  scorer/         Python fit screener + resume-ops tailoring bridge
-  web/            Vite + React dashboard with real-time job feed & kanban
+  ingest/         Node/ESM ingest API + SQLite + multi-tenant auth + SimHash dedup
+  scorer/         Python fit screener + resume-ops tailoring bridge + worker
+  web/            Vite + React dashboard with real-time job feed & kanban tracker
 compose.yaml      Docker Compose orchestration
 scripts/          Healthcheck and repository validation utilities
 test/             End-to-end integration test suite
@@ -55,7 +63,7 @@ test/             End-to-end integration test suite
 cp .env.example .env
 ```
 
-Edit `.env` to set your API keys and optional LLM provider configuration.
+Edit `.env` to set your API keys and optional LLM provider configuration (OpenAI, Anthropic, or local Ollama).
 
 ### 2. Start the Stack with Docker Compose
 
@@ -72,6 +80,7 @@ Verify all services are up and healthy:
 - **Web Dashboard**: http://localhost:5173
 - **Ingest API**: http://localhost:8080
 - **Scorer Service**: http://localhost:8001
+- **Documentation**: [`docs/index.html`](docs/index.html)
 
 ### 3. Build & Install Browser Extension
 
@@ -81,7 +90,7 @@ Build release packages for Chrome and Firefox:
 npm --workspace=extension run build:release
 ```
 
-#### Chrome / Chromium:
+#### Chrome / Chromium / Brave / Edge:
 
 1. Open `chrome://extensions/`
 2. Enable **Developer mode** (top right).
@@ -91,7 +100,16 @@ npm --workspace=extension run build:release
 
 1. Open `about:debugging#/runtime/this-firefox`
 2. Click **Load Temporary Add-on...** and select `extension/dist/firefox/manifest.json` (or install `extension/dist/firefox.xpi`).
-3. Click the JobFoundry extension icon to configure server URL (`http://localhost:8080`) or auto-pair.
+3. Click the JobFoundry extension icon to configure server URL (`http://localhost:8080`) and your user API key.
+
+---
+
+## Multi-User & Resume Workflow
+
+1. **Register / Login**: Open the web dashboard and create your account. An isolated workspace and API key will be generated.
+2. **Master Resume**: In the **Resume Manager** tab, upload or paste your master [JSON Resume](https://jsonresume.org/).
+3. **Ingest Jobs**: View jobs on any job board; the extension captures listings passively or via 84+ active providers.
+4. **Fit Scoring & Tailoring**: Inspect AI fit scores, missing requirements, and download your tailored multi-theme PDF or ATS-optimized plaintext resumes.
 
 ---
 
@@ -111,6 +129,10 @@ npm --workspace=server/web test
 
 # Run Extension unit tests
 npm --workspace=extension test
+
+# Run linter and formatting checks
+npm run lint
+npm run format:check
 ```
 
 ## Execution plan

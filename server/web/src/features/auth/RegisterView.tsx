@@ -55,9 +55,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onSwitchToLogin }) =
       >
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>⚡</div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
-            Create Account
-          </h1>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>Create Account</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
             Get your personal AI-powered job search pipeline
           </p>
@@ -79,9 +77,19 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onSwitchToLogin }) =
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+        >
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.4rem' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                marginBottom: '0.4rem',
+              }}
+            >
               Full Name
             </label>
             <input
@@ -96,7 +104,14 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onSwitchToLogin }) =
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.4rem' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                marginBottom: '0.4rem',
+              }}
+            >
               Email Address
             </label>
             <input
@@ -110,7 +125,14 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onSwitchToLogin }) =
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.4rem' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                marginBottom: '0.4rem',
+              }}
+            >
               Password
             </label>
             <input
@@ -133,7 +155,14 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onSwitchToLogin }) =
           </button>
         </form>
 
-        <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+        <div
+          style={{
+            marginTop: '2rem',
+            textAlign: 'center',
+            fontSize: '0.85rem',
+            color: 'var(--text-muted)',
+          }}
+        >
           Already have an account?{' '}
           <button
             onClick={onSwitchToLogin}

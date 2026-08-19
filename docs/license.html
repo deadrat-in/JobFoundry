@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>License & Attribution - JobFoundry</title>
+    <meta
+      name="description"
+      content="GNU Affero General Public License v3.0 (AGPL-3.0) and third-party attributions for JobFoundry."
+    />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-base: #0b111e;
+        --bg-surface: rgba(19, 30, 49, 0.65);
+        --bg-surface-hover: rgba(30, 48, 77, 0.85);
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+        --color-primary: #38bdf8;
+        --color-success: #10b981;
+        --border-color: rgba(148, 163, 184, 0.12);
+        --font-sans: 'Outfit', system-ui, -apple-system, sans-serif;
+        --font-mono: 'JetBrains Mono', monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--font-sans);
+        background-color: var(--bg-base);
+        color: var(--text-primary);
+        line-height: 1.7;
+        padding: 40px 20px;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 860px;
+        margin: 0 auto;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        padding: 44px;
+        border-radius: 20px;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      }
+
+      header {
+        margin-bottom: 30px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 24px;
+      }
+
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--color-primary);
+        text-decoration: none;
+        font-weight: 500;
+        margin-bottom: 20px;
+        font-size: 0.95rem;
+        transition: transform 0.2s ease;
+      }
+
+      .back-link:hover {
+        transform: translateX(-4px);
+      }
+
+      h1 {
+        font-size: 2.25rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin-bottom: 8px;
+        background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .license-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(56, 189, 248, 0.12);
+        color: var(--color-primary);
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        padding: 4px 12px;
+        border-radius: 9999px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+      }
+
+      h2 {
+        font-size: 1.35rem;
+        font-weight: 700;
+        margin-top: 32px;
+        margin-bottom: 12px;
+        color: #f1f5f9;
+      }
+
+      p {
+        margin-bottom: 16px;
+        color: var(--text-secondary);
+      }
+
+      .license-block {
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        line-height: 1.6;
+        background: #060b14;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        max-height: 380px;
+        overflow-y: auto;
+        color: #cbd5e1;
+        white-space: pre-wrap;
+        margin: 20px 0;
+      }
+
+      .attribution-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 16px;
+      }
+
+      .attribution-title {
+        font-weight: 600;
+        color: #f8fafc;
+        margin-bottom: 6px;
+      }
+
+      .attribution-desc {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        margin-bottom: 0;
+      }
+
+      .footer-note {
+        margin-top: 40px;
+        padding-top: 24px;
+        border-top: 1px solid var(--border-color);
+        font-size: 0.9rem;
+        text-align: center;
+        color: var(--text-secondary);
+      }
+
+      .footer-note a {
+        color: var(--color-primary);
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <a href="index.html" class="back-link">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+          Back to JobFoundry Home
+        </a>
+        <div class="license-badge">GNU AGPL-3.0 License</div>
+        <h1>License & Open Source Attribution</h1>
+      </header>
+
+      <h2>JobFoundry License</h2>
+      <p>
+        JobFoundry is free software: you can redistribute it and/or modify it under the terms of the
+        <strong>GNU Affero General Public License (AGPL-3.0)</strong> as published by the Free
+        Software Foundation.
+      </p>
+
+      <div class="license-block">
+        GNU AFFERO GENERAL PUBLIC LICENSE Version 3, 19 November 2007 Copyright (C) 2026 JobFoundry
+        Contributors Everyone is permitted to copy and distribute verbatim copies of this license
+        document, but changing it is not allowed. Preamble The GNU Affero General Public License is
+        a free, copyleft license for software and other kinds of works, specifically designed to
+        ensure cooperation with the community in the case of network server software. When you run a
+        modified program on a server and let other users communicate with it there, your server must
+        also allow them to download the source code corresponding to the program you are running...
+      </div>
+
+      <h2>Upstream Components & Attribution</h2>
+      <p>
+        JobFoundry builds upon select MIT-licensed modules adapted and re-engineered for the browser
+        extension and local pipeline architecture:
+      </p>
+
+      <div class="attribution-card">
+        <div class="attribution-title">career-ops / resume-ops</div>
+        <p class="attribution-desc">
+          Portions of the resume template rendering, ATS plaintext normalization, and multi-theme
+          PDF bridge are adapted from MIT-licensed components of the career-ops suite.
+        </p>
+      </div>
+
+      <div class="attribution-card">
+        <div class="attribution-title">jobs-auto-apply (Provider extractors)</div>
+        <p class="attribution-desc">
+          Select DOM extraction logic and job board provider parsing patterns adapted and ported to
+          run safely inside the browser extension environment under the MIT license.
+        </p>
+      </div>
+
+      <div class="attribution-card">
+        <div class="attribution-title">JSON Resume Schema</div>
+        <p class="attribution-desc">
+          Resume modeling is based on the open-source JSON Resume standard schema (v1.0.0).
+        </p>
+      </div>
+
+      <div class="footer-note">
+        View the full repository and license file on
+        <a href="https://github.com/anubra266/jobfoundry" target="_blank" rel="noopener">GitHub</a>.
+      </div>
+    </div>
+  </body>
+</html>

@@ -99,7 +99,11 @@ export class ApiClient {
     });
   }
 
-  async register(payload: { email: string; password: string; name?: string }): Promise<AuthResponse> {
+  async register(payload: {
+    email: string;
+    password: string;
+    name?: string;
+  }): Promise<AuthResponse> {
     return this.request<AuthResponse>('/api/v1/auth/register', {
       method: 'POST',
       body: JSON.stringify(payload),

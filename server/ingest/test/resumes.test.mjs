@@ -27,7 +27,7 @@ const SAMPLE_RESUME = {
 
 test('validateResumeJson checks JSON Resume v1.0.0 schema compliance', () => {
   assert.doesNotThrow(() => validateResumeJson(SAMPLE_RESUME));
-  
+
   // Non-JSON string throws
   assert.throws(() => validateResumeJson('not-json'), /Invalid JSON/);
 

@@ -49,7 +49,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleRotateApiKey = async () => {
-    if (!confirm('Are you sure you want to rotate your extension API key? You will need to update your browser extension settings.')) {
+    if (
+      !confirm(
+        'Are you sure you want to rotate your extension API key? You will need to update your browser extension settings.'
+      )
+    ) {
       return;
     }
     setRotating(true);
@@ -99,16 +103,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   gap: '0.75rem',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{user.name || user.email}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{user.email}</div>
+                    <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>
+                      {user.name || user.email}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      {user.email}
+                    </div>
                   </div>
                   <span className="badge badge-primary">Account</span>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      marginBottom: '0.25rem',
+                    }}
+                  >
                     Browser Extension Pairing Key
                   </label>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -117,7 +136,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       readOnly
                       value={user.apiKey || 'No key generated'}
                       className="input-text"
-                      style={{ fontSize: '0.8rem', fontFamily: 'monospace', paddingLeft: '0.75rem' }}
+                      style={{
+                        fontSize: '0.8rem',
+                        fontFamily: 'monospace',
+                        paddingLeft: '0.75rem',
+                      }}
                     />
                     <button
                       type="button"
@@ -137,8 +160,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       🔄
                     </button>
                   </div>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
-                    Paste this into the JobFoundry browser extension to sync scraped jobs to your account.
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      color: 'var(--text-muted)',
+                      marginTop: '0.25rem',
+                      display: 'block',
+                    }}
+                  >
+                    Paste this into the JobFoundry browser extension to sync scraped jobs to your
+                    account.
                   </span>
                 </div>
               </div>

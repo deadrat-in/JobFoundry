@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="100%" height="100%">
+  <defs>
+    <linearGradient id="primary-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#8b5cf6" />
+    </linearGradient>
+    <linearGradient id="glow-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#c084fc" stop-opacity="0.3" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <!-- Base background container -->
+  <rect width="128" height="128" rx="28" fill="#0f172a" stroke="rgba(56, 189, 248, 0.25)" stroke-width="2"/>
+  
+  <!-- Subtle inner background grid/glow -->
+  <circle cx="64" cy="64" r="44" fill="url(#glow-grad)" opacity="0.15" filter="url(#glow)"/>
+
+  <!-- Anvil Base / Foundry Foundation -->
+  <path d="M 28 88 C 28 84 32 82 38 82 L 90 82 C 96 82 100 84 100 88 C 100 92 96 94 90 94 L 38 94 C 32 94 28 92 28 88 Z" fill="url(#primary-grad)" />
+
+  <!-- Anvil Upper Body / Forge Horn -->
+  <path d="M 32 50 C 32 46 36 44 42 44 L 92 44 C 98 44 104 48 104 54 C 104 58 100 62 94 64 L 84 66 C 80 72 76 78 74 82 L 54 82 C 52 78 48 72 44 66 L 36 64 C 32 62 32 56 32 50 Z" fill="url(#primary-grad)" />
+
+  <!-- Spark / AI Intelligence Node (Star / Spark) -->
+  <path d="M 64 22 L 67 34 L 79 37 L 67 40 L 64 52 L 61 40 L 49 37 L 61 34 Z" fill="#38bdf8" filter="url(#glow)" />
+
+  <!-- Accent Detail Line -->
+  <line x1="44" y1="52" x2="84" y2="52" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+</svg>

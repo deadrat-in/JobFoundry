@@ -17,7 +17,11 @@ function base64UrlDecode(str) {
   return Buffer.from(base64, 'base64').toString('utf8');
 }
 
-export function createToken(payload, secret = 'jobfoundry-jwt-default-secret', expiresInHours = 72) {
+export function createToken(
+  payload,
+  secret = 'jobfoundry-jwt-default-secret',
+  expiresInHours = 72
+) {
   const header = { alg: 'HS256', typ: 'JWT' };
   const exp = Math.floor(Date.now() / 1000) + expiresInHours * 3600;
   const body = { ...payload, exp };

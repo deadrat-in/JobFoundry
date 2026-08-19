@@ -74,9 +74,19 @@ export const LoginView: React.FC<LoginViewProps> = ({ onSwitchToRegister }) => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+        >
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.4rem' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                marginBottom: '0.4rem',
+              }}
+            >
               Email Address
             </label>
             <input
@@ -91,7 +101,14 @@ export const LoginView: React.FC<LoginViewProps> = ({ onSwitchToRegister }) => {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.4rem' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                marginBottom: '0.4rem',
+              }}
+            >
               Password
             </label>
             <input
@@ -114,7 +131,14 @@ export const LoginView: React.FC<LoginViewProps> = ({ onSwitchToRegister }) => {
           </button>
         </form>
 
-        <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+        <div
+          style={{
+            marginTop: '2rem',
+            textAlign: 'center',
+            fontSize: '0.85rem',
+            color: 'var(--text-muted)',
+          }}
+        >
           Don't have an account yet?{' '}
           <button
             onClick={onSwitchToRegister}

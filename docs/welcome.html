@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Getting Started with JobFoundry - Complete onboarding guide for browser extension setup, server pairing, and local AI fit scoring."
+    />
+    <title>Welcome &amp; Quickstart Guide - JobFoundry</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-base: #0b111e;
+        --bg-surface: rgba(19, 30, 49, 0.6);
+        --bg-surface-hover: rgba(30, 48, 77, 0.85);
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+        --color-primary: #38bdf8;
+        --color-primary-glow: rgba(56, 189, 248, 0.2);
+        --color-accent: #8b5cf6;
+        --color-success: #10b981;
+        --border-color: rgba(148, 163, 184, 0.12);
+        --border-hover: rgba(148, 163, 184, 0.3);
+        --font-sans: 'Outfit', system-ui, -apple-system, sans-serif;
+        --font-mono: 'JetBrains Mono', monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--font-sans);
+        background-color: var(--bg-base);
+        color: var(--text-primary);
+        line-height: 1.6;
+        min-height: 100vh;
+        overflow-x: hidden;
+        position: relative;
+      }
+
+      /* Radial background glow */
+      body::before {
+        content: '';
+        position: absolute;
+        top: -10%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100vw;
+        height: 60vh;
+        background: radial-gradient(
+          circle,
+          rgba(56, 189, 248, 0.12) 0%,
+          rgba(139, 92, 246, 0.06) 40%,
+          rgba(11, 17, 30, 0) 75%
+        );
+        z-index: -1;
+        pointer-events: none;
+      }
+
+      header {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: var(--text-primary);
+      }
+
+      .logo-img {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+      }
+
+      .logo-text {
+        font-size: 1.35rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .header-nav {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+
+      .nav-link {
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.95rem;
+        font-weight: 500;
+        transition: color 0.2s ease;
+      }
+
+      .nav-link:hover {
+        color: var(--text-primary);
+      }
+
+      .btn-gh {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        background: rgba(148, 163, 184, 0.1);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        color: #f8fafc;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+      }
+
+      .btn-gh:hover {
+        background: rgba(56, 189, 248, 0.15);
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+      }
+
+      main {
+        max-width: 1000px;
+        margin: 20px auto 80px;
+        padding: 0 20px;
+      }
+
+      .hero {
+        text-align: center;
+        margin-bottom: 48px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 14px;
+        border-radius: 9999px;
+        background: rgba(56, 189, 248, 0.12);
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        color: var(--color-primary);
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+      }
+
+      h1 {
+        font-size: 2.8rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.2;
+        margin-bottom: 16px;
+        background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .hero-sub {
+        font-size: 1.15rem;
+        color: var(--text-secondary);
+        max-width: 680px;
+        margin: 0 auto;
+      }
+
+      /* Step Cards */
+      .steps-container {
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+      }
+
+      .step-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 18px;
+        padding: 32px;
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .step-card:hover {
+        border-color: var(--border-hover);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      .step-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      .step-number {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+        color: #0b111e;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+      }
+
+      .step-title {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #ffffff;
+      }
+
+      .step-content p {
+        color: var(--text-secondary);
+        margin-bottom: 16px;
+      }
+
+      .code-block {
+        background: #060a12;
+        border: 1px solid rgba(148, 163, 184, 0.15);
+        border-radius: 12px;
+        padding: 16px 20px;
+        font-family: var(--font-mono);
+        font-size: 0.9rem;
+        color: #e2e8f0;
+        position: relative;
+        margin: 16px 0;
+        overflow-x: auto;
+      }
+
+      .copy-btn {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: var(--text-secondary);
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .copy-btn:hover {
+        background: var(--color-primary);
+        color: #0b111e;
+        font-weight: 600;
+      }
+
+      /* Connection Tester Widget */
+      .tester-box {
+        margin-top: 40px;
+        background: linear-gradient(180deg, rgba(19, 30, 49, 0.8) 0%, rgba(11, 17, 30, 0.9) 100%);
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        border-radius: 18px;
+        padding: 32px;
+        text-align: center;
+      }
+
+      .tester-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .tester-form {
+        display: flex;
+        gap: 10px;
+        max-width: 500px;
+        margin: 20px auto 12px;
+      }
+
+      .tester-input {
+        flex: 1;
+        background: #060a12;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 10px 16px;
+        color: #fff;
+        font-family: var(--font-mono);
+        font-size: 0.9rem;
+        outline: none;
+      }
+
+      .tester-btn {
+        background: var(--color-primary);
+        color: #0b111e;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .tester-btn:hover {
+        background: #7dd3fc;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 16px;
+        border-radius: 9999px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin-top: 12px;
+        background: rgba(148, 163, 184, 0.1);
+        color: var(--text-secondary);
+      }
+
+      .status-online {
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--color-success);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+      }
+
+      .status-offline {
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+      }
+
+      footer {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 30px 20px;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+      }
+
+      footer a {
+        color: var(--color-primary);
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a href="index.html" class="logo-container">
+        <img src="icons/logo.svg" alt="JobFoundry Logo" class="logo-img" />
+        <span class="logo-text">JobFoundry</span>
+      </a>
+      <nav class="header-nav">
+        <a href="index.html" class="nav-link">Overview</a>
+        <a href="privacy.html" class="nav-link">Privacy &amp; Invariants</a>
+        <a
+          href="https://github.com/anubra266/jobfoundry"
+          target="_blank"
+          rel="noopener"
+          class="btn-gh"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"
+            />
+          </svg>
+          GitHub
+        </a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="badge">Quickstart Guide</div>
+        <h1>Get Up &amp; Running in Minutes</h1>
+        <p class="hero-sub">
+          Follow these 5 steps to start your local JobFoundry instance, connect your browser
+          extension, and unlock automated AI fit scoring &amp; ATS tailoring.
+        </p>
+      </section>
+
+      <div class="steps-container">
+        <!-- Step 1 -->
+        <div class="step-card">
+          <div class="step-header">
+            <div class="step-number">1</div>
+            <div class="step-title">Configure Environment &amp; Launch Backend Stack</div>
+          </div>
+          <div class="step-content">
+            <p>
+              Clone the repository, configure your <code>.env</code> file (with your LiteLLM or
+              OpenAI keys), and spin up the complete orchestration with Docker Compose:
+            </p>
+            <div class="code-block">
+              <button
+                class="copy-btn"
+                onclick="copyCode(this, 'cp .env.example .env\ndocker compose up --build -d')"
+              >
+                Copy
+              </button>
+              <code>cp .env.example .env<br />docker compose up --build -d</code>
+            </div>
+            <p>Or run locally in development mode:</p>
+            <div class="code-block">
+              <button class="copy-btn" onclick="copyCode(this, 'npm run test')">Copy</button>
+              <code>npm test &nbsp;# Runs full monorepo &amp; E2E validation</code>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step-card">
+          <div class="step-header">
+            <div class="step-number">2</div>
+            <div class="step-title">Build &amp; Load Browser Extension</div>
+          </div>
+          <div class="step-content">
+            <p>Build the Chrome MV3 or Firefox MV2/MV3 distribution:</p>
+            <div class="code-block">
+              <button
+                class="copy-btn"
+                onclick="copyCode(this, 'npm --workspace=extension run build:release')"
+              >
+                Copy
+              </button>
+              <code>npm --workspace=extension run build:release</code>
+            </div>
+            <ul style="padding-left: 20px; color: var(--text-secondary); margin-bottom: 12px">
+              <li>
+                <strong>Chrome / Brave / Edge:</strong> Open <code>chrome://extensions</code>,
+                enable <em>Developer mode</em>, and click <em>Load unpacked</em> &rarr; select
+                <code>extension/dist/chrome/</code>.
+              </li>
+              <li>
+                <strong>Firefox:</strong> Open
+                <code>about:debugging#/runtime/this-firefox</code> and load
+                <code>extension/dist/firefox/manifest.json</code>.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step-card">
+          <div class="step-header">
+            <div class="step-number">3</div>
+            <div class="step-title">Pair Extension with Ingest API</div>
+          </div>
+          <div class="step-content">
+            <p>
+              Click the JobFoundry icon in your browser toolbar to open the popup. Enter your Ingest
+              Server URL (default: <code>http://localhost:8080</code>) and your user API key.
+            </p>
+            <p>
+              The extension popup will display a green checkmark indicating successful pairing with
+              your local SQLite database.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="step-card">
+          <div class="step-header">
+            <div class="step-number">4</div>
+            <div class="step-title">Upload Your Master JSON Resume</div>
+          </div>
+          <div class="step-content">
+            <p>
+              Open the Web Dashboard at <strong>http://localhost:5173</strong>. Navigate to the
+              <strong>Resume Manager</strong> tab and paste or upload your standard
+              <a
+                href="https://jsonresume.org/"
+                target="_blank"
+                rel="noopener"
+                style="color: var(--color-primary)"
+                >JSON Resume</a
+              >.
+            </p>
+            <p>
+              This resume serves as your canonical truth source for AI fit scoring and ATS bullet
+              point generation.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="step-card">
+          <div class="step-header">
+            <div class="step-number">5</div>
+            <div class="step-title">Ingest Jobs &amp; Tailor Applications</div>
+          </div>
+          <div class="step-content">
+            <p>
+              Browse any job board (LinkedIn, Indeed, Greenhouse, Lever, Ashby, etc.). The extension
+              passively captures listings you view, or you can trigger an active sync across 84+
+              supported ATS endpoints.
+            </p>
+            <p>
+              Head to your dashboard to inspect fit scores (e.g. <code>92/100</code>), missing
+              skills, generated cover letters, and download your tailored multi-theme PDF or ATS
+              plaintext resume with 1-click!
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Local Connection Tester -->
+      <div class="tester-box">
+        <div class="tester-title">Local Server Connection Tester</div>
+        <p style="color: var(--text-secondary); font-size: 0.95rem">
+          Verify if your local JobFoundry ingest server is running and reachable from your browser.
+        </p>
+        <div class="tester-form">
+          <input type="text" id="serverUrl" class="tester-input" value="http://localhost:8080" />
+          <button class="tester-btn" onclick="testConnection()">Test Status</button>
+        </div>
+        <div id="connectionStatus" class="status-pill">Ready to test connection</div>
+      </div>
+    </main>
+
+    <footer>
+      <div>JobFoundry &bull; AGPL-3.0 Open Source</div>
+      <div>
+        <a href="index.html">Overview</a> &bull; <a href="privacy.html">Privacy</a> &bull;
+        <a href="license.html">License</a> &bull;
+        <a href="feedback.html">Feedback</a>
+      </div>
+    </footer>
+
+    <script>
+      function copyCode(btn, text) {
+        navigator.clipboard.writeText(text);
+        const originalText = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => {
+          btn.textContent = originalText;
+        }, 1800);
+      }
+
+      async function testConnection() {
+        const url = document.getElementById('serverUrl').value.trim();
+        const statusEl = document.getElementById('connectionStatus');
+        statusEl.className = 'status-pill';
+        statusEl.textContent = 'Testing connection...';
+
+        try {
+          const res = await fetch(`${url}/healthz`, { method: 'GET', mode: 'cors' });
+          if (res.ok) {
+            statusEl.className = 'status-pill status-online';
+            statusEl.textContent = '✓ Server is online & healthy (' + res.status + ')';
+          } else {
+            statusEl.className = 'status-pill status-offline';
+            statusEl.textContent = '⚠ Server returned HTTP ' + res.status;
+          }
+        } catch (e) {
+          statusEl.className = 'status-pill status-offline';
+          statusEl.textContent =
+            '✗ Connection failed (Make sure server is running and CORS is enabled)';
+        }
+      }
+    </script>
+  </body>
+</html>

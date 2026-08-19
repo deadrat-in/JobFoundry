@@ -67,7 +67,10 @@ export function getActiveResume(db, userId) {
   };
 }
 
-export function saveUserResume(db, { userId, title = 'Master Resume', resumeJson, setActive = true }) {
+export function saveUserResume(
+  db,
+  { userId, title = 'Master Resume', resumeJson, setActive = true }
+) {
   const validated = validateResumeJson(resumeJson);
   const jsonStr = JSON.stringify(validated);
   const now = Date.now();
@@ -106,9 +109,7 @@ export function setActiveResume(db, { userId, resumeId }) {
       userId
     );
     const res = db
-      .prepare(
-        'UPDATE user_resumes SET is_active = 1, updated_at = ? WHERE id = ? AND user_id = ?'
-      )
+      .prepare('UPDATE user_resumes SET is_active = 1, updated_at = ? WHERE id = ? AND user_id = ?')
       .run(now, resumeId, userId);
     updated = res.changes > 0;
   })();

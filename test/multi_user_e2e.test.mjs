@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, existsSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -40,12 +40,8 @@ const ALICE_RESUME = {
     email: 'alice@example.com',
     summary: 'Expert in Go, Rust, Raft consensus, Kafka, and stream processing.',
   },
-  skills: [
-    { name: 'Distributed Systems', keywords: ['Go', 'Rust', 'Kafka', 'Raft'] },
-  ],
-  work: [
-    { name: 'CloudScale', position: 'Staff Engineer', startDate: '2020-01-01' },
-  ],
+  skills: [{ name: 'Distributed Systems', keywords: ['Go', 'Rust', 'Kafka', 'Raft'] }],
+  work: [{ name: 'CloudScale', position: 'Staff Engineer', startDate: '2020-01-01' }],
 };
 
 const BOB_RESUME = {
@@ -55,12 +51,8 @@ const BOB_RESUME = {
     email: 'bob@example.com',
     summary: 'Specialist in modern React, TypeScript, and UI design systems.',
   },
-  skills: [
-    { name: 'Frontend', keywords: ['React', 'TypeScript', 'TailwindCSS'] },
-  ],
-  work: [
-    { name: 'DesignWorks', position: 'Lead UI Engineer', startDate: '2021-01-01' },
-  ],
+  skills: [{ name: 'Frontend', keywords: ['React', 'TypeScript', 'TailwindCSS'] }],
+  work: [{ name: 'DesignWorks', position: 'Lead UI Engineer', startDate: '2021-01-01' }],
 };
 
 test('Multi-User End-to-End: Register → Upload JSON Resume → Multi-User Ingest → Scorer Worker → Isolated Feeds & Artifacts', async (t) => {

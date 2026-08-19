@@ -85,7 +85,12 @@ export function buildApp({
     // If no static keys and no users exist yet, allow open dev access
     const userCount = db.prepare('SELECT COUNT(*) as n FROM users').get().n;
     if (legacyKeys.size === 0 && userCount === 0) {
-      request.user = { id: 'dev-user', email: 'dev@jobfoundry.local', name: 'Developer', apiKey: '' };
+      request.user = {
+        id: 'dev-user',
+        email: 'dev@jobfoundry.local',
+        name: 'Developer',
+        apiKey: '',
+      };
       return true;
     }
 
@@ -107,7 +112,7 @@ export function buildApp({
     const protocol = request.headers['x-forwarded-proto'] || request.protocol || 'http';
     const computedUrl =
       serverUrl || (hostHeader ? `${protocol}://${hostHeader}` : 'http://localhost:8080');
-    
+
     const user = resolveUser(request);
     return {
       serverUrl: computedUrl,
@@ -145,9 +150,22 @@ export function buildApp({
 
     db.prepare(
       'INSERT INTO users (id, email, password_hash, name, api_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    ).run(userId, normalizedEmail, passwordHash, name || normalizedEmail.split('@')[0], apiKey, now, now);
+    ).run(
+      userId,
+      normalizedEmail,
+      passwordHash,
+      name || normalizedEmail.split('@')[0],
+      apiKey,
+      now,
+      now
+    );
 
-    const user = { id: userId, email: normalizedEmail, name: name || normalizedEmail.split('@')[0], apiKey };
+    const user = {
+      id: userId,
+      email: normalizedEmail,
+      name: name || normalizedEmail.split('@')[0],
+      apiKey,
+    };
     const token = createToken({ userId, email: normalizedEmail }, jwtSecret);
 
     return reply.code(201).send({ user, token });
@@ -348,7 +366,10 @@ export function buildApp({
     }
 
     if (status) {
-      query += userId && userId !== 'legacy-admin' && userId !== 'dev-user' ? ' AND uj.status = ?' : ' AND status = ?';
+      query +=
+        userId && userId !== 'legacy-admin' && userId !== 'dev-user'
+          ? ' AND uj.status = ?'
+          : ' AND status = ?';
       params.push(status);
     }
     if (source) {
@@ -356,7 +377,10 @@ export function buildApp({
       params.push(source);
     }
     if (min_score !== undefined && min_score !== '') {
-      query += userId && userId !== 'legacy-admin' && userId !== 'dev-user' ? ' AND uj.fit_score >= ?' : ' AND fit_score >= ?';
+      query +=
+        userId && userId !== 'legacy-admin' && userId !== 'dev-user'
+          ? ' AND uj.fit_score >= ?'
+          : ' AND fit_score >= ?';
       params.push(Number(min_score));
     }
     if (search) {

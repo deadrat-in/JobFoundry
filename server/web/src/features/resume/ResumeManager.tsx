@@ -172,7 +172,16 @@ export const ResumeManager: React.FC = () => {
             Master Profile & JSON Resume
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-            Validated against the canonical <a href="https://jsonresume.org/schema/" target="_blank" rel="noreferrer" style={{ color: 'var(--color-primary-light, #818cf8)' }}>JSON Resume v1.0.0 Specification</a>.
+            Validated against the canonical{' '}
+            <a
+              href="https://jsonresume.org/schema/"
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: 'var(--color-primary-light, #818cf8)' }}
+            >
+              JSON Resume v1.0.0 Specification
+            </a>
+            .
           </p>
         </div>
 
@@ -224,9 +233,7 @@ export const ResumeManager: React.FC = () => {
             <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>
               Active Profile Preview
             </h3>
-            {activeResume && (
-              <span className="badge badge-success">Active Master</span>
-            )}
+            {activeResume && <span className="badge badge-success">Active Master</span>}
           </div>
 
           {loading ? (
@@ -242,13 +249,20 @@ export const ResumeManager: React.FC = () => {
                 <div style={{ color: 'var(--color-primary-light, #818cf8)', fontWeight: 500 }}>
                   {parsedActive.basics?.label || 'No title'}
                 </div>
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-                  {parsedActive.basics?.email} {parsedActive.basics?.location?.city ? `• ${parsedActive.basics.location.city}` : ''}
+                <div
+                  style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.25rem' }}
+                >
+                  {parsedActive.basics?.email}{' '}
+                  {parsedActive.basics?.location?.city
+                    ? `• ${parsedActive.basics.location.city}`
+                    : ''}
                 </div>
               </div>
 
               {parsedActive.basics?.summary && (
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                <div
+                  style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}
+                >
                   {parsedActive.basics.summary}
                 </div>
               )}
@@ -256,17 +270,29 @@ export const ResumeManager: React.FC = () => {
               {/* Skills */}
               {Array.isArray(parsedActive.skills) && parsedActive.skills.length > 0 && (
                 <div>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                  <div
+                    style={{
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      marginBottom: '0.5rem',
+                    }}
+                  >
                     Identified Skills
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                    {parsedActive.skills.flatMap((s: any) =>
-                      Array.isArray(s.keywords) ? s.keywords : [s.name]
-                    ).map((skill: string, idx: number) => (
-                      <span key={idx} className="badge badge-neutral" style={{ fontSize: '0.75rem' }}>
-                        {skill}
-                      </span>
-                    ))}
+                    {parsedActive.skills
+                      .flatMap((s: any) => (Array.isArray(s.keywords) ? s.keywords : [s.name]))
+                      .map((skill: string, idx: number) => (
+                        <span
+                          key={idx}
+                          className="badge badge-neutral"
+                          style={{ fontSize: '0.75rem' }}
+                        >
+                          {skill}
+                        </span>
+                      ))}
                   </div>
                 </div>
               )}
@@ -274,17 +300,39 @@ export const ResumeManager: React.FC = () => {
               {/* Work Experience */}
               {Array.isArray(parsedActive.work) && parsedActive.work.length > 0 && (
                 <div>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                  <div
+                    style={{
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      marginBottom: '0.5rem',
+                    }}
+                  >
                     Experience Summary
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {parsedActive.work.map((w: any, idx: number) => (
-                      <div key={idx} style={{ background: 'var(--bg-card-inner, rgba(255,255,255,0.03))', padding: '0.6rem 0.8rem', borderRadius: 'var(--radius-sm)' }}>
+                      <div
+                        key={idx}
+                        style={{
+                          background: 'var(--bg-card-inner, rgba(255,255,255,0.03))',
+                          padding: '0.6rem 0.8rem',
+                          borderRadius: 'var(--radius-sm)',
+                        }}
+                      >
                         <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>
-                          {w.position} <span style={{ color: 'var(--text-muted)' }}>@ {w.name}</span>
+                          {w.position}{' '}
+                          <span style={{ color: 'var(--text-muted)' }}>@ {w.name}</span>
                         </div>
                         {w.highlights && w.highlights[0] && (
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                          <div
+                            style={{
+                              fontSize: '0.8rem',
+                              color: 'var(--text-muted)',
+                              marginTop: '0.2rem',
+                            }}
+                          >
                             • {w.highlights[0]}
                           </div>
                         )}
@@ -302,8 +350,21 @@ export const ResumeManager: React.FC = () => {
 
           {/* Saved versions list */}
           {resumes.length > 1 && (
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '1rem', marginTop: '0.5rem' }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+            <div
+              style={{
+                borderTop: '1px solid rgba(255,255,255,0.08)',
+                paddingTop: '1rem',
+                marginTop: '0.5rem',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  color: 'var(--text-muted)',
+                  marginBottom: '0.5rem',
+                }}
+              >
                 Saved Profiles ({resumes.length})
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
@@ -348,9 +409,7 @@ export const ResumeManager: React.FC = () => {
         {/* Right column: JSON Resume Editor */}
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>
-              JSON Resume Editor
-            </h3>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>JSON Resume Editor</h3>
             {validationErrors.length > 0 ? (
               <span className="badge badge-danger" style={{ fontSize: '0.75rem' }}>
                 ❌ {validationErrors.length} Schema Error(s)
@@ -363,7 +422,14 @@ export const ResumeManager: React.FC = () => {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.35rem' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                marginBottom: '0.35rem',
+              }}
+            >
               Profile / Resume Title
             </label>
             <input
@@ -376,7 +442,14 @@ export const ResumeManager: React.FC = () => {
           </div>
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.35rem' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                marginBottom: '0.35rem',
+              }}
+            >
               JSON Schema Content
             </label>
             <textarea
@@ -409,7 +482,9 @@ export const ResumeManager: React.FC = () => {
                 overflowY: 'auto',
               }}
             >
-              <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>Schema Validation Issues:</div>
+              <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
+                Schema Validation Issues:
+              </div>
               <ul style={{ margin: 0, paddingLeft: '1.2rem' }}>
                 {validationErrors.map((err, idx) => (
                   <li key={idx}>{err}</li>
@@ -418,7 +493,14 @@ export const ResumeManager: React.FC = () => {
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: '0.5rem',
+              marginTop: '0.5rem',
+            }}
+          >
             <button
               onClick={handleSave}
               disabled={validationErrors.length > 0 || saving}

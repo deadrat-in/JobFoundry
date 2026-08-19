@@ -47,7 +47,9 @@ describe('App', () => {
 
   it('renders login view when unauthenticated', async () => {
     render(<App />);
-    expect(screen.getByText('Sign in to access your automated job command center')).toBeInTheDocument();
+    expect(
+      screen.getByText('Sign in to access your automated job command center')
+    ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('you@example.com')).toBeInTheDocument();
   });
 

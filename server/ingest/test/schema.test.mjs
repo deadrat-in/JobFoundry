@@ -1,8 +1,5 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { unlinkSync } from 'node:fs';
 import Database from 'better-sqlite3';
 import { openDb } from '../src/db/index.mjs';
 import { migrate } from '../src/db/migrate.mjs';
@@ -82,7 +79,9 @@ test('migrate is idempotent', () => {
     assert.doesNotThrow(() => migrate(db));
     assert.doesNotThrow(() => migrate(db));
     const count = db
-      .prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
+      .prepare(
+        "SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+      )
       .get();
     assert.equal(count.n, 4);
   } finally {
