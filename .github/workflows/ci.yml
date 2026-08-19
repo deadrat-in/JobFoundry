@@ -10,10 +10,10 @@ jobs:
     name: Node lint + test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 'lts/*'
           cache: npm
       - run: npm ci
       - run: npm run lint
@@ -27,7 +27,7 @@ jobs:
       run:
         working-directory: server/scorer
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --dev
       - run: uv run pytest
