@@ -12,6 +12,20 @@ def test_health_endpoint():
     assert response.json() == {"status": "ok"}
 
 
+def test_diagnostics_endpoint():
+    from src.config import ScorerConfig
+    config = ScorerConfig(scorer_model="test-model", scorer_threshold=80)
+    app = create_app(llm_client=StubLLM(), config=config)
+    client = TestClient(app)
+    response = client.get("/diagnostics")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "healthy"
+    assert data["model"] == "test-model"
+    assert data["threshold"] == 80
+    assert data["opik_enabled"] is False
+
+
 def test_score_endpoint_valid_payload():
     stub = StubLLM(
         default_result=ScoreResult(

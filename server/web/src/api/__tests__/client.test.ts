@@ -181,4 +181,36 @@ describe('ApiClient', () => {
 
     await expect(client.getJob('non-existent')).rejects.toThrow('job not found');
   });
+
+  it('getDiagnostics fetches health and telemetry data', async () => {
+    const mockDiagnostics = {
+      status: 'healthy',
+      uptime: 120,
+      timestamp: 1700000000000,
+      version: '0.1.0',
+      database: {
+        totalJobs: 10,
+        unscoredJobs: 2,
+        newJobs: 5,
+        appliedJobs: 2,
+        rejectedJobs: 1,
+        totalUsers: 1,
+        totalResumes: 1,
+      },
+      environment: {
+        nodeVersion: 'v22.0.0',
+        platform: 'linux',
+      },
+    };
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => mockDiagnostics,
+    });
+
+    const data = await client.getDiagnostics();
+    expect(data.status).toBe('healthy');
+    expect(data.database.totalJobs).toBe(10);
+  });
 });

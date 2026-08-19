@@ -14,6 +14,10 @@ class ScorerConfig:
     artifacts_dir: str = "./data/artifacts"
     port: int = 8001
     host: str = "0.0.0.0"
+    opik_api_key: str | None = None
+    opik_workspace: str | None = None
+    opik_project_name: str = "jobfoundry"
+    opik_url_override: str | None = None
 
 
 
@@ -54,6 +58,11 @@ def load_config() -> ScorerConfig:
 
     host = os.getenv("HOST", "0.0.0.0")
 
+    opik_api_key = os.getenv("OPIK_API_KEY")
+    opik_workspace = os.getenv("OPIK_WORKSPACE")
+    opik_project_name = os.getenv("OPIK_PROJECT_NAME", "jobfoundry")
+    opik_url_override = os.getenv("OPIK_URL_OVERRIDE")
+
     return ScorerConfig(
         scorer_model=scorer_model,
         scorer_provider=scorer_provider,
@@ -65,5 +74,9 @@ def load_config() -> ScorerConfig:
         artifacts_dir=artifacts_dir,
         port=port,
         host=host,
+        opik_api_key=opik_api_key,
+        opik_workspace=opik_workspace,
+        opik_project_name=opik_project_name,
+        opik_url_override=opik_url_override,
     )
 

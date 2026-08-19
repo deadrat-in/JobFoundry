@@ -28,7 +28,12 @@ export function buildApp({
   logger = process.env.NODE_ENV === 'test' ? false : true,
 }) {
   const legacyKeys = new Set(apiKeys ?? []);
-  const app = Fastify({ logger });
+  const app = Fastify({
+    logger,
+    requestIdHeader: 'x-request-id',
+    genReqId: (req) =>
+      req.headers['x-request-id'] || `req_${randomUUID().replace(/-/g, '').slice(0, 12)}`,
+  });
 
   // Handle empty JSON bodies gracefully across DELETE, PUT, POST
   app.addContentTypeParser('application/json', { parseAs: 'string' }, (req, body, done) => {
@@ -45,11 +50,12 @@ export function buildApp({
     }
   });
 
-  // Enable CORS
+  // Enable CORS & propagate Request ID
   app.addHook('onRequest', async (request, reply) => {
     reply.header('Access-Control-Allow-Origin', '*');
     reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Request-ID');
+    reply.header('x-request-id', request.id);
     if (request.method === 'OPTIONS') {
       return reply.code(200).send();
     }
@@ -121,6 +127,44 @@ export function buildApp({
 
   // Health check
   app.get('/health', async () => ({ ok: true }));
+
+  // GET /api/v1/diagnostics - Health & system telemetry
+  app.get('/api/v1/diagnostics', async () => {
+    const jobStats = db
+      .prepare(
+        `SELECT 
+          COUNT(*) as total_jobs,
+          SUM(CASE WHEN status = 'new' THEN 1 ELSE 0 END) as new_jobs,
+          SUM(CASE WHEN status = 'applied' THEN 1 ELSE 0 END) as applied_jobs,
+          SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected_jobs,
+          SUM(CASE WHEN fit_score IS NULL THEN 1 ELSE 0 END) as unscored_jobs
+        FROM jobs`
+      )
+      .get();
+
+    const userCount = db.prepare('SELECT COUNT(*) as n FROM users').get().n;
+    const resumeCount = db.prepare('SELECT COUNT(*) as n FROM user_resumes').get().n;
+
+    return {
+      status: 'healthy',
+      uptime: process.uptime(),
+      timestamp: Date.now(),
+      version: '0.1.0',
+      database: {
+        totalJobs: jobStats?.total_jobs || 0,
+        unscoredJobs: jobStats?.unscored_jobs || 0,
+        newJobs: jobStats?.new_jobs || 0,
+        appliedJobs: jobStats?.applied_jobs || 0,
+        rejectedJobs: jobStats?.rejected_jobs || 0,
+        totalUsers: userCount || 0,
+        totalResumes: resumeCount || 0,
+      },
+      environment: {
+        nodeVersion: process.version,
+        platform: process.platform,
+      },
+    };
+  });
 
   // GET /api/v1/extension/config - Seed config bundle for browser extension
   app.get('/api/v1/extension/config', async (request) => {

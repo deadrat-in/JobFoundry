@@ -1,0 +1,31 @@
+# Promptfoo Evaluation Configuration for JobFoundry Fit Screener
+# Run evals with: npm run eval:prompt
+# View results in UI: npm run eval:view
+
+description: "JobFoundry Fit Screener Prompt Regression & Evaluation Benchmark"
+
+prompts:
+  - |
+    You are an expert technical recruiter and resume screener.
+    Evaluate the candidate's master resume against the following job posting.
+    Provide a realistic fit score (0-100), concise reasoning, matching skills, and missing skills.
+    Return JSON matching schema: {"score": number, "reasoning": string, "matching_skills": string[], "missing_skills": string[]}
+
+    --- JOB POSTING ---
+    Title: {{job_title}}
+    Company: {{company}}
+    Location: {{location}}
+    Description:
+    {{job_description}}
+
+    --- MASTER RESUME ---
+    {{resume_json}}
+
+providers:
+  - id: openrouter:google/gemma-4-26b-a4b-it:free
+    config:
+      temperature: 0.1
+      response_format:
+        type: json_object
+
+tests: ./datasets/screener_starter_set.json

@@ -1,0 +1,84 @@
+[
+  {
+    "description": "Strong Match: Senior Backend Python/FastAPI",
+    "vars": {
+      "job_title": "Senior Backend Engineer",
+      "company": "ScaleTech",
+      "location": "Remote",
+      "job_description": "We are seeking a Senior Backend Engineer experienced in Python, FastAPI, distributed systems, and PostgreSQL. Experience with Docker and Redis required.",
+      "resume_json": {
+        "basics": { "name": "Alex Dev", "label": "Senior Backend Developer" },
+        "skills": [
+          { "name": "Languages", "keywords": ["Python", "Go", "SQL"] },
+          { "name": "Frameworks", "keywords": ["FastAPI", "PostgreSQL", "Docker", "Redis"] }
+        ],
+        "work": [
+          {
+            "name": "CloudCorp",
+            "position": "Senior Backend Engineer",
+            "highlights": ["Built distributed microservices in FastAPI and Python handling 50k req/s.", "Managed PostgreSQL and Redis clusters."]
+          }
+        ]
+      }
+    },
+    "assert": [
+      { "type": "is-json" },
+      { "type": "javascript", "value": "output.score >= 80" },
+      { "type": "javascript", "value": "Array.isArray(output.matching_skills) && output.matching_skills.length > 0" }
+    ]
+  },
+  {
+    "description": "Skill Mismatch: Frontend React vs Embedded C++",
+    "vars": {
+      "job_title": "Embedded Firmware Engineer",
+      "company": "Hardware Labs",
+      "location": "San Jose, CA",
+      "job_description": "Seeking Embedded C/C++ firmware engineer with ARM Cortex, RTOS, and oscilloscope debugging experience.",
+      "resume_json": {
+        "basics": { "name": "Sam Frontend", "label": "Senior Frontend Engineer" },
+        "skills": [
+          { "name": "Languages", "keywords": ["TypeScript", "JavaScript", "HTML", "CSS"] },
+          { "name": "Frameworks", "keywords": ["React", "Next.js", "TailwindCSS", "Redux"] }
+        ],
+        "work": [
+          {
+            "name": "WebShop",
+            "position": "Frontend Lead",
+            "highlights": ["Built modern responsive SPAs in React and Next.js."]
+          }
+        ]
+      }
+    },
+    "assert": [
+      { "type": "is-json" },
+      { "type": "javascript", "value": "output.score <= 40" },
+      { "type": "javascript", "value": "Array.isArray(output.missing_skills) && output.missing_skills.length > 0" }
+    ]
+  },
+  {
+    "description": "Seniority Mismatch: Junior applying for VP of Engineering",
+    "vars": {
+      "job_title": "VP of Engineering",
+      "company": "Enterprise Global",
+      "location": "New York, NY",
+      "job_description": "Requires 10+ years executive leadership, managing 100+ engineers, strategic budgeting, and organizational design.",
+      "resume_json": {
+        "basics": { "name": "Jordan Junior", "label": "Associate Software Engineer" },
+        "skills": [
+          { "name": "Languages", "keywords": ["Python", "JavaScript"] }
+        ],
+        "work": [
+          {
+            "name": "Startup Inc",
+            "position": "Junior Developer",
+            "highlights": ["1 year fixing frontend bugs and writing unit tests."]
+          }
+        ]
+      }
+    },
+    "assert": [
+      { "type": "is-json" },
+      { "type": "javascript", "value": "output.score <= 50" }
+    ]
+  }
+]

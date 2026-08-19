@@ -22,6 +22,26 @@ export interface UserResume {
   updatedAt: number;
 }
 
+export interface DiagnosticsInfo {
+  status: string;
+  uptime: number;
+  timestamp: number;
+  version: string;
+  database: {
+    totalJobs: number;
+    unscoredJobs: number;
+    newJobs: number;
+    appliedJobs: number;
+    rejectedJobs: number;
+    totalUsers: number;
+    totalResumes: number;
+  };
+  environment: {
+    nodeVersion: string;
+    platform: string;
+  };
+}
+
 export interface ApiClientConfig {
   baseUrl?: string;
   apiKey?: string | null;
@@ -232,6 +252,10 @@ export class ApiClient {
       throw new ApiError(response.status, 'Failed to download ATS text');
     }
     return response.text();
+  }
+
+  async getDiagnostics(): Promise<DiagnosticsInfo> {
+    return this.request<DiagnosticsInfo>('/api/v1/diagnostics');
   }
 }
 

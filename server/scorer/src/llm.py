@@ -1,7 +1,29 @@
+import logging
+import os
+import time
 from typing import Protocol, runtime_checkable, Any
 from pydantic import BaseModel, Field
 import instructor
+import litellm
 from litellm import acompletion
+
+logger = logging.getLogger(__name__)
+
+
+def setup_observability():
+    opik_api_key = os.getenv("OPIK_API_KEY")
+    opik_url_override = os.getenv("OPIK_URL_OVERRIDE")
+    if opik_api_key or opik_url_override:
+        current_success = getattr(litellm, "success_callback", []) or []
+        current_failure = getattr(litellm, "failure_callback", []) or []
+        if "opik" not in current_success:
+            litellm.success_callback = list(current_success) + ["opik"]
+        if "opik" not in current_failure:
+            litellm.failure_callback = list(current_failure) + ["opik"]
+        logger.info("Opik LLM tracing activated via LiteLLM callbacks")
+
+
+setup_observability()
 
 
 class ScoreResult(BaseModel):
@@ -39,7 +61,6 @@ class LiteLLMClient:
         self.api_base = api_base
         self.client = instructor.from_litellm(acompletion, mode=instructor.Mode.MD_JSON)
 
-
     async def score(self, job: dict[str, Any], resume: dict[str, Any]) -> ScoreResult:
         prompt = (
             f"You are an expert technical recruiter and resume screener.\n"
@@ -68,5 +89,27 @@ class LiteLLMClient:
         if self.api_base:
             kwargs["api_base"] = self.api_base
 
-        result: ScoreResult = await self.client.chat.completions.create(**kwargs)
-        return result
+        start_time = time.perf_counter()
+        job_id = job.get("id", "unknown")
+        logger.info("Evaluating job %s with model %s", job_id, self.model)
+        try:
+            result: ScoreResult = await self.client.chat.completions.create(**kwargs)
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            logger.info(
+                "Job %s evaluated in %.2fms: score=%d, matching=%d, missing=%d",
+                job_id,
+                duration_ms,
+                result.score,
+                len(result.matching_skills),
+                len(result.missing_skills),
+            )
+            return result
+        except Exception as e:
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            logger.error(
+                "LLM evaluation failed for job %s after %.2fms: %s",
+                job_id,
+                duration_ms,
+                e,
+            )
+            raise
