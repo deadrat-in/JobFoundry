@@ -11,7 +11,14 @@ test('defaults match the implementation plan table exactly', () => {
     activeMode: false,
     activeModeDelayMs: 2000,
     fitThreshold: 75,
-    portals: {},
+    portals: {
+      remoteok: true,
+      weworkremotely: true,
+      himalayas: true,
+      arbeitnow: true,
+      jobspresso: true,
+      '4dayweek': true,
+    },
   });
 });
 

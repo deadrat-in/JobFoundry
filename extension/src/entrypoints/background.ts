@@ -1,6 +1,6 @@
 import { defineBackground } from 'wxt/utils/define-background';
 import { onMessage } from '../shared/messaging.ts';
-import { getConfig } from '../shared/config.ts';
+import { getConfig, setConfig } from '../shared/config.ts';
 import type { Config } from '../shared/config.ts';
 import { runScanPipeline } from '../background/scan.js';
 import { sendJobs } from '../shared/ingest-client.js';
@@ -85,6 +85,110 @@ export default defineBackground(() => {
   });
 
   // Protocol Message Handlers
+  onMessage('popup:autoConnect', async () => {
+    try {
+      const tabs = await api.tabs?.query({ active: true, currentWindow: true });
+      const activeTab = tabs?.[0];
+      if (!activeTab?.id) {
+        return { ok: false, error: 'No active browser tab found.' };
+      }
+
+      if (!api.scripting?.executeScript) {
+        return { ok: false, error: 'Browser scripting permission not available.' };
+      }
+
+      const results = await api.scripting.executeScript({
+        target: { tabId: activeTab.id },
+        func: () => {
+          // SECURITY GUARANTEE:
+          // Strictly verify this page is genuinely a JobFoundry web application instance
+          // before reading any session or credentials from localStorage.
+          const metaApp = document
+            .querySelector('meta[name="jobfoundry-app"]')
+            ?.getAttribute('content');
+          const metaAppName = document
+            .querySelector('meta[name="application-name"]')
+            ?.getAttribute('content');
+          const rootEl = document.querySelector('#root[data-jobfoundry-app="true"]');
+          const isJobFoundry = metaApp === 'true' || metaAppName === 'JobFoundry' || !!rootEl;
+
+          if (!isJobFoundry) {
+            return {
+              ok: false,
+              code: 'NOT_JOBFOUNDRY',
+              error:
+                'Active tab is not a JobFoundry dashboard. Please switch to your JobFoundry dashboard tab first.',
+            };
+          }
+
+          try {
+            const userRaw = localStorage.getItem('jf_auth_user');
+            const token = localStorage.getItem('jf_auth_token');
+            const settingsRaw = localStorage.getItem('jf_settings');
+
+            const user = userRaw ? JSON.parse(userRaw) : null;
+            const settings = settingsRaw ? JSON.parse(settingsRaw) : null;
+
+            const apiKey = user?.apiKey || (token ? token : null);
+            let serverUrl = settings?.apiUrl;
+
+            if (!serverUrl || serverUrl === 'http://localhost:8080') {
+              serverUrl = 'http://localhost:8080';
+            }
+
+            if (!apiKey) {
+              return {
+                ok: false,
+                code: 'NOT_LOGGED_IN',
+                error:
+                  'Found JobFoundry dashboard, but you are not logged in yet. Please log in to your dashboard first.',
+              };
+            }
+
+            return {
+              ok: true,
+              serverUrl,
+              apiKey,
+              email: user?.email || 'Logged In User',
+              name: user?.name || '',
+            };
+          } catch (err: any) {
+            return {
+              ok: false,
+              code: 'STORAGE_ERROR',
+              error: `Failed to read JobFoundry session: ${err?.message || err}`,
+            };
+          }
+        },
+      });
+
+      const extracted = results?.[0]?.result;
+      if (!extracted) {
+        return { ok: false, error: 'Could not inspect active page.' };
+      }
+
+      if (!extracted.ok) {
+        return { ok: false, error: extracted.error };
+      }
+
+      // Persist to extension sync config
+      await setConfig({
+        serverUrl: extracted.serverUrl,
+        apiKey: extracted.apiKey,
+      });
+
+      return {
+        ok: true,
+        serverUrl: extracted.serverUrl,
+        apiKey: extracted.apiKey,
+        email: extracted.email,
+        name: extracted.name,
+      };
+    } catch (err: any) {
+      return { ok: false, error: err?.message ?? String(err) };
+    }
+  });
+
   onMessage('popup:scanNow', async () => {
     try {
       const jobs = await runScanPipeline({ getConfig, sendJobs });

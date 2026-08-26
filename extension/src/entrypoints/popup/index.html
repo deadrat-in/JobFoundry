@@ -8,7 +8,13 @@
   </head>
   <body>
     <main class="popup">
-      <h1>JobFoundry</h1>
+      <div class="popup-header">
+        <h1>⚡ JobFoundry</h1>
+        <button id="auto-connect" type="button" class="btn-connect" title="Auto-detect credentials from open JobFoundry dashboard tab">
+          🔗 1-Click Auto-Connect
+        </button>
+      </div>
+
       <form id="settings">
         <label class="field">
           <span>Server URL</span>
@@ -29,7 +35,7 @@
         </label>
         <label class="check">
           <input id="passive-mode" type="checkbox" />
-          <span>Passive mode</span>
+          <span>Passive browsing capture</span>
         </label>
         <label class="check">
           <input id="active-mode" type="checkbox" />
@@ -40,9 +46,9 @@
           <input id="fit-threshold" type="number" min="0" max="100" step="1" />
         </label>
         <div class="actions">
-          <button id="capture-tab" type="button" class="btn-primary">Capture Current Page</button>
-          <button id="save" type="submit">Save</button>
-          <button id="scan-now" type="button">Scan portals</button>
+          <button id="capture-tab" type="button" class="btn-primary">Capture Tab</button>
+          <button id="scan-now" type="button" class="btn-secondary">Scan Portals</button>
+          <button id="save" type="submit" class="btn-save">Save</button>
         </div>
       </form>
       <p id="status" role="status"></p>

@@ -21,6 +21,8 @@ import { KanbanBoard } from './features/tracker/KanbanBoard';
 import { JobDetailModal } from './features/detail/JobDetailModal';
 import { SettingsModal } from './features/settings/SettingsModal';
 
+import { ExtensionSyncView } from './features/sync/ExtensionSyncView';
+
 interface DashboardContentProps {
   settings: AppSettings;
   onSaveSettings: (settings: AppSettings) => void;
@@ -103,7 +105,10 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
   const tailoredCount = jobs.filter((j) => j.status === 'tailored' || j.tailored_resume_id).length;
   const highFitCount = jobs.filter((j) => (j.fit_score || 0) >= settings.threshold).length;
 
-  const isResumeTab = location.pathname.startsWith('/resume');
+  const isStandalonePage =
+    location.pathname.startsWith('/resume') ||
+    location.pathname.startsWith('/profile') ||
+    location.pathname.startsWith('/extension-sync');
 
   return (
     <div className="app-container">
@@ -130,10 +135,18 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
             📊 Application Tracker
           </NavLink>
           <NavLink
-            to="/resume"
-            className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
+            to="/profile"
+            className={({ isActive }) =>
+              `nav-tab ${isActive || location.pathname.startsWith('/resume') ? 'active' : ''}`
+            }
           >
             📄 Profile & Resume
+          </NavLink>
+          <NavLink
+            to="/extension-sync"
+            className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
+          >
+            🔌 Extension Sync
           </NavLink>
         </nav>
 
@@ -161,7 +174,7 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
 
       {/* Main Content */}
       <main className="main-content">
-        {!isResumeTab && (
+        {!isStandalonePage && (
           <div className="stats-grid">
             <div className="stat-card">
               <div className="stat-icon-wrapper" style={{ color: 'var(--color-blue)' }}>
@@ -226,7 +239,7 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
           </div>
         )}
 
-        {loading && !isResumeTab ? (
+        {loading && !isStandalonePage ? (
           <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
             Loading jobs from database...
           </div>
@@ -254,7 +267,9 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
                 />
               }
             />
-            <Route path="/resume" element={<ResumeManager />} />
+            <Route path="/profile" element={<ResumeManager />} />
+            <Route path="/resume" element={<Navigate to="/profile" replace />} />
+            <Route path="/extension-sync" element={<ExtensionSyncView />} />
             <Route
               path="/jobs/:id"
               element={

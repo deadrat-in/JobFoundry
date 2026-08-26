@@ -48,8 +48,18 @@ export async function runScanPipeline({
   const registry = providers ?? new Map(Object.entries(providerMap));
 
   const enabled = [];
-  for (const [name, entry] of Object.entries(portalEntries)) {
-    if (entry === false || entry === null || entry === undefined) continue;
+  for (const [name, rawEntry] of Object.entries(portalEntries)) {
+    if (rawEntry === false || rawEntry === null || rawEntry === undefined) continue;
+    const entry =
+      typeof rawEntry === 'object' && rawEntry !== null
+        ? rawEntry
+        : {
+            name,
+            provider:
+              typeof rawEntry === 'string' && !rawEntry.startsWith('http') ? rawEntry : name,
+            careers_url:
+              typeof rawEntry === 'string' && rawEntry.startsWith('http') ? rawEntry : undefined,
+          };
     const resolved = resolveProvider(entry, registry, { skipIds: ['local-parser'] });
     if (resolved?.error) {
       logger.warn?.(`[scan] ${name}: ${resolved.error} — skipping portal`);

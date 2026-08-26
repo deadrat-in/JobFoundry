@@ -6,7 +6,7 @@ export interface Config {
   activeMode: boolean;
   activeModeDelayMs: number;
   fitThreshold: number;
-  portals: Record<string, boolean>;
+  portals: Record<string, boolean | string | any>;
 }
 
 export const DEFAULT_CONFIG: Config = {
@@ -17,7 +17,14 @@ export const DEFAULT_CONFIG: Config = {
   activeMode: false,
   activeModeDelayMs: 2000,
   fitThreshold: 75,
-  portals: {},
+  portals: {
+    remoteok: true,
+    weworkremotely: true,
+    himalayas: true,
+    arbeitnow: true,
+    jobspresso: true,
+    '4dayweek': true,
+  },
 };
 
 export const defaults = DEFAULT_CONFIG;
