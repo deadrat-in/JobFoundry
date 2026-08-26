@@ -9,6 +9,8 @@
 //
 // Wire in via a `job_boards:` entry with `provider: remotive`.
 
+import { htmlToText } from './_html-to-text.mjs';
+
 const FEED_URL = 'https://remotive.com/api/remote-jobs';
 
 /** @type {Provider} */
@@ -19,7 +21,7 @@ export default {
    * Fetches and normalizes postings from the Remotive public feed.
    * @param {{ name?: string }} entry - The job_boards entry being processed.
    * @param {{ fetchJson: (url: string, opts?: { redirect?: 'error'|'follow'|'manual' }) => Promise<any> }} ctx - HTTP context.
-   * @returns {Promise<Array<{title: string, url: string, company: string, location: string}>>}
+   * @returns {Promise<Array<{title: string, url: string, company: string, location: string, description?: string}>>}
    */
   async fetch(entry, ctx) {
     // redirect:'error' prevents SSRF via server-side redirects
@@ -32,11 +34,16 @@ export default {
       .filter(j => j && typeof j === 'object'
         && typeof j.title === 'string' && j.title.trim() !== ''
         && typeof j.url === 'string' && /^https?:\/\//i.test(j.url.trim()))
-      .map(j => ({
-        title: j.title.trim(),
-        url: j.url.trim(),
-        company: typeof j.company_name === 'string' && j.company_name.trim() ? j.company_name.trim() : (entry.name || 'Remotive'),
-        location: typeof j.candidate_required_location === 'string' ? j.candidate_required_location.trim() : '',
-      }));
+      .map(j => {
+        const job = {
+          title: j.title.trim(),
+          url: j.url.trim(),
+          company: typeof j.company_name === 'string' && j.company_name.trim() ? j.company_name.trim() : (entry.name || 'Remotive'),
+          location: typeof j.candidate_required_location === 'string' ? j.candidate_required_location.trim() : '',
+        };
+        const description = htmlToText(j.description);
+        if (description) job.description = description;
+        return job;
+      });
   },
 };

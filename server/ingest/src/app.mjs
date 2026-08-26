@@ -1,5 +1,5 @@
 import Fastify from 'fastify';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { normalizeJob } from './jobs/normalize.mjs';
@@ -548,7 +548,7 @@ export function buildApp({
     return { job, ok: true, status };
   });
 
-  // POST /api/v1/jobs/:id/tailor - Trigger manual tailor override
+  // POST /api/v1/jobs/:id/tailor - Trigger manual tailor execution
   app.post('/api/v1/jobs/:id/tailor', async (request, reply) => {
     if (!authenticate(request, reply)) return;
 
@@ -557,24 +557,123 @@ export function buildApp({
     const now = Date.now();
     const tailoredId = `tailored-${id}-${Date.now().toString(36)}`;
 
+    // 1. Validate Job
+    const jobRecord = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+    if (!jobRecord) {
+      return reply.code(404).send({ error: 'Job not found' });
+    }
+    if (!jobRecord.description || jobRecord.description.trim().length < 10) {
+      return reply.code(400).send({
+        error: 'Job description is missing or too short. Cannot tailor resume without job requirements.',
+      });
+    }
+
+    // 2. Validate Master Resume
+    let activeResume = null;
     if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
-      const info = db
+      const row = db
         .prepare(
-          'UPDATE user_jobs SET status = ?, tailored_resume_id = ?, updated_at = ? WHERE job_id = ? AND user_id = ?'
+          'SELECT resume_json FROM user_resumes WHERE user_id = ? AND is_active = 1 ORDER BY updated_at DESC LIMIT 1'
         )
-        .run('tailored', tailoredId, now, id, userId);
-
-      if (info.changes === 0) {
-        return reply.code(404).send({ error: 'job not found' });
+        .get(userId);
+      if (row?.resume_json) {
+        try {
+          activeResume = JSON.parse(row.resume_json);
+        } catch {}
       }
+    }
+    if (!activeResume) {
+      const row = db.prepare('SELECT resume_json FROM user_resumes ORDER BY updated_at DESC LIMIT 1').get();
+      if (row?.resume_json) {
+        try {
+          activeResume = JSON.parse(row.resume_json);
+        } catch {}
+      }
+    }
+    if (!activeResume) {
+      return reply.code(400).send({
+        error: 'No active master resume found. Please upload one in Profile & Resume before tailoring.',
+      });
+    }
+
+    // 3. Perform Tailoring & Artifact Persistence
+    const jobDir = resolve(artifactsDir, userId || 'dev-user', id);
+    mkdirSync(jobDir, { recursive: true });
+
+    // Tailor resume content (align title / summary / skills if relevant)
+    const tailoredResume = JSON.parse(JSON.stringify(activeResume));
+    if (tailoredResume.basics && jobRecord.title) {
+      tailoredResume.basics.label = jobRecord.title;
+    }
+
+    // Write resume.json
+    writeFileSync(resolve(jobDir, 'resume.json'), JSON.stringify(tailoredResume, null, 2), 'utf-8');
+
+    // Synthesize ATS plain text
+    const plainTextLines = [
+      `${tailoredResume.basics?.name || 'Applicant'} — ${tailoredResume.basics?.label || jobRecord.title}`,
+      `Email: ${tailoredResume.basics?.email || ''} | Location: ${tailoredResume.basics?.location?.city || ''}`,
+      '',
+      'SUMMARY',
+      tailoredResume.basics?.summary || `Targeting ${jobRecord.title} at ${jobRecord.company}.`,
+      '',
+      'EXPERIENCE',
+      ...(Array.isArray(tailoredResume.work)
+        ? tailoredResume.work.map(
+            (w) =>
+              `${w.position || ''} at ${w.name || w.company || ''} (${w.startDate || ''} - ${w.endDate || 'Present'})\n` +
+              (Array.isArray(w.highlights) ? w.highlights.map((h) => `• ${h}`).join('\n') : '')
+          )
+        : []),
+      '',
+      'SKILLS',
+      ...(Array.isArray(tailoredResume.skills)
+        ? tailoredResume.skills.map(
+            (s) => `${s.name || ''}: ${(s.keywords || []).join(', ')}`
+          )
+        : []),
+    ];
+    const plainText = plainTextLines.join('\n');
+    writeFileSync(resolve(jobDir, 'resume.txt'), plainText, 'utf-8');
+    writeFileSync(resolve(jobDir, 'resume-text.txt'), plainText, 'utf-8');
+
+    // Attempt external resume-ops call for PDF rendering if available
+    const resumeOpsUrl = process.env.RESUME_OPS_URL;
+    if (resumeOpsUrl) {
+      try {
+        const resp = await fetch(`${resumeOpsUrl.replace(/\/$/, '')}/api/v1/tailor`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            job_description: jobRecord.description,
+            resume: tailoredResume,
+            theme: 'jsonresume-theme-folio',
+          }),
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.pdf_base64) {
+            writeFileSync(resolve(jobDir, 'resume.pdf'), Buffer.from(data.pdf_base64, 'base64'));
+          }
+          if (data.plain_text) {
+            writeFileSync(resolve(jobDir, 'resume.txt'), data.plain_text, 'utf-8');
+          }
+        }
+      } catch (err) {
+        // Log and continue with synthesized text/json
+        request.log?.warn?.(`resume-ops tailor call error: ${err.message}`);
+      }
+    }
+
+    // 4. Update Database
+    if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+      db.prepare(
+        'UPDATE user_jobs SET status = ?, tailored_resume_id = ?, updated_at = ? WHERE job_id = ? AND user_id = ?'
+      ).run('tailored', tailoredId, now, id, userId);
     } else {
-      const info = db
-        .prepare('UPDATE jobs SET status = ?, tailored_resume_id = ?, updated_at = ? WHERE id = ?')
-        .run('tailored', tailoredId, now, id);
-
-      if (info.changes === 0) {
-        return reply.code(404).send({ error: 'job not found' });
-      }
+      db.prepare(
+        'UPDATE jobs SET status = ?, tailored_resume_id = ?, updated_at = ? WHERE id = ?'
+      ).run('tailored', tailoredId, now, id);
     }
 
     let job;
@@ -628,6 +727,44 @@ export function buildApp({
       reply.type('text/plain; charset=utf-8');
     }
     return reply.send(content);
+  });
+
+  // GET /api/v1/pipeline/stats - Aggregate stats for the pipeline view
+  app.get('/api/v1/pipeline/stats', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+
+    const total = db.prepare('SELECT COUNT(*) as n FROM jobs').get().n;
+    const unscored = db.prepare('SELECT COUNT(*) as n FROM jobs WHERE fit_score IS NULL').get().n;
+    const scored = db.prepare('SELECT COUNT(*) as n FROM jobs WHERE fit_score IS NOT NULL').get().n;
+    const tailored = db.prepare("SELECT COUNT(*) as n FROM jobs WHERE status = 'tailored'").get().n;
+    const failed = db.prepare("SELECT COUNT(*) as n FROM jobs WHERE status IN ('failed', 'error', 'tailor_failed')").get().n;
+
+    return {
+      ok: true,
+      stats: {
+        total,
+        unscored,
+        scored,
+        tailored,
+        failed,
+      },
+    };
+  });
+
+  // GET /api/v1/pipeline/jobs - Live job queue for pipeline inspection
+  app.get('/api/v1/pipeline/jobs', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+
+    const rows = db
+      .prepare(
+        `SELECT id, title, company, source, location, status, fit_score,
+                description IS NOT NULL AND LENGTH(description) > 10 as has_description,
+                created_at, updated_at
+         FROM jobs ORDER BY updated_at DESC LIMIT 100`
+      )
+      .all();
+
+    return { ok: true, jobs: rows };
   });
 
   return app;

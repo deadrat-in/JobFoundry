@@ -20,8 +20,9 @@ import { JobFeed } from './features/feed/JobFeed';
 import { KanbanBoard } from './features/tracker/KanbanBoard';
 import { JobDetailModal } from './features/detail/JobDetailModal';
 import { SettingsModal } from './features/settings/SettingsModal';
-
+import { PipelineView } from './features/pipeline/PipelineView';
 import { ExtensionSyncView } from './features/sync/ExtensionSyncView';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 interface DashboardContentProps {
   settings: AppSettings;
@@ -108,6 +109,7 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
   const isStandalonePage =
     location.pathname.startsWith('/resume') ||
     location.pathname.startsWith('/profile') ||
+    location.pathname.startsWith('/pipeline') ||
     location.pathname.startsWith('/extension-sync');
 
   return (
@@ -133,6 +135,12 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
             className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
           >
             📊 Application Tracker
+          </NavLink>
+          <NavLink
+            to="/pipeline"
+            className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
+          >
+            ⚡ Pipeline
           </NavLink>
           <NavLink
             to="/profile"
@@ -266,6 +274,10 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
                   onStatusChange={onStatusChange}
                 />
               }
+            />
+            <Route
+              path="/pipeline"
+              element={<PipelineView onSelectJob={(jobId) => navigate(`/jobs/${jobId}`)} />}
             />
             <Route path="/profile" element={<ResumeManager />} />
             <Route path="/resume" element={<Navigate to="/profile" replace />} />
@@ -409,16 +421,18 @@ const DashboardRoot: React.FC = () => {
   }
 
   return (
-    <DashboardLayout
-      settings={settings}
-      onSaveSettings={handleSaveSettings}
-      jobs={jobs}
-      loading={loading}
-      error={error}
-      onRefresh={fetchJobs}
-      onJobUpdated={handleJobUpdated}
-      onStatusChange={handleStatusChange}
-    />
+    <ErrorBoundary fallbackTitle="Dashboard Error">
+      <DashboardLayout
+        settings={settings}
+        onSaveSettings={handleSaveSettings}
+        jobs={jobs}
+        loading={loading}
+        error={error}
+        onRefresh={fetchJobs}
+        onJobUpdated={handleJobUpdated}
+        onStatusChange={handleStatusChange}
+      />
+    </ErrorBoundary>
   );
 };
 

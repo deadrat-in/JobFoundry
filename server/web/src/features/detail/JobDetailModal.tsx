@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Job, FitNotes, JobStatus } from '../../types/job';
+import { api } from '../../api/client';
 import { getScoreCategory } from '../filters/filterUtils';
 import { TailorButton } from '../tailor/TailorButton';
 import { ArtifactViewer } from '../artifacts/ArtifactViewer';
 import { ResumeDiffView } from '../diff/ResumeDiffView';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { KANBAN_COLUMNS } from '../tracker/trackerUtils';
 
 interface JobDetailModalProps {
@@ -22,6 +24,24 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
   onJobUpdated,
 }) => {
   const [activeTab, setActiveTab] = useState<'details' | 'diff'>('details');
+  const [originalResume, setOriginalResume] = useState<Record<string, any>>({});
+  const [tailoredResume, setTailoredResume] = useState<Record<string, any>>({});
+  const [loadingDiff, setLoadingDiff] = useState(false);
+
+  useEffect(() => {
+    if (job && (job.status === 'tailored' || job.tailored_resume_id)) {
+      setLoadingDiff(true);
+      Promise.all([
+        api.getActiveResume().catch(() => null),
+        api.getTailoredResume(job.id).catch(() => null),
+      ])
+        .then(([master, tailored]) => {
+          if (master?.resume) setOriginalResume(master.resume);
+          if (tailored) setTailoredResume(tailored);
+        })
+        .finally(() => setLoadingDiff(false));
+    }
+  }, [job?.id, job?.status, job?.tailored_resume_id]);
 
   if (!job) return null;
 
@@ -39,89 +59,96 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="modal-header">
-          <div>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{job.title}</h2>
-            <div
+        <ErrorBoundary fallbackTitle="Job Details Rendering Error">
+          {/* Header */}
+          <div className="modal-header">
+            <div>
+              <h2 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>{job.title}</h2>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  fontSize: '0.875rem',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <span>{job.company}</span>
+                {job.location && <span>• {job.location}</span>}
+                <span className="badge badge-indigo">{job.source}</span>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="btn btn-secondary btn-sm"
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                fontSize: '0.875rem',
-                color: 'var(--text-secondary)',
+                borderRadius: 'var(--radius-full)',
+                width: '32px',
+                height: '32px',
+                padding: 0,
               }}
             >
-              <span>{job.company}</span>
-              {job.location && <span>• {job.location}</span>}
-              <span className="badge badge-indigo">{job.source}</span>
-            </div>
+              ✕
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="btn btn-secondary btn-sm"
+
+          {/* Subheader / Tabs */}
+          <div
             style={{
-              borderRadius: 'var(--radius-full)',
-              width: '32px',
-              height: '32px',
-              padding: 0,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '0.75rem 1.5rem',
+              borderBottom: '1px solid var(--border-subtle)',
+              background: 'rgba(0,0,0,0.2)',
             }}
           >
-            ✕
-          </button>
-        </div>
-
-        {/* Subheader / Tabs */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '0.75rem 1.5rem',
-            borderBottom: '1px solid var(--border-subtle)',
-            background: 'rgba(0,0,0,0.2)',
-          }}
-        >
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button
-              onClick={() => setActiveTab('details')}
-              className={`btn btn-sm ${activeTab === 'details' ? 'btn-primary' : 'btn-secondary'}`}
-            >
-              Job & Fit Details
-            </button>
-            {job.status === 'tailored' && (
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button
-                onClick={() => setActiveTab('diff')}
-                className={`btn btn-sm ${activeTab === 'diff' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setActiveTab('details')}
+                className={`btn btn-sm ${activeTab === 'details' ? 'btn-primary' : 'btn-secondary'}`}
               >
-                Resume Diff
+                Job & Fit Details
               </button>
-            )}
+              {(job.status === 'tailored' || job.tailored_resume_id) && (
+                <button
+                  onClick={() => setActiveTab('diff')}
+                  className={`btn btn-sm ${activeTab === 'diff' ? 'btn-primary' : 'btn-secondary'}`}
+                >
+                  Resume Diff
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Status:</label>
+              <select
+                value={job.status}
+                onChange={(e) => onStatusChange(job.id, e.target.value as JobStatus)}
+                className="select-input"
+                style={{ padding: '0.35rem 0.65rem' }}
+              >
+                {KANBAN_COLUMNS.map((col) => (
+                  <option key={col.id} value={col.id}>
+                    {col.title}
+                  </option>
+                ))}
+              </select>
+              <TailorButton job={job} onTailored={onJobUpdated} />
+            </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Status:</label>
-            <select
-              value={job.status}
-              onChange={(e) => onStatusChange(job.id, e.target.value as JobStatus)}
-              className="select-input"
-              style={{ padding: '0.35rem 0.65rem' }}
-            >
-              {KANBAN_COLUMNS.map((col) => (
-                <option key={col.id} value={col.id}>
-                  {col.title}
-                </option>
-              ))}
-            </select>
-            <TailorButton job={job} onTailored={onJobUpdated} />
-          </div>
-        </div>
-
-        {/* Body */}
-        <div className="modal-body">
-          {activeTab === 'diff' ? (
-            <ResumeDiffView />
-          ) : (
+          {/* Body */}
+          <div className="modal-body">
+            {activeTab === 'diff' ? (
+              loadingDiff ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  Loading tailored resume diff...
+                </div>
+              ) : (
+                <ResumeDiffView originalResume={originalResume} tailoredResume={tailoredResume} />
+              )
+            ) : (
             <div>
               {/* Fit Screener Evaluation Box */}
               <div
@@ -257,6 +284,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
             Close
           </button>
         </div>
+        </ErrorBoundary>
       </div>
     </div>
   );

@@ -1,5 +1,4 @@
-// @ts-check
-/** @typedef {import('./_types.js').Provider} Provider */
+import { htmlToText } from './_html-to-text.mjs';
 
 // Jobicy provider — board-wide remote-jobs aggregator feed
 // (https://jobicy.com/api/v2/remote-jobs?count=50). Returns { jobs: [...] }.
@@ -20,7 +19,7 @@ export default {
    * Fetches and normalizes postings from the Jobicy public feed.
    * @param {{ name?: string }} entry - The job_boards entry being processed.
    * @param {{ fetchJson: (url: string, opts?: { redirect?: 'error'|'follow'|'manual' }) => Promise<any> }} ctx - HTTP context.
-   * @returns {Promise<Array<{title: string, url: string, company: string, location: string, postedAt?: number}>>}
+   * @returns {Promise<Array<{title: string, url: string, company: string, location: string, postedAt?: number, description?: string}>>}
    */
   async fetch(entry, ctx) {
     // redirect:'error' prevents SSRF via server-side redirects
@@ -38,7 +37,7 @@ export default {
  *
  * @param {any} json - Raw response payload.
  * @param {string} defaultCompany - Fallback company name.
- * @returns {Array<{title: string, url: string, company: string, location: string}>}
+ * @returns {Array<{title: string, url: string, company: string, location: string, postedAt?: number, description?: string}>}
  */
 export function parseJobicyResponse(json, defaultCompany = 'Jobicy') {
   if (!json || !Array.isArray(json.jobs)) return [];
@@ -71,14 +70,17 @@ export function parseJobicyResponse(json, defaultCompany = 'Jobicy') {
       const company = typeof j.companyName === 'string' && j.companyName.trim() ? j.companyName.trim() : defaultCompany;
       const location = typeof j.jobGeo === 'string' ? j.jobGeo.trim() : '';
       const postedAt = toEpochMs(j.pubDate);
+      const description = htmlToText(j.jobDescription);
 
-      return {
+      const job = {
         title,
         url,
         company,
         location,
         postedAt,
       };
+      if (description) job.description = description;
+      return job;
     })
     .filter(j => j !== null);
 }

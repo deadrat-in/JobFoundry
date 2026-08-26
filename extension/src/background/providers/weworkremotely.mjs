@@ -1,4 +1,5 @@
 import { decodeEntities } from './_html-entities.mjs';
+import { htmlToText } from './_html-to-text.mjs';
 // @ts-check
 /** @typedef {import('./_types.js').Provider} Provider */
 
@@ -120,14 +121,17 @@ export function parseWwrFeed(xml, defaultCompany = 'We Work Remotely') {
 
     const { company, title } = splitTitle(rawTitle, fallback);
     const location = tagText(item, 'region') || tagText(item, 'category');
+    const description = htmlToText(tagText(item, 'description'));
 
-    jobs.push({
+    const job = {
       title,
       company,
       location,
       url,
       postedAt: toEpochMs(tagText(item, 'pubDate')),
-    });
+    };
+    if (description) job.description = description;
+    jobs.push(job);
   }
 
   return jobs;

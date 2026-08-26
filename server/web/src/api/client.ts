@@ -254,6 +254,31 @@ export class ApiClient {
     return response.text();
   }
 
+  async getPipelineStats(): Promise<{ total: number; unscored: number; scored: number; tailored: number; failed: number }> {
+    const res = await this.request<{ ok: boolean; stats: { total: number; unscored: number; scored: number; tailored: number; failed: number } }>('/api/v1/pipeline/stats');
+    return res.stats;
+  }
+
+  async getPipelineJobs(): Promise<any[]> {
+    const res = await this.request<{ ok: boolean; jobs: any[] }>('/api/v1/pipeline/jobs');
+    return res.jobs;
+  }
+
+  async getTailoredResume(id: string): Promise<Record<string, any> | null> {
+    const url = this.getArtifactUrl(id, 'resume.json');
+    const headers: Record<string, string> = {};
+    if (this.apiKey) {
+      headers['Authorization'] = `Bearer ${this.apiKey}`;
+    }
+    try {
+      const response = await fetch(url, { headers });
+      if (!response.ok) return null;
+      return await response.json();
+    } catch {
+      return null;
+    }
+  }
+
   async getDiagnostics(): Promise<DiagnosticsInfo> {
     return this.request<DiagnosticsInfo>('/api/v1/diagnostics');
   }

@@ -1,4 +1,5 @@
 import { decodeEntities } from './_html-entities.mjs';
+import { htmlToText } from './_html-to-text.mjs';
 // @ts-check
 /** @typedef {import('./_types.js').Provider} Provider */
 
@@ -113,6 +114,7 @@ export function parseLarajobsFeed(xml, defaultCompany = 'LaraJobs') {
 
     const company = tagText(item, 'job:company') || tagText(item, 'dc:creator') || fallback;
     const postedAt = toEpochMs(tagText(item, 'pubDate'));
+    const description = htmlToText(tagText(item, 'description'));
     const job = {
       title,
       company,
@@ -120,6 +122,7 @@ export function parseLarajobsFeed(xml, defaultCompany = 'LaraJobs') {
       url,
     };
     if (postedAt !== undefined) job.postedAt = postedAt;
+    if (description) job.description = description;
     jobs.push(job);
   }
 
