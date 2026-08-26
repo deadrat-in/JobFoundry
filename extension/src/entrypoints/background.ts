@@ -9,6 +9,7 @@ import { normalizeJob, withFingerprint } from '../background/normalize.js';
 import { fingerprintText } from '../background/fingerprint.js';
 import { dedupJobs, createSessionCache } from '../background/dedup.js';
 import { makeHttpCtx } from '../background/providers/_http.mjs';
+import { extractKeywordsFromResume } from '../background/filters/resume-keywords.js';
 
 export const SCAN_ALARM_NAME = 'jobfoundry-periodic-scan';
 
@@ -172,10 +173,34 @@ export default defineBackground(() => {
       }
 
       // Persist to extension sync config
-      await setConfig({
+      const patch = {
         serverUrl: extracted.serverUrl,
         apiKey: extracted.apiKey,
-      });
+      };
+
+      // Fetch active resume to populate positive keywords if user hasn't set any yet
+      try {
+        const curConfig = await getConfig();
+        const res = await fetch(`${extracted.serverUrl}/api/v1/resumes/active`, {
+          headers: { Authorization: `Bearer ${extracted.apiKey}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.resume?.resume) {
+            const extractedTitles = extractKeywordsFromResume(data.resume.resume);
+            if (extractedTitles.length > 0 && (!curConfig.titleFilter?.positive || curConfig.titleFilter.positive.length === 0)) {
+              patch.titleFilter = {
+                ...curConfig.titleFilter,
+                positive: extractedTitles,
+              };
+            }
+          }
+        }
+      } catch {
+        // Ignore resume keyword fetch failure
+      }
+
+      await setConfig(patch);
 
       return {
         ok: true,

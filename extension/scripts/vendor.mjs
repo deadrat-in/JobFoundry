@@ -48,6 +48,10 @@ const DROP_TEST_FILES = new Set([
   'dns-pacing.test.mjs',
   'scan-resolver-breaker.test.mjs',
   'title-entity-decode.test.mjs',
+  'private-address-guard.test.mjs',
+  'local-parser.test.mjs',
+  'jobbankca.test.mjs',
+  'mycareersfuture.test.mjs',
 ]);
 
 // Provider modules that cannot run in a browser as copied. Each is replaced by
@@ -82,7 +86,10 @@ for (const p of [join(SRC, 'providers'), join(SRC, 'tests', 'providers'), join(S
   }
 }
 
+import { rmSync } from 'node:fs';
+
 mkdirSync(PROVIDERS_DST, { recursive: true });
+rmSync(TESTS_DST, { recursive: true, force: true });
 mkdirSync(TESTS_DST, { recursive: true });
 mkdirSync(FIXTURES_DST, { recursive: true });
 

@@ -29,6 +29,9 @@ import { checkLiveness } from './liveness/index.js';
 import { normalizeJob, withFingerprint } from './normalize.js';
 import { fingerprintText } from './fingerprint.js';
 import { dedupJobs, createSessionCache } from './dedup.js';
+import { buildTitleFilter } from './filters/title-keywords.js';
+import { buildLocationFilter } from './filters/location-filter.js';
+import { buildDateFilter } from './filters/date-filter.js';
 
 export async function runScanPipeline({
   getConfig,
@@ -43,11 +46,14 @@ export async function runScanPipeline({
 } = {}) {
   const config = portals !== null ? { portals } : getConfig ? await getConfig() : { portals: {} };
   const portalEntries = config.portals ?? {};
+  const trackedCompanies = Array.isArray(config.trackedCompanies) ? config.trackedCompanies : [];
 
   // Registry: injected Map<id, provider> (tests) or the static build index.
   const registry = providers ?? new Map(Object.entries(providerMap));
 
   const enabled = [];
+
+  // 1. Resolve standard portal / aggregator entries
   for (const [name, rawEntry] of Object.entries(portalEntries)) {
     if (rawEntry === false || rawEntry === null || rawEntry === undefined) continue;
     const entry =
@@ -72,6 +78,19 @@ export async function runScanPipeline({
     enabled.push({ name, entry, provider: resolved.provider });
   }
 
+  // 2. Resolve custom tracked companies
+  for (const company of trackedCompanies) {
+    if (!company || company.enabled === false || !company.careers_url) continue;
+    const entry = {
+      name: company.name || company.careers_url,
+      careers_url: company.careers_url,
+    };
+    const resolved = resolveProvider(entry, registry, { skipIds: ['local-parser'] });
+    if (resolved?.provider) {
+      enabled.push({ name: company.name || company.careers_url, entry, provider: resolved.provider });
+    }
+  }
+
   // Phase 1 — fetch from every enabled portal (independent, run in parallel).
   const httpCtx = makeHttpCtx();
   const pooled = [];
@@ -88,10 +107,22 @@ export async function runScanPipeline({
     })
   );
 
-  // Phase 2 — liveness → normalize → fingerprint → dedup → send, exactly once.
+  // Phase 2 — Apply Filter Pipeline: Date -> Title Keywords -> Location
+  const matchDate = buildDateFilter(config.maxPostingAgeDays, now);
+  const matchTitle = buildTitleFilter(config.titleFilter);
+  const matchLocation = buildLocationFilter(config.locationFilter);
+
+  const filtered = pooled.filter((job) => {
+    if (!matchDate(job)) return false;
+    if (!matchTitle(job?.title)) return false;
+    if (!matchLocation(job)) return false;
+    return true;
+  });
+
+  // Phase 3 — liveness → normalize → fingerprint → dedup → send
   const dedupCache = cache ?? createSessionCache();
   const survivors = [];
-  for (const raw of pooled) {
+  for (const raw of filtered) {
     const livenessResult = await liveness(raw, httpCtx);
     if (livenessResult === 'expired') continue;
     const normalized = normalizeJob(raw, raw._provider);
@@ -103,6 +134,28 @@ export async function runScanPipeline({
 
   if (deduped.length > 0 && sendJobs) {
     await sendJobs({ jobs: deduped });
+  }
+
+  // Record scan history run
+  try {
+    const api = globalThis.browser ?? globalThis.chrome;
+    const storageArea = api?.storage?.local;
+    if (storageArea) {
+      const existing = (await storageArea.get('jobfoundry-scan-history'))?.['jobfoundry-scan-history'] || [];
+      const updated = [
+        {
+          timestamp: now(),
+          totalFetched: pooled.length,
+          passedFilters: filtered.length,
+          deduped: deduped.length,
+          ingested: deduped.length,
+        },
+        ...existing,
+      ].slice(0, 30);
+      await storageArea.set({ 'jobfoundry-scan-history': updated });
+    }
+  } catch {
+    // Ignore storage log error
   }
 
   return deduped;

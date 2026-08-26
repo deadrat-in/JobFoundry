@@ -1,3 +1,29 @@
+export interface TitleFilterConfig {
+  positive: string[];
+  negative: string[];
+}
+
+export interface LocationFilterConfig {
+  allow: string[];
+  block: string[];
+}
+
+export interface TrackedCompany {
+  id: string;
+  name: string;
+  careers_url: string;
+  enabled: boolean;
+}
+
+export interface ScanRunLog {
+  timestamp: number;
+  totalFetched: number;
+  passedFilters: number;
+  ingested: number;
+  deduped: number;
+  error?: string;
+}
+
 export interface Config {
   serverUrl: string | null;
   apiKey: string | null;
@@ -6,7 +32,11 @@ export interface Config {
   activeMode: boolean;
   activeModeDelayMs: number;
   fitThreshold: number;
+  titleFilter: TitleFilterConfig;
+  maxPostingAgeDays: number;
+  locationFilter: LocationFilterConfig;
   portals: Record<string, boolean | string | any>;
+  trackedCompanies: TrackedCompany[];
 }
 
 export const DEFAULT_CONFIG: Config = {
@@ -17,6 +47,15 @@ export const DEFAULT_CONFIG: Config = {
   activeMode: false,
   activeModeDelayMs: 2000,
   fitThreshold: 75,
+  titleFilter: {
+    positive: [],
+    negative: ['word:intern', 'junior', '.net', 'php', 'wordpress', 'embedded', 'firmware'],
+  },
+  maxPostingAgeDays: 30,
+  locationFilter: {
+    allow: ['remote', 'worldwide', 'anywhere'],
+    block: [],
+  },
   portals: {
     remoteok: true,
     weworkremotely: true,
@@ -25,6 +64,7 @@ export const DEFAULT_CONFIG: Config = {
     jobspresso: true,
     '4dayweek': true,
   },
+  trackedCompanies: [],
 };
 
 export const defaults = DEFAULT_CONFIG;

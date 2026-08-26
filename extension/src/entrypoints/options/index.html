@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JobFoundry Extension Options & Scrapers</title>
+    <link rel="stylesheet" href="./options.css" />
+  </head>
+  <body>
+    <div class="options-container">
+      {/* Top Header */}
+      <header class="options-header">
+        <div class="brand">
+          <span class="logo">⚡</span>
+          <div>
+            <h1>JobFoundry Extension</h1>
+            <p class="subtitle">Search Filters, Scraper Catalog & Background Sync</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <span id="conn-badge" class="badge badge-disconnected">Checking connection...</span>
+          <button id="header-save-btn" class="btn btn-primary">Save Changes</button>
+        </div>
+      </header>
+
+      {/* Tabs Navigation */}
+      <nav class="tabs-nav">
+        <button class="tab-btn active" data-tab="tab-filters">🎯 Keywords & Search Filters</button>
+        <button class="tab-btn" data-tab="tab-scrapers">🚀 Scrapers & Portals</button>
+        <button class="tab-btn" data-tab="tab-monitor">📊 Scan Monitor & History</button>
+        <button class="tab-btn" data-tab="tab-connection">⚙️ Connection & Sync</button>
+      </nav>
+
+      {/* Main Content Area */}
+      <main class="tabs-content">
+        {/* Tab 1: Keywords & Filters */}
+        <section id="tab-filters" class="tab-panel active">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2>Target Role Keywords (Positive Matches)</h2>
+                <p class="desc">Only jobs matching at least one of these keywords will be ingested. Leave empty to allow all software roles.</p>
+              </div>
+              <button id="extract-resume-keywords" type="button" class="btn btn-secondary btn-sm">
+                ⚡ Fetch from Master Resume
+              </button>
+            </div>
+            <div class="field">
+              <label for="positive-keywords">Positive Keywords (comma-separated):</label>
+              <textarea id="positive-keywords" rows="3" placeholder="e.g. Software Engineer, Fullstack, Frontend, Backend, React, Python, AI Engineer"></textarea>
+              <p class="help-text">
+                <strong>Advanced Syntax:</strong> Use <code>word:intern</code> for whole-word matching, <code>stem:agent</code> for word-start matching, and <code>director + engineering</code> for multi-term conjunctions.
+              </p>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Negative Excluded Keywords</h2>
+            <p class="desc">Jobs matching any of these terms will be immediately rejected before scoring.</p>
+            <div class="field">
+              <label for="negative-keywords">Negative Keywords (comma-separated):</label>
+              <textarea id="negative-keywords" rows="2" placeholder="e.g. word:intern, junior, .net, php, wordpress, embedded, firmware"></textarea>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <h2>Max Posting Age</h2>
+              <p class="desc">Drop postings older than N days (jobs without dates are preserved).</p>
+              <div class="field">
+                <select id="max-posting-age">
+                  <option value="7">Within 7 days (Fresh only)</option>
+                  <option value="14">Within 14 days</option>
+                  <option value="30">Within 30 days (Recommended)</option>
+                  <option value="60">Within 60 days</option>
+                  <option value="0">All Time (No date filter)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2>Location Filtering</h2>
+              <p class="desc">Filter jobs based on location rules or remote titles.</p>
+              <div class="field">
+                <label for="location-allow">Allowed Locations (comma-separated):</label>
+                <input id="location-allow" type="text" placeholder="e.g. remote, worldwide, united states, europe" />
+              </div>
+              <div class="field">
+                <label for="location-block">Blocked Locations (comma-separated):</label>
+                <input id="location-block" type="text" placeholder="e.g. on-site only, hybrid" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Tab 2: Scrapers & Portals */}
+        <section id="tab-scrapers" class="tab-panel">
+          <div class="card">
+            <h2>Public Job Board Aggregators (Zero-Token Feeds)</h2>
+            <p class="desc">These public feeds are scraped directly without requiring company URLs.</p>
+            <div class="boards-grid">
+              <label class="board-toggle">
+                <input type="checkbox" id="portal-remoteok" data-portal="remoteok" />
+                <div>
+                  <strong>RemoteOK</strong>
+                  <span>Global remote developer jobs</span>
+                </div>
+              </label>
+              <label class="board-toggle">
+                <input type="checkbox" id="portal-weworkremotely" data-portal="weworkremotely" />
+                <div>
+                  <strong>We Work Remotely</strong>
+                  <span>Top remote tech postings & RSS</span>
+                </div>
+              </label>
+              <label class="board-toggle">
+                <input type="checkbox" id="portal-himalayas" data-portal="himalayas" />
+                <div>
+                  <strong>Himalayas</strong>
+                  <span>Curated remote engineering roles</span>
+                </div>
+              </label>
+              <label class="board-toggle">
+                <input type="checkbox" id="portal-arbeitnow" data-portal="arbeitnow" />
+                <div>
+                  <strong>Arbeitnow</strong>
+                  <span>European & remote tech roles</span>
+                </div>
+              </label>
+              <label class="board-toggle">
+                <input type="checkbox" id="portal-jobspresso" data-portal="jobspresso" />
+                <div>
+                  <strong>Jobspresso</strong>
+                  <span>Expertly reviewed tech & dev jobs</span>
+                </div>
+              </label>
+              <label class="board-toggle">
+                <input type="checkbox" id="portal-4dayweek" data-portal="4dayweek" />
+                <div>
+                  <strong>4 Day Week</strong>
+                  <span>4-day workweek software engineering roles</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Custom Tracked Company ATS Portals</h2>
+            <p class="desc">Add direct career page URLs for target employers (supports Greenhouse, Lever, Ashby, Workable, etc.).</p>
+            
+            <form id="add-company-form" class="add-company-row">
+              <input id="company-name" type="text" placeholder="Company Name (e.g. Stripe)" required />
+              <input id="company-url" type="url" placeholder="Careers URL (e.g. https://job-boards.greenhouse.io/stripe)" required />
+              <button type="submit" class="btn btn-secondary">Add Portal</button>
+            </form>
+
+            <div class="table-container">
+              <table id="companies-table">
+                <thead>
+                  <tr>
+                    <th>Active</th>
+                    <th>Company</th>
+                    <th>Careers URL</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="companies-list">
+                  {/* Dynamic rows */}
+                </tbody>
+              </table>
+              <div id="no-companies" class="empty-state">No custom companies tracked yet. Add one above!</div>
+            </div>
+          </div>
+        </section>
+
+        {/* Tab 3: Scan Monitor & History */}
+        <section id="tab-monitor" class="tab-panel">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2>Live Scan Execution</h2>
+                <p class="desc">Trigger a scan across all active portals and monitor matching results.</p>
+              </div>
+              <button id="scan-now-btn" class="btn btn-primary">🚀 Run Scan Now</button>
+            </div>
+            <div id="scan-status-banner" class="status-banner" style="display: none;"></div>
+          </div>
+
+          <div class="card">
+            <h2>Recent Scan Runs</h2>
+            <p class="desc">Execution history showing jobs fetched, filtered, deduplicated, and ingested.</p>
+            <div class="table-container">
+              <table id="history-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Fetched</th>
+                    <th>Passed Filters</th>
+                    <th>Ingested (New)</th>
+                  </tr>
+                </thead>
+                <tbody id="history-list">
+                  {/* Dynamic history rows */}
+                </tbody>
+              </table>
+              <div id="no-history" class="empty-state">No scan history recorded yet. Run your first scan above!</div>
+            </div>
+          </div>
+        </section>
+
+        {/* Tab 4: Connection & Sync */}
+        <section id="tab-connection" class="tab-panel">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2>1-Click Auto-Connection</h2>
+                <p class="desc">Instantly pair this extension with your open JobFoundry web dashboard tab.</p>
+              </div>
+              <button id="options-auto-connect" class="btn btn-secondary">⚡ Auto-Connect from Active Dashboard</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>Manual Connection Settings</h2>
+            <div class="field">
+              <label for="server-url">Backend Server URL:</label>
+              <input id="server-url" type="url" placeholder="http://localhost:8080" />
+            </div>
+            <div class="field">
+              <label for="api-key">Ingest API Key:</label>
+              <input id="api-key" type="password" placeholder="User API key" />
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="scan-interval">Periodic Background Scan (hours):</label>
+                <input id="scan-interval" type="number" min="1" max="72" step="1" />
+              </div>
+              <div class="field">
+                <label for="fit-threshold">Dashboard Match Threshold (%):</label>
+                <input id="fit-threshold" type="number" min="0" max="100" step="1" />
+              </div>
+            </div>
+
+            <div class="checkbox-group">
+              <label class="check-label">
+                <input id="passive-mode" type="checkbox" />
+                <span>Enable Passive Browsing Capture (LinkedIn, Indeed, Greenhouse, Lever, etc.)</span>
+              </label>
+              <label class="check-label">
+                <input id="active-mode" type="checkbox" />
+                <span>Enable Active Mode Portal Scanning</span>
+              </label>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Sticky Save / Status Bar */}
+      <footer class="sticky-footer">
+        <div id="save-status" class="save-status">Settings up to date.</div>
+        <div class="footer-buttons">
+          <button id="reset-btn" class="btn btn-secondary">Reset Defaults</button>
+          <button id="footer-save-btn" class="btn btn-primary">Save Changes</button>
+        </div>
+      </footer>
+    </div>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

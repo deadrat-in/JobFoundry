@@ -3,7 +3,7 @@
 // provider modules with fs.readdirSync + dynamic import (see _registry.mjs),
 // so every provider is imported up front and keyed by id.
 //
-// 75 providers. Regenerate with: npm run gen:provider-index
+// 80 providers. Regenerate with: npm run gen:provider-index
 
 import * as _p0 from "./4dayweek.mjs";
 import * as _p1 from "./a16z-speedrun-talent.mjs";
@@ -37,49 +37,54 @@ import * as _p28 from "./higheredjobs.mjs";
 import * as _p29 from "./himalayas.mjs";
 import * as _p30 from "./ibm.mjs";
 import * as _p31 from "./icims.mjs";
-import * as _p32 from "./jibeapply.mjs";
-import * as _p33 from "./jobicy.mjs";
-import * as _p34 from "./jobspresso.mjs";
-import * as _p35 from "./jobstreet.mjs";
-import * as _p36 from "./jobvite.mjs";
-import * as _p37 from "./join.mjs";
-import * as _p38 from "./joinup.mjs";
-import * as _p39 from "./justjoin.mjs";
-import * as _p40 from "./landingjobs.mjs";
-import * as _p41 from "./larajobs.mjs";
-import * as _p42 from "./lever.mjs";
-import * as _p43 from "./local-parser.mjs";
-import * as _p44 from "./manfred.mjs";
-import * as _p45 from "./meituan.mjs";
-import * as _p46 from "./nodesk.mjs";
-import * as _p47 from "./nofluffjobs.mjs";
-import * as _p48 from "./oraclecloud.mjs";
-import * as _p49 from "./personio.mjs";
-import * as _p50 from "./phenom.mjs";
-import * as _p51 from "./pinpoint.mjs";
-import * as _p52 from "./radancy.mjs";
-import * as _p53 from "./recruitee.mjs";
-import * as _p54 from "./remoteok.mjs";
-import * as _p55 from "./remotive.mjs";
-import * as _p56 from "./remotli.mjs";
-import * as _p57 from "./rheinmetall.mjs";
-import * as _p58 from "./rippling.mjs";
-import * as _p59 from "./senjob.mjs";
-import * as _p60 from "./smartrecruiters.mjs";
-import * as _p61 from "./softgarden.mjs";
-import * as _p62 from "./solidjobs.mjs";
-import * as _p63 from "./successfactors.mjs";
-import * as _p64 from "./teamtailor.mjs";
-import * as _p65 from "./tencent.mjs";
-import * as _p66 from "./thehub.mjs";
-import * as _p67 from "./themuse.mjs";
-import * as _p68 from "./tkms.mjs";
-import * as _p69 from "./vdab.mjs";
-import * as _p70 from "./weworkremotely.mjs";
-import * as _p71 from "./workable.mjs";
-import * as _p72 from "./workday.mjs";
-import * as _p73 from "./workingnomads.mjs";
-import * as _p74 from "./wttj.mjs";
+import * as _p32 from "./itviec.mjs";
+import * as _p33 from "./jibeapply.mjs";
+import * as _p34 from "./jobbankca.mjs";
+import * as _p35 from "./jobicy.mjs";
+import * as _p36 from "./jobspresso.mjs";
+import * as _p37 from "./jobstreet.mjs";
+import * as _p38 from "./jobvite.mjs";
+import * as _p39 from "./join.mjs";
+import * as _p40 from "./joinup.mjs";
+import * as _p41 from "./justjoin.mjs";
+import * as _p42 from "./landingjobs.mjs";
+import * as _p43 from "./larajobs.mjs";
+import * as _p44 from "./lever.mjs";
+import * as _p45 from "./local-parser.mjs";
+import * as _p46 from "./manfred.mjs";
+import * as _p47 from "./meituan.mjs";
+import * as _p48 from "./mycareersfuture.mjs";
+import * as _p49 from "./nodesk.mjs";
+import * as _p50 from "./nofluffjobs.mjs";
+import * as _p51 from "./oraclecloud.mjs";
+import * as _p52 from "./personio.mjs";
+import * as _p53 from "./phenom.mjs";
+import * as _p54 from "./pinpoint.mjs";
+import * as _p55 from "./radancy.mjs";
+import * as _p56 from "./recruitee.mjs";
+import * as _p57 from "./remoteok.mjs";
+import * as _p58 from "./remotive.mjs";
+import * as _p59 from "./remotli.mjs";
+import * as _p60 from "./rheinmetall.mjs";
+import * as _p61 from "./rippling.mjs";
+import * as _p62 from "./senjob.mjs";
+import * as _p63 from "./smartrecruiters.mjs";
+import * as _p64 from "./softgarden.mjs";
+import * as _p65 from "./solidjobs.mjs";
+import * as _p66 from "./successfactors.mjs";
+import * as _p67 from "./teamtailor.mjs";
+import * as _p68 from "./tencent.mjs";
+import * as _p69 from "./thehub.mjs";
+import * as _p70 from "./themuse.mjs";
+import * as _p71 from "./tkms.mjs";
+import * as _p72 from "./torre.mjs";
+import * as _p73 from "./vdab.mjs";
+import * as _p74 from "./weworkremotely.mjs";
+import * as _p75 from "./workable.mjs";
+import * as _p76 from "./workday.mjs";
+import * as _p77 from "./workingnomads.mjs";
+import * as _p78 from "./wttj.mjs";
+import * as _p79 from "./yourator.mjs";
 
 /** id → provider module default export. */
 export const providerMap = {
@@ -115,47 +120,52 @@ export const providerMap = {
   "himalayas": _p29.default,
   "ibm": _p30.default,
   "icims": _p31.default,
-  "jibeapply": _p32.default,
-  "jobicy": _p33.default,
-  "jobspresso": _p34.default,
-  "jobstreet": _p35.default,
-  "jobvite": _p36.default,
-  "join": _p37.default,
-  "joinup": _p38.default,
-  "justjoin": _p39.default,
-  "landingjobs": _p40.default,
-  "larajobs": _p41.default,
-  "lever": _p42.default,
-  "local-parser": _p43.default,
-  "manfred": _p44.default,
-  "meituan": _p45.default,
-  "nodesk": _p46.default,
-  "nofluffjobs": _p47.default,
-  "oraclecloud": _p48.default,
-  "personio": _p49.default,
-  "phenom": _p50.default,
-  "pinpoint": _p51.default,
-  "radancy": _p52.default,
-  "recruitee": _p53.default,
-  "remoteok": _p54.default,
-  "remotive": _p55.default,
-  "remotli": _p56.default,
-  "rheinmetall": _p57.default,
-  "rippling": _p58.default,
-  "senjob": _p59.default,
-  "smartrecruiters": _p60.default,
-  "softgarden": _p61.default,
-  "solidjobs": _p62.default,
-  "successfactors": _p63.default,
-  "teamtailor": _p64.default,
-  "tencent": _p65.default,
-  "thehub": _p66.default,
-  "themuse": _p67.default,
-  "tkms": _p68.default,
-  "vdab": _p69.default,
-  "weworkremotely": _p70.default,
-  "workable": _p71.default,
-  "workday": _p72.default,
-  "workingnomads": _p73.default,
-  "wttj": _p74.default,
+  "itviec": _p32.default,
+  "jibeapply": _p33.default,
+  "jobbankca": _p34.default,
+  "jobicy": _p35.default,
+  "jobspresso": _p36.default,
+  "jobstreet": _p37.default,
+  "jobvite": _p38.default,
+  "join": _p39.default,
+  "joinup": _p40.default,
+  "justjoin": _p41.default,
+  "landingjobs": _p42.default,
+  "larajobs": _p43.default,
+  "lever": _p44.default,
+  "local-parser": _p45.default,
+  "manfred": _p46.default,
+  "meituan": _p47.default,
+  "mycareersfuture": _p48.default,
+  "nodesk": _p49.default,
+  "nofluffjobs": _p50.default,
+  "oraclecloud": _p51.default,
+  "personio": _p52.default,
+  "phenom": _p53.default,
+  "pinpoint": _p54.default,
+  "radancy": _p55.default,
+  "recruitee": _p56.default,
+  "remoteok": _p57.default,
+  "remotive": _p58.default,
+  "remotli": _p59.default,
+  "rheinmetall": _p60.default,
+  "rippling": _p61.default,
+  "senjob": _p62.default,
+  "smartrecruiters": _p63.default,
+  "softgarden": _p64.default,
+  "solidjobs": _p65.default,
+  "successfactors": _p66.default,
+  "teamtailor": _p67.default,
+  "tencent": _p68.default,
+  "thehub": _p69.default,
+  "themuse": _p70.default,
+  "tkms": _p71.default,
+  "torre": _p72.default,
+  "vdab": _p73.default,
+  "weworkremotely": _p74.default,
+  "workable": _p75.default,
+  "workday": _p76.default,
+  "workingnomads": _p77.default,
+  "wttj": _p78.default,
+  "yourator": _p79.default,
 };

@@ -8,51 +8,67 @@
   </head>
   <body>
     <main class="popup">
+      {/* Header */}
       <div class="popup-header">
-        <h1>⚡ JobFoundry</h1>
-        <button id="auto-connect" type="button" class="btn-connect" title="Auto-detect credentials from open JobFoundry dashboard tab">
-          🔗 1-Click Auto-Connect
+        <div class="brand">
+          <span class="brand-icon">⚡</span>
+          <span class="brand-title">JobFoundry</span>
+        </div>
+        <span id="popup-conn-badge" class="badge badge-disconnected">Checking...</span>
+      </div>
+
+      {/* Disconnected Notice (only shown if not paired) */}
+      <div id="unpaired-box" class="unpaired-box" style="display: none;">
+        <p>Extension not connected to your dashboard.</p>
+        <button id="auto-connect" type="button" class="btn btn-connect">
+          ⚡ 1-Click Auto-Connect
         </button>
       </div>
 
-      <form id="settings">
-        <label class="field">
-          <span>Server URL</span>
-          <input
-            id="server-url"
-            type="url"
-            placeholder="http://localhost:8080"
-            autocomplete="off"
-          />
-        </label>
-        <label class="field">
-          <span>API key</span>
-          <input id="api-key" type="password" placeholder="ingest API key" autocomplete="off" />
-        </label>
-        <label class="field">
-          <span>Scan interval (hours)</span>
-          <input id="scan-interval" type="number" min="1" step="1" />
-        </label>
-        <label class="check">
-          <input id="passive-mode" type="checkbox" />
-          <span>Passive browsing capture</span>
-        </label>
-        <label class="check">
-          <input id="active-mode" type="checkbox" />
-          <span>Active mode</span>
-        </label>
-        <label class="field">
-          <span>Fit threshold (0-100)</span>
-          <input id="fit-threshold" type="number" min="0" max="100" step="1" />
-        </label>
-        <div class="actions">
-          <button id="capture-tab" type="button" class="btn-primary">Capture Tab</button>
-          <button id="scan-now" type="button" class="btn-secondary">Scan Portals</button>
-          <button id="save" type="submit" class="btn-save">Save</button>
+      {/* Connected Info */}
+      <div id="paired-box" class="paired-box" style="display: none;">
+        <div class="user-row">
+          <span id="user-email" class="user-email">user@domain.com</span>
+          <span id="active-scrapers-count" class="scrapers-count">6 scrapers active</span>
         </div>
-      </form>
-      <p id="status" role="status"></p>
+      </div>
+
+      {/* Primary Action Buttons */}
+      <div class="main-actions">
+        <button id="capture-tab" type="button" class="btn btn-primary">
+          🎯 Capture Current Page
+        </button>
+        <button id="scan-now" type="button" class="btn btn-secondary">
+          🚀 Scan Portals Now
+        </button>
+      </div>
+
+      {/* Quick Toggles */}
+      <div class="toggles-list">
+        <label class="toggle-row">
+          <span>Passive browsing capture</span>
+          <input id="passive-mode" type="checkbox" />
+        </label>
+        <label class="toggle-row">
+          <span>Scheduled background scan</span>
+          <input id="active-mode" type="checkbox" />
+        </label>
+      </div>
+
+      {/* Live Status Output */}
+      <div id="status" class="status-msg" role="status">Ready</div>
+
+      {/* Footer Navigation */}
+      <footer class="popup-footer">
+        <button id="open-options" type="button" class="footer-link">
+          ⚙️ Search Filters & Scrapers
+        </button>
+        <button id="open-dashboard" type="button" class="footer-link">
+          🌐 Open Dashboard
+        </button>
+      </footer>
     </main>
+
     <script type="module" src="./main.ts"></script>
   </body>
 </html>

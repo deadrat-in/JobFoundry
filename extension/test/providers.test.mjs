@@ -18,7 +18,7 @@ const liftedTests = readdirSync(TESTS)
 
 test('vendored provider tree matches the expected file inventory', () => {
   const nonTest = providerFiles.filter((f) => f !== 'helpers.mjs');
-  assert.equal(nonTest.length, 81, '81 provider modules (82 upstream minus _dns-cache.mjs)');
+  assert.equal(nonTest.length, 88, '88 provider modules (89 upstream minus _dns-cache.mjs)');
   assert.ok(!nonTest.includes('_dns-cache.mjs'), '_dns-cache.mjs must not be vendored');
   assert.ok(existsSync(join(PROVIDERS, '_types.js')), '_types.js present');
   assert.ok(existsSync(join(PROVIDERS, 'README.md')), 'providers README present');
@@ -28,8 +28,12 @@ test('vendored provider tree matches the expected file inventory', () => {
     'dns-pacing.test.mjs',
     'scan-resolver-breaker.test.mjs',
     'title-entity-decode.test.mjs',
+    'private-address-guard.test.mjs',
+    'local-parser.test.mjs',
+    'jobbankca.test.mjs',
+    'mycareersfuture.test.mjs',
   ];
-  assert.equal(liftedTests.length, 80, '80 lifted tests (84 upstream minus 4 Node-only)');
+  assert.equal(liftedTests.length, 85, '85 lifted tests');
   for (const d of dropped) assert.ok(!liftedTests.includes(d), `${d} must be dropped`);
   assert.ok(
     liftedTests.includes('_profile-keywords.test.mjs'),
@@ -42,8 +46,8 @@ test('vendored provider tree matches the expected file inventory', () => {
 test('registry static index covers every provider with a unique id', async () => {
   const { providerMap } = await import(pathToFileURL(join(PROVIDERS, 'index.js')).href);
   const ids = Object.keys(providerMap);
-  assert.equal(ids.length, 75, '75 provider ids in the static registry');
-  assert.equal(new Set(ids).size, 75, 'provider ids are unique');
+  assert.equal(ids.length, 80, '80 provider ids in the static registry');
+  assert.equal(new Set(ids).size, 80, 'provider ids are unique');
   const providerIds = new Set();
   for (const f of providerFiles) {
     if (f.startsWith('_') || f === 'helpers.mjs') continue;
@@ -51,7 +55,7 @@ test('registry static index covers every provider with a unique id', async () =>
     assert.equal(typeof mod.default?.id, 'string', `${f} has a string default id`);
     providerIds.add(mod.default.id);
   }
-  assert.equal(providerIds.size, 75, '75 unique ids across provider modules');
+  assert.equal(providerIds.size, 80, '80 unique ids across provider modules');
   for (const id of providerIds) {
     assert.ok(id in providerMap, `registry maps ${id}`);
     assert.equal(providerMap[id].id, id, `registry entry for ${id} is the right module`);

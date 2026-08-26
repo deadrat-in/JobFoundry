@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { JSDOM } from 'jsdom';
-import { hydrate, save, scanNow } from '../src/entrypoints/popup/main.ts';
+import { hydrate, scanNow } from '../src/entrypoints/popup/main.ts';
 
 const EXT = resolve(import.meta.dirname, '..');
 const HTML = readFileSync(resolve(EXT, 'src/entrypoints/popup/index.html'), 'utf8');
@@ -17,14 +17,14 @@ function setupDom() {
 test('popup exposes all required controls', () => {
   const { doc } = setupDom();
   for (const selector of [
-    '#server-url',
-    '#api-key',
-    '#scan-interval',
+    '#popup-conn-badge',
+    '#capture-tab',
+    '#scan-now',
     '#passive-mode',
     '#active-mode',
-    '#fit-threshold',
-    '#scan-now',
     '#status',
+    '#open-options',
+    '#open-dashboard',
   ]) {
     assert.ok(doc.querySelector(selector), `missing control: ${selector}`);
   }
@@ -44,46 +44,9 @@ test('values hydrate from getConfig on load', async () => {
   });
 
   await hydrate({ doc, getConfig: mockGetConfig });
-  assert.equal(doc.querySelector('#server-url').value, 'http://localhost:8080');
-  assert.equal(doc.querySelector('#api-key').value, 'topsecret');
-  assert.equal(doc.querySelector('#scan-interval').value, '12');
+  assert.equal(doc.querySelector('#popup-conn-badge').textContent.includes('Connected'), true);
   assert.equal(doc.querySelector('#passive-mode').checked, false);
   assert.equal(doc.querySelector('#active-mode').checked, true);
-  assert.equal(doc.querySelector('#fit-threshold').value, '80');
-});
-
-test('saving writes via setConfig', async () => {
-  const { doc } = setupDom();
-  let savedConfig = null;
-  const mockSetConfig = async (patch) => {
-    savedConfig = patch;
-    return patch;
-  };
-
-  doc.querySelector('#server-url').value = 'http://new.example:9000';
-  doc.querySelector('#scan-interval').value = '24';
-  doc.querySelector('#fit-threshold').value = '90';
-  doc.querySelector('#passive-mode').checked = false;
-
-  const result = await save({ doc, setConfig: mockSetConfig });
-  assert.equal(result, true);
-  assert.equal(savedConfig.serverUrl, 'http://new.example:9000');
-  assert.equal(savedConfig.scanIntervalHours, 24);
-  assert.equal(savedConfig.fitThreshold, 90);
-  assert.equal(savedConfig.passiveMode, false);
-  assert.match(doc.querySelector('#status').textContent, /Saved/i);
-});
-
-test('invalid fitThreshold shows an error and returns false', async () => {
-  const { doc } = setupDom();
-  const mockSetConfig = async () => {
-    throw new Error('fitThreshold must be a number between 0 and 100');
-  };
-
-  doc.querySelector('#fit-threshold').value = '150';
-  const result = await save({ doc, setConfig: mockSetConfig });
-  assert.equal(result, false);
-  assert.match(doc.querySelector('#status').textContent, /Error/i);
 });
 
 test('scan-now triggers scan and renders the returned status', async () => {
@@ -97,7 +60,7 @@ test('scan-now triggers scan and renders the returned status', async () => {
   const res = await scanNow({ doc, sendMessage: mockSendMessage });
   assert.equal(sentType, 'popup:scanNow');
   assert.equal(res.ok, true);
-  assert.match(doc.querySelector('#status').textContent, /Scan complete: 3 job/);
+  assert.match(doc.querySelector('#status').textContent, /Scan complete: 3 job/i);
 });
 
 test('scan-now renders an error status when the scan fails', async () => {

@@ -11,6 +11,15 @@ test('defaults match the implementation plan table exactly', () => {
     activeMode: false,
     activeModeDelayMs: 2000,
     fitThreshold: 75,
+    titleFilter: {
+      positive: [],
+      negative: ['word:intern', 'junior', '.net', 'php', 'wordpress', 'embedded', 'firmware'],
+    },
+    maxPostingAgeDays: 30,
+    locationFilter: {
+      allow: ['remote', 'worldwide', 'anywhere'],
+      block: [],
+    },
     portals: {
       remoteok: true,
       weworkremotely: true,
@@ -19,6 +28,7 @@ test('defaults match the implementation plan table exactly', () => {
       jobspresso: true,
       '4dayweek': true,
     },
+    trackedCompanies: [],
   });
 });
 
