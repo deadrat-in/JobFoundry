@@ -577,7 +577,28 @@ export function buildApp({
       }
     }
 
-    return { tailored_resume_id: tailoredId };
+    let job;
+    if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+      job = db
+        .prepare(
+          `SELECT 
+            j.id, j.title, j.company, j.location, j.url, j.source, j.posted_at, j.description, j.fingerprint, j.liveness,
+            COALESCE(uj.fit_score, j.fit_score) as fit_score,
+            COALESCE(uj.fit_notes, j.fit_notes) as fit_notes,
+            COALESCE(uj.status, j.status) as status,
+            COALESCE(uj.tailored_resume_id, j.tailored_resume_id) as tailored_resume_id,
+            COALESCE(uj.created_at, j.created_at) as created_at,
+            COALESCE(uj.updated_at, j.updated_at) as updated_at
+          FROM user_jobs uj
+          JOIN jobs j ON uj.job_id = j.id
+          WHERE uj.user_id = ? AND j.id = ?`
+        )
+        .get(userId, id);
+    } else {
+      job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+    }
+
+    return { ok: true, job, tailored_resume_id: tailoredId };
   });
 
   // GET /api/v1/jobs/:id/artifacts/:filename - Serve artifact file
