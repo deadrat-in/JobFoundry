@@ -206,10 +206,13 @@ export function init(opts: { doc?: Document; [key: string]: any } = {}) {
 
   $<HTMLButtonElement>(doc, DOM.openOptions)?.addEventListener('click', () => {
     const api = (globalThis as any).browser ?? (globalThis as any).chrome;
-    if (api?.runtime?.openOptionsPage) {
+    const url = api?.runtime?.getURL ? api.runtime.getURL('options.html') : 'options.html';
+    if (api?.tabs?.create) {
+      api.tabs.create({ url });
+    } else if (api?.runtime?.openOptionsPage) {
       api.runtime.openOptionsPage();
     } else {
-      window.open('options.html');
+      window.open(url, '_blank');
     }
   });
 
