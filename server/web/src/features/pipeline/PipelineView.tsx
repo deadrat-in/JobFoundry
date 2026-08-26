@@ -259,15 +259,34 @@ export const PipelineView: React.FC<{
                       </span>
                     </td>
                     <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                      {onSelectJob && (
+                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                        {onSelectJob && (
+                          <button
+                            onClick={() => onSelectJob(j.id)}
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '0.75rem' }}
+                          >
+                            Details →
+                          </button>
+                        )}
                         <button
-                          onClick={() => onSelectJob(j.id)}
+                          onClick={async () => {
+                            if (window.confirm(`Delete "${j.title}" from database?`)) {
+                              try {
+                                await api.deleteJob(j.id);
+                                fetchPipelineData();
+                              } catch (err: any) {
+                                alert(`Failed to delete: ${err.message}`);
+                              }
+                            }
+                          }}
                           className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '0.75rem' }}
+                          style={{ fontSize: '0.75rem', color: 'var(--color-red, #ef4444)' }}
+                          title="Delete from DB"
                         >
-                          View Details →
+                          🗑️
                         </button>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 ))

@@ -32,6 +32,7 @@ interface DashboardContentProps {
   error: string | null;
   onRefresh: () => void;
   onJobUpdated: (job: Job) => void;
+  onJobDeleted: (jobId: string) => void;
   onStatusChange: (jobId: string, status: JobStatus) => Promise<void>;
 }
 
@@ -40,7 +41,8 @@ const JobDetailWrapper: React.FC<{
   threshold: number;
   onStatusChange: (jobId: string, status: JobStatus) => Promise<void>;
   onJobUpdated: (job: Job) => void;
-}> = ({ jobs, threshold, onStatusChange, onJobUpdated }) => {
+  onJobDeleted: (jobId: string) => void;
+}> = ({ jobs, threshold, onStatusChange, onJobUpdated, onJobDeleted }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [singleJob, setSingleJob] = useState<Job | null>(null);
@@ -77,6 +79,9 @@ const JobDetailWrapper: React.FC<{
         setSingleJob(updated);
         onJobUpdated(updated);
       }}
+      onDeleteJob={(deletedId) => {
+        onJobDeleted(deletedId);
+      }}
     />
   );
 };
@@ -89,6 +94,7 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
   error,
   onRefresh,
   onJobUpdated,
+  onJobDeleted,
   onStatusChange,
 }) => {
   const { logout } = useAuth();
@@ -297,6 +303,7 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
                     threshold={settings.threshold}
                     onStatusChange={onStatusChange}
                     onJobUpdated={onJobUpdated}
+                    onJobDeleted={onJobDeleted}
                   />
                 </>
               }
@@ -383,6 +390,10 @@ const DashboardRoot: React.FC = () => {
     setJobs((prev) => prev.map((j) => (j.id === updatedJob.id ? updatedJob : j)));
   };
 
+  const handleJobDeleted = (deletedId: string) => {
+    setJobs((prev) => prev.filter((j) => j.id !== deletedId));
+  };
+
   const handleSaveSettings = (newSettings: AppSettings) => {
     setSettings(newSettings);
     saveSettings(newSettings);
@@ -430,6 +441,7 @@ const DashboardRoot: React.FC = () => {
         error={error}
         onRefresh={fetchJobs}
         onJobUpdated={handleJobUpdated}
+        onJobDeleted={handleJobDeleted}
         onStatusChange={handleStatusChange}
       />
     </ErrorBoundary>

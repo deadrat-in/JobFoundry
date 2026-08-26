@@ -215,6 +215,12 @@ export class ApiClient {
     return res.job;
   }
 
+  async deleteJob(id: string): Promise<{ ok: boolean }> {
+    return this.request<{ ok: boolean }>(`/api/v1/jobs/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   async tailor(id: string): Promise<TailorResponse> {
     return this.request<TailorResponse>(`/api/v1/jobs/${id}/tailor`, {
       method: 'POST',

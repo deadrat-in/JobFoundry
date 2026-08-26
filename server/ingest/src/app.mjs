@@ -548,6 +548,22 @@ export function buildApp({
     return { job, ok: true, status };
   });
 
+  // DELETE /api/v1/jobs/:id - Delete a job from DB and its artifacts
+  app.delete('/api/v1/jobs/:id', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+
+    const { id } = request.params;
+    const userId = request.user.id;
+
+    if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+      db.prepare('DELETE FROM user_jobs WHERE job_id = ? AND user_id = ?').run(id, userId);
+    }
+    // Also remove from master jobs table
+    const info = db.prepare('DELETE FROM jobs WHERE id = ?').run(id);
+
+    return { ok: true, id, changes: info.changes };
+  });
+
   // POST /api/v1/jobs/:id/tailor - Trigger manual tailor execution
   app.post('/api/v1/jobs/:id/tailor', async (request, reply) => {
     if (!authenticate(request, reply)) return;

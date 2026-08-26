@@ -14,6 +14,7 @@ interface JobDetailModalProps {
   onClose: () => void;
   onStatusChange: (jobId: string, newStatus: JobStatus) => void;
   onJobUpdated: (updatedJob: Job) => void;
+  onDeleteJob?: (jobId: string) => void;
 }
 
 export const JobDetailModal: React.FC<JobDetailModalProps> = ({
@@ -22,8 +23,10 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
   onClose,
   onStatusChange,
   onJobUpdated,
+  onDeleteJob,
 }) => {
   const [activeTab, setActiveTab] = useState<'details' | 'diff'>('details');
+  const [deleting, setDeleting] = useState(false);
   const [originalResume, setOriginalResume] = useState<Record<string, any>>({});
   const [tailoredResume, setTailoredResume] = useState<Record<string, any>>({});
   const [loadingDiff, setLoadingDiff] = useState(false);
@@ -279,7 +282,33 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="modal-footer">
+        <div
+          className="modal-footer"
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+        >
+          {onDeleteJob ? (
+            <button
+              onClick={async () => {
+                if (window.confirm(`Delete "${job.title}" at ${job.company} from the database?`)) {
+                  setDeleting(true);
+                  try {
+                    await api.deleteJob(job.id);
+                    onDeleteJob(job.id);
+                    onClose();
+                  } catch (err: any) {
+                    alert(`Failed to delete job: ${err.message}`);
+                  } finally {
+                    setDeleting(false);
+                  }
+                }
+              }}
+              disabled={deleting}
+              className="btn btn-secondary btn-sm"
+              style={{ color: 'var(--color-red, #ef4444)', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+            >
+              {deleting ? 'Deleting...' : '🗑️ Delete from DB'}
+            </button>
+          ) : <div />}
           <button onClick={onClose} className="btn btn-secondary btn-sm">
             Close
           </button>
