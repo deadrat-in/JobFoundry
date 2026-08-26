@@ -8,19 +8,9 @@ export default defineConfig({
     name: 'JobFoundry',
     description: 'Capture job postings in your browser and push them to your JobFoundry server.',
     version: '0.1.0',
-    permissions: ['storage', 'alarms'],
+    permissions: ['storage', 'alarms', 'activeTab', 'scripting'],
     host_permissions: [
-      '*://*.linkedin.com/*',
-      '*://*.indeed.com/*',
-      '*://*.indeed.co.uk/*',
-      '*://*.indeed.ca/*',
-      '*://*.indeed.de/*',
-      '*://*.indeed.fr/*',
-      '*://*.indeed.co.in/*',
-      '*://*.glassdoor.com/*',
-      '*://*.glassdoor.co.in/*',
-      '*://*.glassdoor.co.uk/*',
-      '*://*.naukri.com/*',
+      '<all_urls>',
     ],
     browser_specific_settings: {
       gecko: {

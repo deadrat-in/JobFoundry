@@ -94,6 +94,157 @@ export default defineBackground(() => {
     }
   });
 
+  onMessage('popup:captureActiveTab', async () => {
+    try {
+      const tabs = await api.tabs?.query({ active: true, currentWindow: true });
+      const activeTab = tabs?.[0];
+      if (!activeTab?.id) {
+        return { ok: false, error: 'no active tab found' };
+      }
+
+      let extracted: any[] = [];
+      if (api.scripting?.executeScript) {
+        try {
+          const results = await api.scripting.executeScript({
+            target: { tabId: activeTab.id },
+            func: () => {
+              const clean = (t: any) =>
+                (t || '').replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+              const getCanon = () =>
+                (document.querySelector('link[rel="canonical"]') as HTMLLinkElement)?.href ||
+                window.location.href;
+
+              const url = getCanon();
+              const host = window.location.hostname.toLowerCase();
+
+              if (host.includes('linkedin.com')) {
+                const titleEl =
+                  document.querySelector('.job-details-jobs-unified-top-card__job-title') ||
+                  document.querySelector('.jobs-unified-top-card__job-title') ||
+                  document.querySelector('h2.job-details-jobs-unified-top-card__job-title') ||
+                  document.querySelector('.jobs-details__main-content h1') ||
+                  document.querySelector('.topcard__title') ||
+                  document.querySelector('h1.t-24') ||
+                  document.querySelector('h1');
+                const title = clean(titleEl?.textContent);
+                const companyEl =
+                  document.querySelector('.job-details-jobs-unified-top-card__company-name') ||
+                  document.querySelector('.jobs-unified-top-card__company-name') ||
+                  document.querySelector('a.topcard__org-name-link') ||
+                  document.querySelector('a[href*="/company/"]');
+                const company = clean(companyEl?.textContent) || 'LinkedIn Company';
+                const locEl =
+                  document.querySelector('.job-details-jobs-unified-top-card__bullet') ||
+                  document.querySelector('.jobs-unified-top-card__bullet') ||
+                  document.querySelector('.topcard__flavor--bullet');
+                const location = clean(locEl?.textContent) || null;
+                const descEl =
+                  document.querySelector('#job-details') ||
+                  document.querySelector('.jobs-description-content__text') ||
+                  document.querySelector('.jobs-box__html-content') ||
+                  document.querySelector('article');
+                const description = clean(descEl?.textContent) || '';
+                if (title) {
+                  return [
+                    {
+                      title,
+                      company,
+                      location,
+                      description,
+                      url,
+                      source: 'linkedin',
+                      postedAt: null,
+                    },
+                  ];
+                }
+              }
+
+              if (host.includes('greenhouse.io')) {
+                const titleEl =
+                  document.querySelector('h1.app-title') ||
+                  document.querySelector('h1.heading') ||
+                  document.querySelector('.job-name') ||
+                  document.querySelector('h1');
+                const title = clean(titleEl?.textContent);
+                const companyEl =
+                  document.querySelector('.company-name') ||
+                  document.querySelector('meta[property="og:site_name"]');
+                const company =
+                  clean(companyEl?.textContent || (companyEl as HTMLMetaElement)?.content) ||
+                  window.location.pathname.split('/')[1] ||
+                  'Greenhouse Company';
+                const locEl =
+                  document.querySelector('.location') ||
+                  document.querySelector('.body--secondary');
+                const location = clean(locEl?.textContent) || null;
+                const descEl =
+                  document.querySelector('#content') ||
+                  document.querySelector('#app_body') ||
+                  document.querySelector('.job-description') ||
+                  document.querySelector('article');
+                const description = clean(descEl?.textContent) || '';
+                if (title) {
+                  return [
+                    {
+                      title,
+                      company,
+                      location,
+                      description,
+                      url,
+                      source: 'greenhouse',
+                      postedAt: null,
+                    },
+                  ];
+                }
+              }
+
+              const titleEl = document.querySelector('h1') || document.querySelector('h2');
+              const title = clean(titleEl?.textContent);
+              const descEl =
+                document.querySelector('article') ||
+                document.querySelector('#job-description') ||
+                document.querySelector('main') ||
+                document.body;
+              const description = clean(descEl?.textContent) || '';
+              const company =
+                clean(document.title?.split('-')[0]?.split('|')[0]) || 'Company';
+
+              if (title && description.length > 30) {
+                return [
+                  {
+                    title,
+                    company,
+                    location: null,
+                    description,
+                    url,
+                    source: 'web',
+                    postedAt: null,
+                  },
+                ];
+              }
+              return [];
+            },
+          });
+          extracted = results?.[0]?.result || [];
+        } catch (err: any) {
+          console.warn('Scripting extraction error:', err);
+        }
+      }
+
+      if (!extracted || extracted.length === 0) {
+        return { ok: false, error: 'could not detect job details on active tab' };
+      }
+
+      const res = await processDiscoveredJobs({ rawJobs: extracted });
+      if (!res.ok) {
+        return { ok: false, error: res.error };
+      }
+      return { ok: true, job: extracted[0], count: extracted.length };
+    } catch (err: any) {
+      return { ok: false, error: err?.message ?? String(err) };
+    }
+  });
+
   onMessage('content:jobsDiscovered', async ({ data }) => {
     try {
       return await processDiscoveredJobs({ rawJobs: data.jobs });

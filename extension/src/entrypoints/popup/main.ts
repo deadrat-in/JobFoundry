@@ -11,6 +11,7 @@ export const DOM = {
   fitThreshold: '#fit-threshold',
   save: '#save',
   scanNow: '#scan-now',
+  captureTab: '#capture-tab',
   status: '#status',
 };
 
@@ -64,6 +65,31 @@ export async function save({
   }
 }
 
+export async function captureCurrentTab({
+  doc = document,
+  sendMessage: send = sendMessage,
+}: {
+  doc?: Document;
+  sendMessage?: (type: 'popup:captureActiveTab', payload?: any) => Promise<any>;
+} = {}) {
+  const status = $<HTMLElement>(doc, DOM.status);
+  if (status) status.textContent = 'Capturing current page...';
+  try {
+    const response = await send('popup:captureActiveTab', undefined);
+    if (response?.ok) {
+      const job = response.job;
+      const label = job?.title ? `"${job.title}" (${job.company || 'Company'})` : `${response.count ?? 1} job(s)`;
+      if (status) status.textContent = `Ingested: ${label}!`;
+    } else {
+      if (status) status.textContent = `Capture failed: ${response?.error ?? 'unknown error'}`;
+    }
+    return response;
+  } catch (err: any) {
+    if (status) status.textContent = `Capture error: ${err?.message ?? err}`;
+    return { ok: false, error: err?.message ?? String(err) };
+  }
+}
+
 export async function scanNow({
   doc = document,
   sendMessage: send = sendMessage,
@@ -72,7 +98,7 @@ export async function scanNow({
   sendMessage?: (type: 'popup:scanNow', payload?: any) => Promise<any>;
 } = {}) {
   const status = $<HTMLElement>(doc, DOM.status);
-  if (status) status.textContent = 'Scanning...';
+  if (status) status.textContent = 'Scanning portals...';
   try {
     const response = await send('popup:scanNow', undefined);
     if (response?.ok) {
@@ -98,6 +124,9 @@ export function init(opts: { doc?: Document; [key: string]: any } = {}) {
   $<HTMLFormElement>(doc, 'form')?.addEventListener('submit', (event) => {
     event.preventDefault();
     save(opts).catch(() => {});
+  });
+  $<HTMLButtonElement>(doc, DOM.captureTab)?.addEventListener('click', () => {
+    captureCurrentTab(opts).catch(() => {});
   });
   $<HTMLButtonElement>(doc, DOM.scanNow)?.addEventListener('click', () => {
     scanNow(opts).catch(() => {});

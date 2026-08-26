@@ -10,14 +10,16 @@ export interface JobsDiscoveredPayload {
   jobs: Array<Record<string, any>>;
 }
 
-export interface JobsDiscoveredResult {
+export interface CaptureActiveTabResult {
   ok: boolean;
-  ingested?: number;
+  job?: any;
+  count?: number;
   error?: string;
 }
 
 interface JobFoundryProtocol {
   'popup:scanNow': () => ScanNowResult;
+  'popup:captureActiveTab': () => CaptureActiveTabResult;
   'content:jobsDiscovered': (data: JobsDiscoveredPayload) => JobsDiscoveredResult;
 }
 
