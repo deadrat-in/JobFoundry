@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS jobs (
   fit_notes TEXT,
   status TEXT NOT NULL DEFAULT 'new',
   tailored_resume_id TEXT,
+  attempt_count INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
@@ -58,6 +59,7 @@ CREATE TABLE IF NOT EXISTS user_jobs (
   fit_notes TEXT,
   status TEXT NOT NULL DEFAULT 'new',
   tailored_resume_id TEXT,
+  attempt_count INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
   UNIQUE(user_id, job_id)
@@ -136,30 +138,30 @@ async def test_multi_user_worker_scoring_and_isolation(tmp_path):
 
     # 3. Create global jobs: Go Job and React Job
     store.conn.execute(
-        "INSERT INTO jobs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        ("j_go", "Go Lead", "Alpha", "Remote", "http://alpha.test/go", "gh", now, "Go backend microservices", "fp1", "ok", None, None, "new", None, now, now),
+        "INSERT INTO jobs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ("j_go", "Go Lead", "Alpha", "Remote", "http://alpha.test/go", "gh", now, "Go backend microservices", "fp1", "ok", None, None, "new", None, 0, now, now),
     )
     store.conn.execute(
-        "INSERT INTO jobs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        ("j_react", "React Lead", "Beta", "Remote", "http://beta.test/react", "gh", now, "React web UI", "fp2", "ok", None, None, "new", None, now, now),
+        "INSERT INTO jobs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ("j_react", "React Lead", "Beta", "Remote", "http://beta.test/react", "gh", now, "React web UI", "fp2", "ok", None, None, "new", None, 0, now, now),
     )
 
     # 4. User Jobs: Alice has Go and React; Bob has Go and React
     store.conn.execute(
-        "INSERT INTO user_jobs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        ("uj_a_go", "u_alice", "j_go", None, None, "new", None, now, now),
+        "INSERT INTO user_jobs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ("uj_a_go", "u_alice", "j_go", None, None, "new", None, 0, now, now),
     )
     store.conn.execute(
-        "INSERT INTO user_jobs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        ("uj_a_react", "u_alice", "j_react", None, None, "new", None, now, now),
+        "INSERT INTO user_jobs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ("uj_a_react", "u_alice", "j_react", None, None, "new", None, 0, now, now),
     )
     store.conn.execute(
-        "INSERT INTO user_jobs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        ("uj_b_go", "u_bob", "j_go", None, None, "new", None, now, now),
+        "INSERT INTO user_jobs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ("uj_b_go", "u_bob", "j_go", None, None, "new", None, 0, now, now),
     )
     store.conn.execute(
-        "INSERT INTO user_jobs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        ("uj_b_react", "u_bob", "j_react", None, None, "new", None, now, now),
+        "INSERT INTO user_jobs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ("uj_b_react", "u_bob", "j_react", None, None, "new", None, 0, now, now),
     )
     store.conn.commit()
 

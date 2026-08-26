@@ -356,6 +356,9 @@ export function buildApp({
     if (jobs.length === 0) {
       return reply.code(400).send({ error: 'body must not be empty' });
     }
+    if (jobs.length > 200) {
+      return reply.code(400).send({ error: 'batch size exceeds maximum of 200 jobs' });
+    }
 
     const rows = [];
     for (const raw of jobs) {

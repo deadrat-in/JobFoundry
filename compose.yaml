@@ -28,15 +28,18 @@ services:
       retries: 3
       start_period: 5s
 
-  # Phase 05/08 — server/scorer (Python fit screener + tailoring bridge)
+  # Phase 05/08/12 — server/scorer (Python fit screener + background worker daemon)
+  # Internal service: runs single-process worker daemon polling SQLite queue
   scorer:
     build:
       context: .
       dockerfile: server/scorer/Dockerfile
     ports:
-      - '8001:8001'
+      - '127.0.0.1:8001:8001'
     environment:
       PORT: '8001'
+      WORKER_ENABLED: 'true'
+      WORKER_POLL_INTERVAL_SECONDS: '10'
       DB_PATH: /data/jobfoundry.db
       ARTIFACTS_DIR: /data/artifacts
       SCORER_MODEL: ${SCORER_MODEL:-openrouter/google/gemma-4-26b-a4b-it:free}

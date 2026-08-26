@@ -15,4 +15,5 @@ COPY server/scorer/src/ ./src/
 
 EXPOSE 8001
 
+# NOTE: Single worker process (python -m src.main with 1 uvicorn worker) is required to prevent duplicate background daemon loops.
 CMD ["python", "-m", "src.main"]

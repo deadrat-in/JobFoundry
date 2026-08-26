@@ -164,6 +164,23 @@ test('invalid payload shape returns 400 with detail', async () => {
     assert.equal(res.statusCode, 400, c.label);
     assert.ok(res.json().error, `detail missing for ${c.label}`);
   }
+
+  // Batch cap test (>200 jobs)
+  const hugeBatch = Array.from({ length: 201 }, (_, i) => ({
+    title: `Job ${i}`,
+    company: 'Acme',
+    url: `https://acme.example/job/${i}`,
+    source: 'greenhouse',
+  }));
+  const batchRes = await app.inject({
+    method: 'POST',
+    url: '/api/v1/jobs/ingest',
+    headers: { authorization: 'Bearer testkey' },
+    payload: hugeBatch,
+  });
+  assert.equal(batchRes.statusCode, 400);
+  assert.match(batchRes.json().error, /batch size exceeds maximum/);
+
   await app.close();
 });
 

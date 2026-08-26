@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS jobs (
   fit_notes TEXT,
   status TEXT NOT NULL DEFAULT 'new',
   tailored_resume_id TEXT,
+  attempt_count INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
@@ -45,7 +46,11 @@ CREATE TABLE IF NOT EXISTS user_jobs (
   fit_notes TEXT,
   status TEXT NOT NULL DEFAULT 'new',
   tailored_resume_id TEXT,
+  attempt_count INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
   UNIQUE(user_id, job_id)
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_fingerprint ON jobs(fingerprint) WHERE fingerprint IS NOT NULL AND fingerprint != '';
+

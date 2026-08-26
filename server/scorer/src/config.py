@@ -18,6 +18,8 @@ class ScorerConfig:
     opik_workspace: str | None = None
     opik_project_name: str = "jobfoundry"
     opik_url_override: str | None = None
+    worker_enabled: bool = True
+    worker_poll_interval_seconds: float = 10.0
 
 
 
@@ -63,6 +65,13 @@ def load_config() -> ScorerConfig:
     opik_project_name = os.getenv("OPIK_PROJECT_NAME", "jobfoundry")
     opik_url_override = os.getenv("OPIK_URL_OVERRIDE")
 
+    worker_enabled = os.getenv("WORKER_ENABLED", "true").lower() in ("1", "true", "yes")
+    raw_poll_interval = os.getenv("WORKER_POLL_INTERVAL_SECONDS", "10")
+    try:
+        worker_poll_interval_seconds = float(raw_poll_interval)
+    except ValueError:
+        worker_poll_interval_seconds = 10.0
+
     return ScorerConfig(
         scorer_model=scorer_model,
         scorer_provider=scorer_provider,
@@ -78,5 +87,7 @@ def load_config() -> ScorerConfig:
         opik_workspace=opik_workspace,
         opik_project_name=opik_project_name,
         opik_url_override=opik_url_override,
+        worker_enabled=worker_enabled,
+        worker_poll_interval_seconds=worker_poll_interval_seconds,
     )
 

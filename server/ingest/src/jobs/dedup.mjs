@@ -22,9 +22,14 @@ export function insertIfNew(db, row) {
     res = db.prepare(INSERT_SQL).run(row);
   } catch (err) {
     // Same content arriving from a different agency URL collides on the
-    // fingerprint-derived id, not on url: that is still one authoritative job.
-    if (err.code === 'SQLITE_CONSTRAINT_PRIMARYKEY') {
-      const existing = db.prepare('SELECT id FROM jobs WHERE id = ?').get(row.id);
+    // fingerprint-derived id or unique fingerprint index: that is still one authoritative job.
+    if (
+      err.code === 'SQLITE_CONSTRAINT_PRIMARYKEY' ||
+      err.code === 'SQLITE_CONSTRAINT_UNIQUE'
+    ) {
+      const existing = db
+        .prepare('SELECT id FROM jobs WHERE id = ? OR fingerprint = ? OR url = ?')
+        .get(row.id, row.fingerprint, row.url);
       return { id: existing?.id ?? row.id, deduped: true };
     }
     throw err;

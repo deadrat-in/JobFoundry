@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS jobs (
   fit_notes TEXT,
   status TEXT NOT NULL DEFAULT 'new',
   tailored_resume_id TEXT,
+  attempt_count INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
