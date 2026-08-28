@@ -38,7 +38,13 @@
 }
 
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   background: var(--bg);
   color: var(--fg);
   line-height: 1.5;
@@ -190,10 +196,10 @@ body {
   color: var(--fg);
 }
 
-.field input[type="text"],
-.field input[type="url"],
-.field input[type="password"],
-.field input[type="number"],
+.field input[type='text'],
+.field input[type='url'],
+.field input[type='password'],
+.field input[type='number'],
 .field select,
 .field textarea {
   font: inherit;
@@ -255,7 +261,7 @@ body {
   border-color: var(--accent);
 }
 
-.board-toggle input[type="checkbox"] {
+.board-toggle input[type='checkbox'] {
   width: 1.1rem;
   height: 1.1rem;
   accent-color: var(--accent);
@@ -278,7 +284,7 @@ body {
   flex-wrap: wrap;
 }
 
-.add-company-row input[type="text"] {
+.add-company-row input[type='text'] {
   flex: 1;
   min-width: 180px;
   padding: 0.6rem 0.8rem;
@@ -288,7 +294,7 @@ body {
   color: var(--fg);
 }
 
-.add-company-row input[type="url"] {
+.add-company-row input[type='url'] {
   flex: 2;
   min-width: 260px;
   padding: 0.6rem 0.8rem;
@@ -311,7 +317,8 @@ table {
   font-size: 0.85rem;
 }
 
-th, td {
+th,
+td {
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border);
 }

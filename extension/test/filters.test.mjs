@@ -99,14 +99,8 @@ test('resume-keywords: extract target roles from JSON resume', () => {
       name: 'Jane Doe',
       label: 'Senior Fullstack Engineer',
     },
-    work: [
-      { position: 'Staff Frontend Engineer' },
-      { position: 'Software Engineer' },
-    ],
-    skills: [
-      { name: 'TypeScript' },
-      { name: 'Solutions Architect' },
-    ],
+    work: [{ position: 'Staff Frontend Engineer' }, { position: 'Software Engineer' }],
+    skills: [{ name: 'TypeScript' }, { name: 'Solutions Architect' }],
   };
 
   const keywords = extractKeywordsFromResume(sampleResume);

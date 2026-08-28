@@ -291,8 +291,17 @@ export class ApiClient {
     return response.text();
   }
 
-  async getPipelineStats(): Promise<{ total: number; unscored: number; scored: number; tailored: number; failed: number }> {
-    const res = await this.request<{ ok: boolean; stats: { total: number; unscored: number; scored: number; tailored: number; failed: number } }>('/api/v1/pipeline/stats');
+  async getPipelineStats(): Promise<{
+    total: number;
+    unscored: number;
+    scored: number;
+    tailored: number;
+    failed: number;
+  }> {
+    const res = await this.request<{
+      ok: boolean;
+      stats: { total: number; unscored: number; scored: number; tailored: number; failed: number };
+    }>('/api/v1/pipeline/stats');
     return res.stats;
   }
 

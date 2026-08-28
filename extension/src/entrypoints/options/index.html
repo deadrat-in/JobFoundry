@@ -39,7 +39,10 @@
             <div class="card-header">
               <div>
                 <h2>Target Role Keywords (Positive Matches)</h2>
-                <p class="desc">Only jobs matching at least one of these keywords will be ingested. Leave empty to allow all software roles.</p>
+                <p class="desc">
+                  Only jobs matching at least one of these keywords will be ingested. Leave empty to
+                  allow all software roles.
+                </p>
               </div>
               <button id="extract-resume-keywords" type="button" class="btn btn-secondary btn-sm">
                 ⚡ Fetch from Master Resume
@@ -47,26 +50,40 @@
             </div>
             <div class="field">
               <label for="positive-keywords">Positive Keywords (comma-separated):</label>
-              <textarea id="positive-keywords" rows="3" placeholder="e.g. Software Engineer, Fullstack, Frontend, Backend, React, Python, AI Engineer"></textarea>
+              <textarea
+                id="positive-keywords"
+                rows="3"
+                placeholder="e.g. Software Engineer, Fullstack, Frontend, Backend, React, Python, AI Engineer"
+              ></textarea>
               <p class="help-text">
-                <strong>Advanced Syntax:</strong> Use <code>word:intern</code> for whole-word matching, <code>stem:agent</code> for word-start matching, and <code>director + engineering</code> for multi-term conjunctions.
+                <strong>Advanced Syntax:</strong> Use <code>word:intern</code> for whole-word
+                matching, <code>stem:agent</code> for word-start matching, and
+                <code>director + engineering</code> for multi-term conjunctions.
               </p>
             </div>
           </div>
 
           <div class="card">
             <h2>Negative Excluded Keywords</h2>
-            <p class="desc">Jobs matching any of these terms will be immediately rejected before scoring.</p>
+            <p class="desc">
+              Jobs matching any of these terms will be immediately rejected before scoring.
+            </p>
             <div class="field">
               <label for="negative-keywords">Negative Keywords (comma-separated):</label>
-              <textarea id="negative-keywords" rows="2" placeholder="e.g. word:intern, junior, .net, php, wordpress, embedded, firmware"></textarea>
+              <textarea
+                id="negative-keywords"
+                rows="2"
+                placeholder="e.g. word:intern, junior, .net, php, wordpress, embedded, firmware"
+              ></textarea>
             </div>
           </div>
 
           <div class="grid-2">
             <div class="card">
               <h2>Max Posting Age</h2>
-              <p class="desc">Drop postings older than N days (jobs without dates are preserved).</p>
+              <p class="desc">
+                Drop postings older than N days (jobs without dates are preserved).
+              </p>
               <div class="field">
                 <select id="max-posting-age">
                   <option value="7">Within 7 days (Fresh only)</option>
@@ -83,7 +100,11 @@
               <p class="desc">Filter jobs based on location rules or remote titles.</p>
               <div class="field">
                 <label for="location-allow">Allowed Locations (comma-separated):</label>
-                <input id="location-allow" type="text" placeholder="e.g. remote, worldwide, united states, europe" />
+                <input
+                  id="location-allow"
+                  type="text"
+                  placeholder="e.g. remote, worldwide, united states, europe"
+                />
               </div>
               <div class="field">
                 <label for="location-block">Blocked Locations (comma-separated):</label>
@@ -97,7 +118,9 @@
         <section id="tab-scrapers" class="tab-panel">
           <div class="card">
             <h2>Public Job Board Aggregators (Zero-Token Feeds)</h2>
-            <p class="desc">These public feeds are scraped directly without requiring company URLs.</p>
+            <p class="desc">
+              These public feeds are scraped directly without requiring company URLs.
+            </p>
             <div class="boards-grid">
               <label class="board-toggle">
                 <input type="checkbox" id="portal-remoteok" data-portal="remoteok" />
@@ -146,11 +169,24 @@
 
           <div class="card">
             <h2>Custom Tracked Company ATS Portals</h2>
-            <p class="desc">Add direct career page URLs for target employers (supports Greenhouse, Lever, Ashby, Workable, etc.).</p>
-            
+            <p class="desc">
+              Add direct career page URLs for target employers (supports Greenhouse, Lever, Ashby,
+              Workable, etc.).
+            </p>
+
             <form id="add-company-form" class="add-company-row">
-              <input id="company-name" type="text" placeholder="Company Name (e.g. Stripe)" required />
-              <input id="company-url" type="url" placeholder="Careers URL (e.g. https://job-boards.greenhouse.io/stripe)" required />
+              <input
+                id="company-name"
+                type="text"
+                placeholder="Company Name (e.g. Stripe)"
+                required
+              />
+              <input
+                id="company-url"
+                type="url"
+                placeholder="Careers URL (e.g. https://job-boards.greenhouse.io/stripe)"
+                required
+              />
               <button type="submit" class="btn btn-secondary">Add Portal</button>
             </form>
 
@@ -168,7 +204,9 @@
                   <!-- Dynamic rows -->
                 </tbody>
               </table>
-              <div id="no-companies" class="empty-state">No custom companies tracked yet. Add one above!</div>
+              <div id="no-companies" class="empty-state">
+                No custom companies tracked yet. Add one above!
+              </div>
             </div>
           </div>
         </section>
@@ -179,16 +217,20 @@
             <div class="card-header">
               <div>
                 <h2>Live Scan Execution</h2>
-                <p class="desc">Trigger a scan across all active portals and monitor matching results.</p>
+                <p class="desc">
+                  Trigger a scan across all active portals and monitor matching results.
+                </p>
               </div>
               <button id="scan-now-btn" class="btn btn-primary">🚀 Run Scan Now</button>
             </div>
-            <div id="scan-status-banner" class="status-banner" style="display: none;"></div>
+            <div id="scan-status-banner" class="status-banner" style="display: none"></div>
           </div>
 
           <div class="card">
             <h2>Recent Scan Runs</h2>
-            <p class="desc">Execution history showing jobs fetched, filtered, deduplicated, and ingested.</p>
+            <p class="desc">
+              Execution history showing jobs fetched, filtered, deduplicated, and ingested.
+            </p>
             <div class="table-container">
               <table id="history-table">
                 <thead>
@@ -203,7 +245,9 @@
                   <!-- Dynamic history rows -->
                 </tbody>
               </table>
-              <div id="no-history" class="empty-state">No scan history recorded yet. Run your first scan above!</div>
+              <div id="no-history" class="empty-state">
+                No scan history recorded yet. Run your first scan above!
+              </div>
             </div>
           </div>
         </section>
@@ -214,9 +258,13 @@
             <div class="card-header">
               <div>
                 <h2>1-Click Auto-Connection</h2>
-                <p class="desc">Instantly pair this extension with your open JobFoundry web dashboard tab.</p>
+                <p class="desc">
+                  Instantly pair this extension with your open JobFoundry web dashboard tab.
+                </p>
               </div>
-              <button id="options-auto-connect" class="btn btn-secondary">⚡ Auto-Connect from Active Dashboard</button>
+              <button id="options-auto-connect" class="btn btn-secondary">
+                ⚡ Auto-Connect from Active Dashboard
+              </button>
             </div>
           </div>
 
@@ -244,7 +292,9 @@
             <div class="checkbox-group">
               <label class="check-label">
                 <input id="passive-mode" type="checkbox" />
-                <span>Enable Passive Browsing Capture (LinkedIn, Indeed, Greenhouse, Lever, etc.)</span>
+                <span
+                  >Enable Passive Browsing Capture (LinkedIn, Indeed, Greenhouse, Lever, etc.)</span
+                >
               </label>
               <label class="check-label">
                 <input id="active-mode" type="checkbox" />

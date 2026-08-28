@@ -292,7 +292,9 @@ async function fetchResumeKeywords() {
     }
     const data = await res.json();
     if (!data?.resume?.resume) {
-      alert('No active Master Resume found on your account. Upload a JSON resume in the dashboard first.');
+      alert(
+        'No active Master Resume found on your account. Upload a JSON resume in the dashboard first.'
+      );
       return;
     }
 

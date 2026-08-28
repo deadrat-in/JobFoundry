@@ -64,7 +64,7 @@ export function extractJsonLd(doc) {
       const content = script.textContent?.trim();
       if (!content) continue;
       const data = JSON.parse(content);
-      const items = Array.isArray(data) ? data : (data['@graph'] || [data]);
+      const items = Array.isArray(data) ? data : data['@graph'] || [data];
       for (const item of items) {
         if (!item || typeof item !== 'object') continue;
         const type = String(item['@type'] || '');
@@ -153,14 +153,10 @@ export function readSemanticDom(doc) {
         'script, style, nav, header, footer, noscript, svg, button, form, iframe, [role="dialog"], [aria-hidden="true"]'
       )
       .forEach((el) => el.remove());
-    description = jdHtmlToText(
-      clone.innerHTML || clone.innerText || clone.textContent || ''
-    );
+    description = jdHtmlToText(clone.innerHTML || clone.innerText || clone.textContent || '');
   }
 
-  const ogCompany = doc
-    .querySelector('meta[property="og:site_name"]')
-    ?.getAttribute('content');
+  const ogCompany = doc.querySelector('meta[property="og:site_name"]')?.getAttribute('content');
   const titleCompany = doc.title?.split(/[-|–—]/)[1];
   const hostCompany = doc.location?.hostname?.split('.')[0];
   const company = cleanText(ogCompany || titleCompany || hostCompany || 'Company');

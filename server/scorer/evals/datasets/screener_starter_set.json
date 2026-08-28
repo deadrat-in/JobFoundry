@@ -16,7 +16,10 @@
           {
             "name": "CloudCorp",
             "position": "Senior Backend Engineer",
-            "highlights": ["Built distributed microservices in FastAPI and Python handling 50k req/s.", "Managed PostgreSQL and Redis clusters."]
+            "highlights": [
+              "Built distributed microservices in FastAPI and Python handling 50k req/s.",
+              "Managed PostgreSQL and Redis clusters."
+            ]
           }
         ]
       }
@@ -24,7 +27,10 @@
     "assert": [
       { "type": "is-json" },
       { "type": "javascript", "value": "output.score >= 80" },
-      { "type": "javascript", "value": "Array.isArray(output.matching_skills) && output.matching_skills.length > 0" }
+      {
+        "type": "javascript",
+        "value": "Array.isArray(output.matching_skills) && output.matching_skills.length > 0"
+      }
     ]
   },
   {
@@ -52,7 +58,10 @@
     "assert": [
       { "type": "is-json" },
       { "type": "javascript", "value": "output.score <= 40" },
-      { "type": "javascript", "value": "Array.isArray(output.missing_skills) && output.missing_skills.length > 0" }
+      {
+        "type": "javascript",
+        "value": "Array.isArray(output.missing_skills) && output.missing_skills.length > 0"
+      }
     ]
   },
   {
@@ -64,9 +73,7 @@
       "job_description": "Requires 10+ years executive leadership, managing 100+ engineers, strategic budgeting, and organizational design.",
       "resume_json": {
         "basics": { "name": "Jordan Junior", "label": "Associate Software Engineer" },
-        "skills": [
-          { "name": "Languages", "keywords": ["Python", "JavaScript"] }
-        ],
+        "skills": [{ "name": "Languages", "keywords": ["Python", "JavaScript"] }],
         "work": [
           {
             "name": "Startup Inc",
@@ -76,9 +83,6 @@
         ]
       }
     },
-    "assert": [
-      { "type": "is-json" },
-      { "type": "javascript", "value": "output.score <= 50" }
-    ]
+    "assert": [{ "type": "is-json" }, { "type": "javascript", "value": "output.score <= 50" }]
   }
 ]

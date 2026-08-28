@@ -2,7 +2,7 @@
 # Run evals with: npm run eval:prompt
 # View results in UI: npm run eval:view
 
-description: "JobFoundry Fit Screener Prompt Regression & Evaluation Benchmark"
+description: 'JobFoundry Fit Screener Prompt Regression & Evaluation Benchmark'
 
 prompts:
   - |

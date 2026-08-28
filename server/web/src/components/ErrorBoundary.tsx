@@ -41,13 +41,26 @@ export class ErrorBoundary extends Component<Props, State> {
             color: 'var(--text-primary, #fff)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              marginBottom: '0.75rem',
+            }}
+          >
             <span style={{ fontSize: '1.25rem' }}>⚠️</span>
             <h3 style={{ fontSize: '1.05rem', margin: 0, color: 'var(--color-red, #ef4444)' }}>
               {this.props.fallbackTitle || 'Component Error Occurred'}
             </h3>
           </div>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary, #94a3b8)', marginBottom: '1rem' }}>
+          <p
+            style={{
+              fontSize: '0.875rem',
+              color: 'var(--text-secondary, #94a3b8)',
+              marginBottom: '1rem',
+            }}
+          >
             {this.state.error?.message || 'An unexpected rendering error occurred in this view.'}
           </p>
           <div style={{ display: 'flex', gap: '0.5rem' }}>

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildApp } from '../src/app.mjs';
 import { openDb } from '../src/db/index.mjs';
-import { parseJobDescription, heuristicParseJd } from '../src/jobs/parse-jd.mjs';
+import { heuristicParseJd } from '../src/jobs/parse-jd.mjs';
 
 test('heuristicParseJd extracts title, company, and requirements', () => {
   const sampleJd = `# Senior Distributed Systems Engineer at Acme AI
@@ -22,7 +22,10 @@ Benefits:
 - 401(k) matching
 `;
 
-  const parsed = heuristicParseJd({ text: sampleJd, url: 'https://boards.greenhouse.io/acmeai/jobs/123' });
+  const parsed = heuristicParseJd({
+    text: sampleJd,
+    url: 'https://boards.greenhouse.io/acmeai/jobs/123',
+  });
   assert.equal(parsed.title, 'Senior Distributed Systems Engineer');
   assert.equal(parsed.company, 'Acme AI');
   assert.equal(parsed.location, 'San Francisco, CA (Remote)');

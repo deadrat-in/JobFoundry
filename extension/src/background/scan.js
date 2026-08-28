@@ -88,7 +88,11 @@ export async function runScanPipeline({
     };
     const resolved = resolveProvider(entry, registry, { skipIds: ['local-parser'] });
     if (resolved?.provider) {
-      enabled.push({ name: company.name || company.careers_url, entry, provider: resolved.provider });
+      enabled.push({
+        name: company.name || company.careers_url,
+        entry,
+        provider: resolved.provider,
+      });
     }
   }
 
@@ -156,9 +160,7 @@ export async function runScanPipeline({
           if (jsonLdMatch) {
             for (const scriptTag of jsonLdMatch) {
               try {
-                const inner = scriptTag
-                  .replace(/^<script\b[^>]*>|<\/script>$/gi, '')
-                  .trim();
+                const inner = scriptTag.replace(/^<script\b[^>]*>|<\/script>$/gi, '').trim();
                 const data = JSON.parse(inner);
                 const items = Array.isArray(data) ? data : data['@graph'] || [data];
                 for (const it of items) {
@@ -220,7 +222,8 @@ export async function runScanPipeline({
     const api = globalThis.browser ?? globalThis.chrome;
     const storageArea = api?.storage?.local;
     if (storageArea) {
-      const existing = (await storageArea.get('jobfoundry-scan-history'))?.['jobfoundry-scan-history'] || [];
+      const existing =
+        (await storageArea.get('jobfoundry-scan-history'))?.['jobfoundry-scan-history'] || [];
       const updated = [
         {
           timestamp: now(),

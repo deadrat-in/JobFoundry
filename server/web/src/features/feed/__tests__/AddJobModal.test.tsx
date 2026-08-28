@@ -41,8 +41,12 @@ describe('AddJobModal', () => {
 
     render(<AddJobModal onClose={onClose} onJobAdded={onJobAdded} />);
 
-    const textarea = screen.getByPlaceholderText('Paste the full job description, requirements, or web page text here...');
-    fireEvent.change(textarea, { target: { value: '# Senior AI Engineer at Anthropic\nLocation: San Francisco, CA' } });
+    const textarea = screen.getByPlaceholderText(
+      'Paste the full job description, requirements, or web page text here...'
+    );
+    fireEvent.change(textarea, {
+      target: { value: '# Senior AI Engineer at Anthropic\nLocation: San Francisco, CA' },
+    });
 
     const parseBtn = screen.getByText('✨ Auto-Parse with AI');
     fireEvent.click(parseBtn);

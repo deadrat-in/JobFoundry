@@ -48,9 +48,7 @@ export function extractNaukriJobDetails(doc) {
     doc.querySelector('[class*="styles_JDC__dang-inner-html"]') ||
     doc.querySelector('.dang-inner-html') ||
     doc.querySelector('article');
-  const description = descEl
-    ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '')
-    : '';
+  const description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
 
   const salaryEl =
     doc.querySelector('[class*="styles_jdc__top-section__salary"]') ||
@@ -75,24 +73,17 @@ export function extractNaukriJobDetails(doc) {
 export function extractNaukriSearchCards(doc) {
   if (!doc) return [];
 
-  const cards = doc.querySelectorAll(
-    '.srp-jobtuple-wrapper, .jobTuple, article.jobTuple'
-  );
+  const cards = doc.querySelectorAll('.srp-jobtuple-wrapper, .jobTuple, article.jobTuple');
   const results = [];
 
   for (const card of cards) {
-    const linkEl =
-      card.querySelector('a.title') || card.querySelector('a[href*="job-listings"]');
+    const linkEl = card.querySelector('a.title') || card.querySelector('a[href*="job-listings"]');
     const rawUrl = linkEl?.getAttribute('href');
-    const url = absolutizeUrl(
-      rawUrl,
-      doc.location?.href || 'https://www.naukri.com'
-    );
+    const url = absolutizeUrl(rawUrl, doc.location?.href || 'https://www.naukri.com');
     const title = cleanText(linkEl?.textContent);
     if (!title || !url) continue;
 
-    const companyEl =
-      card.querySelector('a.comp-name') || card.querySelector('.companyName');
+    const companyEl = card.querySelector('a.comp-name') || card.querySelector('.companyName');
     const company = cleanText(companyEl?.textContent) || 'Naukri Company';
 
     const locEl = card.querySelector('.loc-wrap, .locWdth, .location');

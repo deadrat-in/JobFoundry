@@ -120,7 +120,9 @@ export async function captureCurrentTab({
     const response = await send('popup:captureActiveTab', undefined);
     if (response?.ok) {
       const job = response.job;
-      const label = job?.title ? `"${job.title}" (${job.company || 'Company'})` : `${response.count ?? 1} job(s)`;
+      const label = job?.title
+        ? `"${job.title}" (${job.company || 'Company'})`
+        : `${response.count ?? 1} job(s)`;
       if (status) {
         status.textContent = `✓ Ingested: ${label}!`;
         status.style.color = '#10b981';

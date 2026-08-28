@@ -266,7 +266,13 @@ export const ExtensionSyncView: React.FC = () => {
           🛠️ How Job Discovery Works
         </h3>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '1rem',
+          }}
+        >
           <div
             style={{
               padding: '1rem',
@@ -280,7 +286,8 @@ export const ExtensionSyncView: React.FC = () => {
               1-Click Page Capture
             </h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-              Open any job listing on LinkedIn, Indeed, Greenhouse, Lever, Ashby, or Workday. Open popup & click <strong>Capture Current Page</strong>.
+              Open any job listing on LinkedIn, Indeed, Greenhouse, Lever, Ashby, or Workday. Open
+              popup & click <strong>Capture Current Page</strong>.
             </p>
           </div>
 
@@ -297,7 +304,8 @@ export const ExtensionSyncView: React.FC = () => {
               Passive Browsing
             </h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-              With <strong>Passive mode</strong> active, the extension automatically extracts job listings as you browse job sites and queues them.
+              With <strong>Passive mode</strong> active, the extension automatically extracts job
+              listings as you browse job sites and queues them.
             </p>
           </div>
 
@@ -314,7 +322,8 @@ export const ExtensionSyncView: React.FC = () => {
               Built-in Scrapers
             </h4>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-              Click <strong>Scan portals</strong> to query 80+ zero-token scrapers (RemoteOK, WeWorkRemotely, Himalayas, Greenhouse feeds, etc.).
+              Click <strong>Scan portals</strong> to query 80+ zero-token scrapers (RemoteOK,
+              WeWorkRemotely, Himalayas, Greenhouse feeds, etc.).
             </p>
           </div>
         </div>

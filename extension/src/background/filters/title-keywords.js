@@ -44,7 +44,10 @@ export function compileKeyword(kw) {
     const re = anchoredPattern(normKw);
     return (val) => re.test(String(val || '').toLowerCase());
   }
-  return (val) => String(val || '').toLowerCase().includes(normKw);
+  return (val) =>
+    String(val || '')
+      .toLowerCase()
+      .includes(normKw);
 }
 
 /**

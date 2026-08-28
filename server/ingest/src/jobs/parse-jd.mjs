@@ -12,7 +12,10 @@ function cleanText(text) {
  * Heuristic fallback parser when no LLM API is available or if LLM call fails.
  */
 export function heuristicParseJd({ text, url = '' }) {
-  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+  const lines = text
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
   let title = '';
   let company = '';
   let location = null;
@@ -63,17 +66,26 @@ export function heuristicParseJd({ text, url = '' }) {
   }
 
   // Salary heuristics
-  const salaryMatch = text.match(/\$[\d,]+(?:\s*-\s*\$[\d,]+|\s*k)?(?:\s*(?:\/|per)\s*(?:yr|year|hr|hour))?/i);
+  const salaryMatch = text.match(
+    /\$[\d,]+(?:\s*-\s*\$[\d,]+|\s*k)?(?:\s*(?:\/|per)\s*(?:yr|year|hr|hour))?/i
+  );
   if (salaryMatch) salary = salaryMatch[0].trim();
 
   // Requirements extraction
   let inReqs = false;
   for (const line of lines) {
-    if (/^(?:requirements|qualifications|what you'?ll bring|what we'?re looking for|skills)/i.test(line)) {
+    if (
+      /^(?:requirements|qualifications|what you'?ll bring|what we'?re looking for|skills)/i.test(
+        line
+      )
+    ) {
       inReqs = true;
       continue;
     }
-    if (inReqs && /^(?:responsibilities|benefits|about us|about the team|how to apply|compensation)/i.test(line)) {
+    if (
+      inReqs &&
+      /^(?:responsibilities|benefits|about us|about the team|how to apply|compensation)/i.test(line)
+    ) {
       inReqs = false;
     }
     if (inReqs && (line.startsWith('-') || line.startsWith('•') || line.startsWith('*'))) {
@@ -86,7 +98,15 @@ export function heuristicParseJd({ text, url = '' }) {
     company: company || 'Company',
     location: location || null,
     salary: salary || null,
-    employmentType: employmentType || (/full-time/i.test(text) ? 'Full-time' : /part-time/i.test(text) ? 'Part-time' : /contract/i.test(text) ? 'Contract' : null),
+    employmentType:
+      employmentType ||
+      (/full-time/i.test(text)
+        ? 'Full-time'
+        : /part-time/i.test(text)
+          ? 'Part-time'
+          : /contract/i.test(text)
+            ? 'Contract'
+            : null),
     description: text,
     requirements: requirements.slice(0, 15),
     url: url || '',
@@ -138,7 +158,8 @@ ${text.slice(0, 20000)}
       messages: [
         {
           role: 'system',
-          content: 'You extract clean structured job details from raw JD markdown. Return pure JSON only.',
+          content:
+            'You extract clean structured job details from raw JD markdown. Return pure JSON only.',
         },
         { role: 'user', content: prompt },
       ],
@@ -159,7 +180,10 @@ ${text.slice(0, 20000)}
   }
 
   // Parse JSON, handling potential markdown code fences
-  const cleanJsonStr = rawContent.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+  const cleanJsonStr = rawContent
+    .replace(/^```json\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
   const parsed = JSON.parse(cleanJsonStr);
 
   return {
@@ -169,7 +193,9 @@ ${text.slice(0, 20000)}
     salary: parsed.salary ? cleanText(parsed.salary) : null,
     employmentType: parsed.employmentType ? cleanText(parsed.employmentType) : null,
     description: parsed.description ? parsed.description.trim() : text,
-    requirements: Array.isArray(parsed.requirements) ? parsed.requirements.map(cleanText).filter(Boolean) : [],
+    requirements: Array.isArray(parsed.requirements)
+      ? parsed.requirements.map(cleanText).filter(Boolean)
+      : [],
   };
 }
 
@@ -182,7 +208,8 @@ export async function parseJobDescription({ text, markdown, url = '' }) {
     throw new Error('Content is too short or empty to parse a job description');
   }
 
-  const apiKey = process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY;
+  const apiKey =
+    process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY;
 
   if (apiKey) {
     try {

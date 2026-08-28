@@ -53,7 +53,11 @@ test('firefox manifest is MV3 with sidebar_action, commands, and valid permissio
   assert.equal(manifest.manifest_version, 3);
   assert.equal(manifest.action.default_popup, 'popup.html');
   assert.equal(manifest.sidebar_action?.default_panel, 'sidepanel.html');
-  assert.equal(manifest.permissions.includes('sidePanel'), false, 'Firefox must not include Chrome-only sidePanel permission');
+  assert.equal(
+    manifest.permissions.includes('sidePanel'),
+    false,
+    'Firefox must not include Chrome-only sidePanel permission'
+  );
   assert.ok(manifest.commands?._execute_sidebar_action);
   assert.ok(manifest.browser_specific_settings?.gecko?.id);
 });

@@ -54,9 +54,7 @@ export function extractIndeedJobDetails(doc) {
     doc.querySelector('#jobDescriptionText') ||
     doc.querySelector('.jobsearch-JobComponent-description') ||
     doc.querySelector('.jobsearch-jobDescriptionText');
-  const description = descEl
-    ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '')
-    : '';
+  const description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
 
   const salaryEl =
     doc.querySelector('#salaryInfoAndJobType') ||

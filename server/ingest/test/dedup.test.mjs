@@ -183,4 +183,3 @@ test('existing job with empty description is enriched when re-ingested with full
     db.close();
   }
 });
-

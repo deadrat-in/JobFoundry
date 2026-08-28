@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { JSDOM } from 'jsdom';
-import { hydrate, scanNow } from '../src/entrypoints/popup/main.ts';
+import { hydrate } from '../src/entrypoints/popup/main.ts';
 
 const EXT = resolve(import.meta.dirname, '..');
 const HTML = readFileSync(resolve(EXT, 'src/entrypoints/sidepanel/index.html'), 'utf8');

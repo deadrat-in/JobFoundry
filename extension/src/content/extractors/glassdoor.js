@@ -48,9 +48,7 @@ export function extractGlassdoorJobDetails(doc) {
     doc.querySelector('[class*="JobDetails_jobDescription__"]') ||
     doc.querySelector('.jobDescriptionContent') ||
     doc.querySelector('article');
-  const description = descEl
-    ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '')
-    : '';
+  const description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
 
   const salaryEl =
     doc.querySelector('[data-test="detailSalary"]') ||
@@ -86,10 +84,7 @@ export function extractGlassdoorSearchCards(doc) {
       card.querySelector('a.jobLink');
 
     const rawUrl = linkEl?.getAttribute('href');
-    const url = absolutizeUrl(
-      rawUrl,
-      doc.location?.href || 'https://www.glassdoor.com'
-    );
+    const url = absolutizeUrl(rawUrl, doc.location?.href || 'https://www.glassdoor.com');
     const title = cleanText(
       linkEl?.textContent || card.querySelector('[data-test="job-title"]')?.textContent
     );

@@ -31,6 +31,7 @@ export default [
     },
     rules: {
       'no-console': 'off',
+      'no-empty': ['error', { allowEmptyCatch: true }],
     },
   },
 ];

@@ -6,12 +6,7 @@ import { extractLinkedIn } from './linkedin.js';
 import { extractIndeed } from './indeed.js';
 import { extractGlassdoor } from './glassdoor.js';
 import { extractNaukri } from './naukri.js';
-import {
-  extractGreenhouse,
-  extractLever,
-  extractAshby,
-  extractGenericJob,
-} from './ats.js';
+import { extractGreenhouse, extractLever, extractAshby, extractGenericJob } from './ats.js';
 
 export function detectPlatform(urlOrHostname) {
   if (!urlOrHostname) return null;

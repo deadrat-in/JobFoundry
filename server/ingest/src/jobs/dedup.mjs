@@ -42,10 +42,7 @@ export function insertIfNew(db, row) {
   try {
     res = db.prepare(INSERT_SQL).run(row);
   } catch (err) {
-    if (
-      err.code === 'SQLITE_CONSTRAINT_PRIMARYKEY' ||
-      err.code === 'SQLITE_CONSTRAINT_UNIQUE'
-    ) {
+    if (err.code === 'SQLITE_CONSTRAINT_PRIMARYKEY' || err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
       const found = db
         .prepare('SELECT id FROM jobs WHERE id = ? OR fingerprint = ? OR url = ?')
         .get(row.id, row.fingerprint || null, row.url);

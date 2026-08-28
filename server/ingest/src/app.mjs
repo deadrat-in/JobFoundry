@@ -348,14 +348,25 @@ export function buildApp({
     if (!authenticate(request, reply)) return;
 
     const body = request.body || {};
-    const text = typeof body.text === 'string' ? body.text : (typeof body.rawText === 'string' ? body.rawText : '');
-    const markdown = typeof body.markdown === 'string' ? body.markdown : (typeof body.rawMarkdown === 'string' ? body.rawMarkdown : '');
+    const text =
+      typeof body.text === 'string'
+        ? body.text
+        : typeof body.rawText === 'string'
+          ? body.rawText
+          : '';
+    const markdown =
+      typeof body.markdown === 'string'
+        ? body.markdown
+        : typeof body.rawMarkdown === 'string'
+          ? body.rawMarkdown
+          : '';
     const url = typeof body.url === 'string' ? body.url : '';
 
     const content = markdown || text;
     if (!content || content.trim().length < 15) {
       return reply.code(400).send({
-        error: 'Job content is too short or missing. Please provide at least a few lines of job description text or markdown.',
+        error:
+          'Job content is too short or missing. Please provide at least a few lines of job description text or markdown.',
       });
     }
 
@@ -606,7 +617,8 @@ export function buildApp({
     }
     if (!jobRecord.description || jobRecord.description.trim().length < 10) {
       return reply.code(400).send({
-        error: 'Job description is missing or too short. Cannot tailor resume without job requirements.',
+        error:
+          'Job description is missing or too short. Cannot tailor resume without job requirements.',
       });
     }
 
@@ -625,7 +637,9 @@ export function buildApp({
       }
     }
     if (!activeResume) {
-      const row = db.prepare('SELECT resume_json FROM user_resumes ORDER BY updated_at DESC LIMIT 1').get();
+      const row = db
+        .prepare('SELECT resume_json FROM user_resumes ORDER BY updated_at DESC LIMIT 1')
+        .get();
       if (row?.resume_json) {
         try {
           activeResume = JSON.parse(row.resume_json);
@@ -634,7 +648,8 @@ export function buildApp({
     }
     if (!activeResume) {
       return reply.code(400).send({
-        error: 'No active master resume found. Please upload one in Profile & Resume before tailoring.',
+        error:
+          'No active master resume found. Please upload one in Profile & Resume before tailoring.',
       });
     }
 
@@ -670,9 +685,7 @@ export function buildApp({
       '',
       'SKILLS',
       ...(Array.isArray(tailoredResume.skills)
-        ? tailoredResume.skills.map(
-            (s) => `${s.name || ''}: ${(s.keywords || []).join(', ')}`
-          )
+        ? tailoredResume.skills.map((s) => `${s.name || ''}: ${(s.keywords || []).join(', ')}`)
         : []),
     ];
     const plainText = plainTextLines.join('\n');
@@ -779,7 +792,11 @@ export function buildApp({
     const unscored = db.prepare('SELECT COUNT(*) as n FROM jobs WHERE fit_score IS NULL').get().n;
     const scored = db.prepare('SELECT COUNT(*) as n FROM jobs WHERE fit_score IS NOT NULL').get().n;
     const tailored = db.prepare("SELECT COUNT(*) as n FROM jobs WHERE status = 'tailored'").get().n;
-    const failed = db.prepare("SELECT COUNT(*) as n FROM jobs WHERE status IN ('failed', 'error', 'tailor_failed')").get().n;
+    const failed = db
+      .prepare(
+        "SELECT COUNT(*) as n FROM jobs WHERE status IN ('failed', 'error', 'tailor_failed')"
+      )
+      .get().n;
 
     return {
       ok: true,

@@ -132,10 +132,7 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
         </div>
 
         <nav className="nav-tabs">
-          <NavLink
-            to="/feed"
-            className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
-          >
+          <NavLink to="/feed" className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}>
             📋 Job Feed
           </NavLink>
           <NavLink
@@ -443,10 +440,7 @@ const DashboardRoot: React.FC = () => {
           path="/register"
           element={<RegisterView onSwitchToLogin={() => navigate('/login')} />}
         />
-        <Route
-          path="*"
-          element={<LoginView onSwitchToRegister={() => navigate('/register')} />}
-        />
+        <Route path="*" element={<LoginView onSwitchToRegister={() => navigate('/register')} />} />
       </Routes>
     );
   }

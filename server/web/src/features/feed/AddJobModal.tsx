@@ -215,7 +215,8 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({ onClose, onJobAdded })
               padding: '0.75rem',
               background: 'transparent',
               border: 'none',
-              borderBottom: tab === 'paste' ? '2px solid var(--accent-primary)' : '2px solid transparent',
+              borderBottom:
+                tab === 'paste' ? '2px solid var(--accent-primary)' : '2px solid transparent',
               color: tab === 'paste' ? 'var(--text-primary)' : 'var(--text-muted)',
               fontWeight: tab === 'paste' ? 600 : 400,
               cursor: 'pointer',
@@ -235,7 +236,8 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({ onClose, onJobAdded })
               padding: '0.75rem',
               background: 'transparent',
               border: 'none',
-              borderBottom: tab === 'manual' ? '2px solid var(--accent-primary)' : '2px solid transparent',
+              borderBottom:
+                tab === 'manual' ? '2px solid var(--accent-primary)' : '2px solid transparent',
               color: tab === 'manual' ? 'var(--text-primary)' : 'var(--text-muted)',
               fontWeight: tab === 'manual' ? 600 : 400,
               cursor: 'pointer',
@@ -349,7 +351,14 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({ onClose, onJobAdded })
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: '0.75rem',
+                  marginTop: '0.5rem',
+                }}
+              >
                 <button
                   type="button"
                   onClick={handleAutoParse}
@@ -374,7 +383,10 @@ export const AddJobModal: React.FC<AddJobModalProps> = ({ onClose, onJobAdded })
               </div>
             </div>
           ) : (
-            <form onSubmit={handleSaveJob} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <form
+              onSubmit={handleSaveJob}
+              style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+            >
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label

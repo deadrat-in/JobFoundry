@@ -187,7 +187,7 @@ test('platform wrapper functions extract jobs cleanly', () => {
 });
 
 test('extractJsonLd: parses Schema.org JobPosting correctly', async () => {
-  const { extractJsonLd, jdHtmlToText } = await import('../src/content/extractors/helpers.js');
+  const { extractJsonLd } = await import('../src/content/extractors/helpers.js');
   const html = `
     <html>
       <head>
@@ -263,7 +263,8 @@ test('extractGenericJob: extracts from article and semantic main content', async
 
   assert.equal(jobs.length, 1);
   assert.equal(jobs[0].title, 'Staff Systems Engineer');
-  assert.ok(jobs[0].description.includes('Staff Systems Engineer to scale our global edge network'));
+  assert.ok(
+    jobs[0].description.includes('Staff Systems Engineer to scale our global edge network')
+  );
   assert.equal(jobs[0].source, 'web');
 });
-

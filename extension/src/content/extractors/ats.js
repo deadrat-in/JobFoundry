@@ -34,9 +34,7 @@ export function extractGreenhouse(doc) {
     doc.querySelector('.company-name') ||
     doc.querySelector('meta[property="og:site_name"]') ||
     doc.querySelector('.header__logo-text');
-  let company = cleanText(
-    companyEl?.textContent || companyEl?.getAttribute?.('content')
-  );
+  let company = cleanText(companyEl?.textContent || companyEl?.getAttribute?.('content'));
   if (!company) {
     const parts = (doc.location?.pathname || '').split('/').filter(Boolean);
     company = parts[0] || 'Greenhouse Company';
@@ -54,9 +52,7 @@ export function extractGreenhouse(doc) {
     doc.querySelector('.job-description') ||
     doc.querySelector('#job-description') ||
     doc.querySelector('article');
-  const description = descEl
-    ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '')
-    : '';
+  const description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
 
   const url = getCanonicalUrl(doc) || doc.location?.href || '';
 
@@ -82,35 +78,27 @@ export function extractLever(doc) {
   }
 
   const titleEl =
-    doc.querySelector('.posting-headline h2') ||
-    doc.querySelector('h2') ||
-    doc.querySelector('h1');
+    doc.querySelector('.posting-headline h2') || doc.querySelector('h2') || doc.querySelector('h1');
   const title = cleanText(titleEl?.textContent);
   if (!title) return [];
 
   const companyEl =
-    doc.querySelector('.main-header-logo') ||
-    doc.querySelector('meta[property="og:site_name"]');
-  let company = cleanText(
-    companyEl?.getAttribute?.('alt') || companyEl?.getAttribute?.('content')
-  );
+    doc.querySelector('.main-header-logo') || doc.querySelector('meta[property="og:site_name"]');
+  let company = cleanText(companyEl?.getAttribute?.('alt') || companyEl?.getAttribute?.('content'));
   if (!company) {
     const parts = (doc.location?.pathname || '').split('/').filter(Boolean);
     company = parts[0] || 'Lever Company';
   }
 
   const locEl =
-    doc.querySelector('.posting-categories .location') ||
-    doc.querySelector('.sort-by-time');
+    doc.querySelector('.posting-categories .location') || doc.querySelector('.sort-by-time');
   const location = cleanText(locEl?.textContent) || null;
 
   const descEl =
     doc.querySelector('.section-wrapper') ||
     doc.querySelector('.posting-sections') ||
     doc.querySelector('article');
-  const description = descEl
-    ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '')
-    : '';
+  const description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
 
   const url = getCanonicalUrl(doc) || doc.location?.href || '';
 
@@ -140,11 +128,8 @@ export function extractAshby(doc) {
   if (!title) return [];
 
   const companyEl =
-    doc.querySelector('meta[property="og:site_name"]') ||
-    doc.querySelector('header h1');
-  let company = cleanText(
-    companyEl?.getAttribute?.('content') || companyEl?.textContent
-  );
+    doc.querySelector('meta[property="og:site_name"]') || doc.querySelector('header h1');
+  let company = cleanText(companyEl?.getAttribute?.('content') || companyEl?.textContent);
   if (!company) {
     const parts = (doc.location?.pathname || '').split('/').filter(Boolean);
     company = parts[0] || 'Ashby Company';
@@ -155,9 +140,7 @@ export function extractAshby(doc) {
     doc.querySelector('main') ||
     doc.querySelector('.ashby-job-posting-description') ||
     doc.querySelector('#job-description');
-  const description = descEl
-    ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '')
-    : '';
+  const description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
 
   const url = getCanonicalUrl(doc) || doc.location?.href || '';
 

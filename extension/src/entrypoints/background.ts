@@ -205,7 +205,10 @@ export default defineBackground(() => {
           const data = await res.json();
           if (data?.resume?.resume) {
             const extractedTitles = extractKeywordsFromResume(data.resume.resume);
-            if (extractedTitles.length > 0 && (!curConfig.titleFilter?.positive || curConfig.titleFilter.positive.length === 0)) {
+            if (
+              extractedTitles.length > 0 &&
+              (!curConfig.titleFilter?.positive || curConfig.titleFilter.positive.length === 0)
+            ) {
               patch.titleFilter = {
                 ...curConfig.titleFilter,
                 positive: extractedTitles,
@@ -255,7 +258,10 @@ export default defineBackground(() => {
             target: { tabId: activeTab.id },
             func: () => {
               const clean = (t) =>
-                (t || '').replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+                (t || '')
+                  .replace(/[\r\n\t]+/g, ' ')
+                  .replace(/\s{2,}/g, ' ')
+                  .trim();
               const getCanon = () =>
                 document.querySelector('link[rel="canonical"]')?.getAttribute('href') ||
                 window.location.href;
@@ -301,22 +307,35 @@ export default defineBackground(() => {
                   const content = script.textContent?.trim();
                   if (!content) continue;
                   const data = JSON.parse(content);
-                  const items = Array.isArray(data) ? data : (data['@graph'] || [data]);
+                  const items = Array.isArray(data) ? data : data['@graph'] || [data];
                   for (const item of items) {
                     if (!item || typeof item !== 'object') continue;
                     const type = String(item['@type'] || '');
                     if (type === 'JobPosting' || type.includes('JobPosting')) {
                       const title = clean(item.title || item.name);
                       let company = '';
-                      if (typeof item.hiringOrganization === 'string') company = clean(item.hiringOrganization);
-                      else if (item.hiringOrganization && typeof item.hiringOrganization === 'object') {
-                        company = clean(item.hiringOrganization.name || item.hiringOrganization.legalName);
+                      if (typeof item.hiringOrganization === 'string')
+                        company = clean(item.hiringOrganization);
+                      else if (
+                        item.hiringOrganization &&
+                        typeof item.hiringOrganization === 'object'
+                      ) {
+                        company = clean(
+                          item.hiringOrganization.name || item.hiringOrganization.legalName
+                        );
                       }
                       let location = null;
                       if (typeof item.jobLocation === 'string') location = clean(item.jobLocation);
                       else if (item.jobLocation?.address) {
                         const a = item.jobLocation.address;
-                        location = typeof a === 'string' ? clean(a) : clean([a.addressLocality, a.addressRegion, a.addressCountry].filter(Boolean).join(', '));
+                        location =
+                          typeof a === 'string'
+                            ? clean(a)
+                            : clean(
+                                [a.addressLocality, a.addressRegion, a.addressCountry]
+                                  .filter(Boolean)
+                                  .join(', ')
+                              );
                       }
                       const description = item.description ? jdHtmlToText(item.description) : '';
                       if (title && description) {
@@ -327,7 +346,11 @@ export default defineBackground(() => {
                             location: location || null,
                             description,
                             url,
-                            source: host.includes('linkedin.com') ? 'linkedin' : host.includes('indeed.') ? 'indeed' : 'web',
+                            source: host.includes('linkedin.com')
+                              ? 'linkedin'
+                              : host.includes('indeed.')
+                                ? 'indeed'
+                                : 'web',
                             postedAt: item.datePosted ? Date.parse(item.datePosted) || null : null,
                           },
                         ];
@@ -366,9 +389,21 @@ export default defineBackground(() => {
                   document.querySelector('.jobs-box__html-content') ||
                   document.querySelector('.show-more-less-html__markup') ||
                   document.querySelector('article');
-                const description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
+                const description = descEl
+                  ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '')
+                  : '';
                 if (title) {
-                  return [{ title, company, location, description, url, source: 'linkedin', postedAt: null }];
+                  return [
+                    {
+                      title,
+                      company,
+                      location,
+                      description,
+                      url,
+                      source: 'linkedin',
+                      postedAt: null,
+                    },
+                  ];
                 }
               }
 
@@ -390,40 +425,94 @@ export default defineBackground(() => {
                 const descEl =
                   document.querySelector('#jobDescriptionText') ||
                   document.querySelector('.jobsearch-JobComponent-description');
-                const description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
+                const description = descEl
+                  ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '')
+                  : '';
                 if (title) {
-                  return [{ title, company, location, description, url, source: 'indeed', postedAt: null }];
+                  return [
+                    {
+                      title,
+                      company,
+                      location,
+                      description,
+                      url,
+                      source: 'indeed',
+                      postedAt: null,
+                    },
+                  ];
                 }
               }
 
               if (host.includes('greenhouse.io')) {
                 const titleEl = document.querySelector('h1.app-title, h1.heading, .job-name, h1');
                 const title = clean(titleEl?.textContent);
-                const companyEl = document.querySelector('.company-name, meta[property="og:site_name"], .header__logo-text');
-                const company = clean(companyEl?.textContent || companyEl?.getAttribute?.('content')) || 'Greenhouse Company';
+                const companyEl = document.querySelector(
+                  '.company-name, meta[property="og:site_name"], .header__logo-text'
+                );
+                const company =
+                  clean(companyEl?.textContent || companyEl?.getAttribute?.('content')) ||
+                  'Greenhouse Company';
                 const locEl = document.querySelector('.location, .body--secondary');
                 const location = clean(locEl?.textContent) || null;
-                const descEl = document.querySelector('#content, #app_body, .job-description, article');
-                const description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
+                const descEl = document.querySelector(
+                  '#content, #app_body, .job-description, article'
+                );
+                const description = descEl
+                  ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '')
+                  : '';
                 if (title) {
-                  return [{ title, company, location, description, url, source: 'greenhouse', postedAt: null }];
+                  return [
+                    {
+                      title,
+                      company,
+                      location,
+                      description,
+                      url,
+                      source: 'greenhouse',
+                      postedAt: null,
+                    },
+                  ];
                 }
               }
 
               // Tier 3: Semantic Main-Text Extraction (career-ops readDom)
               const titleEl = document.querySelector('h1') || document.querySelector('h2');
               const title = clean(titleEl?.textContent);
-              const root = document.querySelector('main, [role="main"], article, #content, #job-description, .job-description, .job-details') || document.body;
+              const root =
+                document.querySelector(
+                  'main, [role="main"], article, #content, #job-description, .job-description, .job-details'
+                ) || document.body;
               let description = '';
               if (root) {
                 const clone = root.cloneNode(true);
-                clone.querySelectorAll('script, style, nav, header, footer, noscript, svg, button, form, iframe').forEach((el) => el.remove());
-                description = jdHtmlToText(clone.innerHTML || clone.innerText || clone.textContent || '');
+                clone
+                  .querySelectorAll(
+                    'script, style, nav, header, footer, noscript, svg, button, form, iframe'
+                  )
+                  .forEach((el) => el.remove());
+                description = jdHtmlToText(
+                  clone.innerHTML || clone.innerText || clone.textContent || ''
+                );
               }
-              const company = clean(document.querySelector('meta[property="og:site_name"]')?.getAttribute('content') || document.title?.split(/[-|–—]/)[0]) || 'Company';
+              const company =
+                clean(
+                  document
+                    .querySelector('meta[property="og:site_name"]')
+                    ?.getAttribute('content') || document.title?.split(/[-|–—]/)[0]
+                ) || 'Company';
 
               if (title && description.length > 50) {
-                return [{ title, company, location: null, description, url, source: 'web', postedAt: null }];
+                return [
+                  {
+                    title,
+                    company,
+                    location: null,
+                    description,
+                    url,
+                    source: 'web',
+                    postedAt: null,
+                  },
+                ];
               }
               return [];
             },
@@ -443,17 +532,20 @@ export default defineBackground(() => {
         try {
           const cfg = await getConfig();
           if (cfg.serverUrl && cfg.apiKey) {
-            const parseRes = await fetch(`${cfg.serverUrl.replace(/\/$/, '')}/api/v1/jobs/parse-jd`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${cfg.apiKey}`,
-              },
-              body: JSON.stringify({
-                text: extracted[0].description,
-                url: extracted[0].url,
-              }),
-            });
+            const parseRes = await fetch(
+              `${cfg.serverUrl.replace(/\/$/, '')}/api/v1/jobs/parse-jd`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${cfg.apiKey}`,
+                },
+                body: JSON.stringify({
+                  text: extracted[0].description,
+                  url: extracted[0].url,
+                }),
+              }
+            );
             if (parseRes.ok) {
               const parseData = await parseRes.json();
               if (parseData?.ok && parseData.job) {

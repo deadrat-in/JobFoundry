@@ -45,9 +45,7 @@ export function extractLinkedInJobDetails(doc) {
     doc.querySelector('.jobs-unified-top-card__company-name') ||
     doc.querySelector('.topcard__org-name-link') ||
     doc.querySelector('a.topcard__org-name-link') ||
-    doc.querySelector(
-      '.job-details-jobs-unified-top-card__primary-description-container a'
-    ) ||
+    doc.querySelector('.job-details-jobs-unified-top-card__primary-description-container a') ||
     doc.querySelector('a[href*="/company/"]');
   const company = cleanText(companyEl?.textContent) || 'LinkedIn Company';
 
@@ -55,9 +53,7 @@ export function extractLinkedInJobDetails(doc) {
     doc.querySelector('.job-details-jobs-unified-top-card__bullet') ||
     doc.querySelector('.jobs-unified-top-card__bullet') ||
     doc.querySelector('.topcard__flavor--bullet') ||
-    doc.querySelector(
-      '.job-details-jobs-unified-top-card__primary-description-container span'
-    );
+    doc.querySelector('.job-details-jobs-unified-top-card__primary-description-container span');
   const location = cleanText(locEl?.textContent) || null;
 
   const descEl =
@@ -69,9 +65,7 @@ export function extractLinkedInJobDetails(doc) {
     doc.querySelector('.jobs-search__job-details--container') ||
     doc.querySelector('article');
 
-  const description = descEl
-    ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '')
-    : '';
+  const description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
 
   const salaryEl =
     doc.querySelector('.job-details-jobs-unified-top-card__job-insight') ||
@@ -112,10 +106,7 @@ export function extractLinkedInSearchCards(doc) {
       card.querySelector('a');
 
     const rawUrl = linkEl?.getAttribute('href');
-    const url = absolutizeUrl(
-      rawUrl,
-      doc.location?.href || 'https://www.linkedin.com'
-    );
+    const url = absolutizeUrl(rawUrl, doc.location?.href || 'https://www.linkedin.com');
     const title =
       cleanText(linkEl?.textContent) ||
       cleanText(card.querySelector('.job-card-list__title')?.textContent);

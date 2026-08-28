@@ -36,9 +36,7 @@ export default defineConfig({
             },
           }),
     },
-    host_permissions: [
-      '<all_urls>',
-    ],
+    host_permissions: ['<all_urls>'],
     options_ui: {
       page: 'options.html',
       open_in_tab: true,

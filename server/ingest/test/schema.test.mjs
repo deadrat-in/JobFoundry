@@ -37,7 +37,9 @@ test('openDb migrates an in-memory DB to the full multi-tenant schema', () => {
 
     // Verify idx_jobs_fingerprint index
     const indices = db
-      .prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_jobs_fingerprint'")
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_jobs_fingerprint'"
+      )
       .all();
     assert.equal(indices.length, 1);
   } finally {
