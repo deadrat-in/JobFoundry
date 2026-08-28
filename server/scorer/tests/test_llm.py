@@ -1,6 +1,27 @@
-import pytest
 import os
-from src.llm import LLMClient, StubLLM, LiteLLMClient, ScoreResult
+import pytest
+from src.llm import LLMClient, StubLLM, LiteLLMClient, ScoreResult, format_resume_for_prompt
+
+
+def test_format_resume_for_prompt():
+    resume = {
+        "basics": {"name": "Jane Doe", "email": "jane@example.com"},
+        "skills": [
+            {"name": "Python", "level": "Senior"},
+            {"name": "TypeScript", "level": "Intermediate"},
+        ],
+    }
+    toon_output = format_resume_for_prompt(resume)
+    assert "basics:" in toon_output
+    assert "name: Jane Doe" in toon_output
+    assert "skills[2]{name,level}:" in toon_output
+    assert "Python,Senior" in toon_output
+    assert "TypeScript,Intermediate" in toon_output
+
+
+def test_format_resume_for_prompt_empty():
+    assert format_resume_for_prompt({}) == ""
+    assert format_resume_for_prompt(None) == ""
 
 
 def test_score_result_validation():

@@ -3,11 +3,27 @@ import os
 import time
 from typing import Protocol, runtime_checkable, Any
 from pydantic import BaseModel, Field
+import toons
 import instructor
 import litellm
 from litellm import acompletion
 
 logger = logging.getLogger(__name__)
+
+
+def format_resume_for_prompt(resume: dict[str, Any]) -> str:
+    """
+    Format the master resume into TOON (Token-Oriented Object Notation)
+    to minimize prompt tokens while preserving structured hierarchy and tabular arrays.
+    Falls back to string representation on serialization error.
+    """
+    if not resume:
+        return ""
+    try:
+        return toons.dumps(resume)
+    except Exception as e:
+        logger.warning("Failed to serialize resume to TOON format (%s); falling back to string", e)
+        return str(resume)
 
 
 def setup_observability():
@@ -62,6 +78,7 @@ class LiteLLMClient:
         self.client = instructor.from_litellm(acompletion, mode=instructor.Mode.MD_JSON)
 
     async def score(self, job: dict[str, Any], resume: dict[str, Any]) -> ScoreResult:
+        resume_str = format_resume_for_prompt(resume)
         prompt = (
             f"You are an expert technical recruiter and resume screener.\n"
             f"Evaluate the candidate's master resume against the following job posting.\n"
@@ -71,8 +88,8 @@ class LiteLLMClient:
             f"Company: {job.get('company', '')}\n"
             f"Location: {job.get('location', '')}\n"
             f"Description:\n{job.get('description', '')}\n\n"
-            f"--- MASTER RESUME ---\n"
-            f"{resume}\n"
+            f"--- MASTER RESUME (TOON format) ---\n"
+            f"{resume_str}\n"
         )
 
         kwargs: dict[str, Any] = {
