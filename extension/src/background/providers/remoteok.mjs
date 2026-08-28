@@ -10,8 +10,6 @@
 // RemoteOK API ToS asks for a follow link-back when republishing — N/A for
 // private scanning, but don't redistribute this feed publicly without it.
 
-import { htmlToText } from './_html-to-text.mjs';
-
 const FEED_URL = 'https://remoteok.com/api';
 
 /** @type {Provider} */
@@ -22,7 +20,7 @@ export default {
    * Fetches and normalizes postings from the RemoteOK public feed.
    * @param {{ name?: string }} entry - The job_boards entry being processed.
    * @param {{ fetchJson: (url: string, opts?: { redirect?: 'error'|'follow'|'manual' }) => Promise<any> }} ctx - HTTP context.
-   * @returns {Promise<Array<{title: string, url: string, company: string, location: string, description?: string}>>}
+   * @returns {Promise<Array<{title: string, url: string, company: string, location: string}>>}
    */
   async fetch(entry, ctx) {
     // redirect:'error' prevents SSRF via server-side redirects
@@ -35,16 +33,11 @@ export default {
       .filter(j => j && typeof j === 'object'
         && typeof j.position === 'string' && j.position.trim() !== ''
         && typeof j.url === 'string' && /^https?:\/\//i.test(j.url.trim()))
-      .map(j => {
-        const job = {
-          title: j.position.trim(),
-          url: j.url.trim(),
-          company: typeof j.company === 'string' && j.company.trim() ? j.company.trim() : (entry.name || 'RemoteOK'),
-          location: typeof j.location === 'string' ? j.location.trim() : '',
-        };
-        const description = htmlToText(j.description);
-        if (description) job.description = description;
-        return job;
-      });
+      .map(j => ({
+        title: j.position.trim(),
+        url: j.url.trim(),
+        company: typeof j.company === 'string' && j.company.trim() ? j.company.trim() : (entry.name || 'RemoteOK'),
+        location: typeof j.location === 'string' ? j.location.trim() : '',
+      }));
   },
 };

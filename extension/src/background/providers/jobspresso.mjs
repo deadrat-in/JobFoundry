@@ -1,5 +1,4 @@
 import { decodeEntities } from './_html-entities.mjs';
-import { htmlToText } from './_html-to-text.mjs';
 // @ts-check
 /** @typedef {import('./_types.js').Provider} Provider */
 
@@ -114,17 +113,14 @@ export function parseJobspressoFeed(xml) {
     if (!title) continue;
     const company = tagText(item, "job_listing:company") || "";
     const location = tagText(item, "job_listing:location");
-    const description = htmlToText(tagText(item, "description"));
 
-    const job = {
+    jobs.push({
       title,
       company,
       location,
       url,
       postedAt: toEpochMs(tagText(item, "pubDate")),
-    };
-    if (description) job.description = description;
-    jobs.push(job);
+    });
   }
 
   return jobs;

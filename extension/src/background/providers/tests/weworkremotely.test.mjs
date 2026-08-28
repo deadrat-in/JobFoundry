@@ -33,7 +33,6 @@ try {
     <item>
       <title><![CDATA[Acme & Co: Staff AI Engineer]]></title>
       <link>https://weworkremotely.com/remote-jobs/acme-staff-ai-engineer</link>
-      <description><![CDATA[<p>We are seeking a <strong>Staff AI Engineer</strong>.</p>]]></description>
       <pubDate>Thu, 13 Nov 2025 14:10:41 +0000</pubDate>
       <region><![CDATA[Anywhere in the World]]></region>
       <category>Programming</category>
@@ -88,12 +87,6 @@ try {
     pass('parseWwrFeed parses pubDate -> postedAt');
   } else {
     fail(`row 0 postedAt = ${JSON.stringify(jobs[0]?.postedAt)}`);
-  }
-
-  if (jobs[0]?.description === 'We are seeking a Staff AI Engineer .') {
-    pass('parseWwrFeed extracts and strips HTML description');
-  } else {
-    fail(`row 0 description = ${JSON.stringify(jobs[0]?.description)}`);
   }
 
   if (jobs[1]?.company === 'WWR Board' && jobs[1]?.title === 'Principal Platform Engineer & Tooling') {

@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { normalizeJob } from './jobs/normalize.mjs';
 import { fingerprintFor, insertIfNew } from './jobs/dedup.mjs';
+import { parseJobDescription } from './jobs/parse-jd.mjs';
 import { hashPassword, verifyPassword } from './auth/passwords.mjs';
 import { createToken, verifyToken, generateApiKey } from './auth/tokens.mjs';
 import {
@@ -341,6 +342,31 @@ export function buildApp({
   });
 
   // --- JOB INGEST & QUERY ROUTES (MULTI-TENANT) ---
+
+  // POST /api/v1/jobs/parse-jd - Client-side JD parser (zero server web fetching)
+  app.post('/api/v1/jobs/parse-jd', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+
+    const body = request.body || {};
+    const text = typeof body.text === 'string' ? body.text : (typeof body.rawText === 'string' ? body.rawText : '');
+    const markdown = typeof body.markdown === 'string' ? body.markdown : (typeof body.rawMarkdown === 'string' ? body.rawMarkdown : '');
+    const url = typeof body.url === 'string' ? body.url : '';
+
+    const content = markdown || text;
+    if (!content || content.trim().length < 15) {
+      return reply.code(400).send({
+        error: 'Job content is too short or missing. Please provide at least a few lines of job description text or markdown.',
+      });
+    }
+
+    try {
+      const parsed = await parseJobDescription({ text, markdown, url });
+      return { ok: true, job: parsed };
+    } catch (err) {
+      request.log.error(err, 'Failed to parse job description');
+      return reply.code(500).send({ error: `Failed to parse job description: ${err.message}` });
+    }
+  });
 
   // POST /api/v1/jobs/ingest
   app.post('/api/v1/jobs/ingest', async (request, reply) => {

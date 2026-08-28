@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JobFoundry Dashboard</title>
+    <link rel="stylesheet" href="../options/options.css" />
+    <style>
+      .dashboard-frame {
+        width: 100%;
+        height: calc(100vh - 64px);
+        border: none;
+        background: #0b0f19;
+      }
+      .dash-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1.5rem;
+        background: #111827;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .dash-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 700;
+        color: #f9fafb;
+      }
+      .dash-links {
+        display: flex;
+        gap: 1rem;
+      }
+      .dash-btn {
+        padding: 0.4rem 0.85rem;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.08);
+        color: #f9fafb;
+        text-decoration: none;
+        font-size: 0.85rem;
+        cursor: pointer;
+        border: none;
+      }
+      .dash-btn-primary {
+        background: #6366f1;
+      }
+    </style>
+  </head>
+  <body style="margin: 0; background: #0b0f19; overflow: hidden;">
+    <header class="dash-nav">
+      <div class="dash-brand">
+        <span>⚡</span>
+        <span>JobFoundry Extension Dashboard</span>
+      </div>
+      <div class="dash-links">
+        <button id="btn-open-tab" class="dash-btn dash-btn-primary" type="button">
+          ↗ Open Web App in Tab
+        </button>
+        <button id="btn-open-options" class="dash-btn" type="button">
+          ⚙️ Extension Settings
+        </button>
+      </div>
+    </header>
+    <iframe id="dashboard-iframe" class="dashboard-frame" src="http://localhost:5173"></iframe>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

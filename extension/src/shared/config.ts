@@ -48,17 +48,7 @@ export const DEFAULT_CONFIG: Config = {
   activeModeDelayMs: 2000,
   fitThreshold: 75,
   titleFilter: {
-    positive: [
-      'product manager',
-      'product management',
-      'product lead',
-      'head of product',
-      'technical product manager',
-      'group product manager',
-      'director + product',
-      'principal product manager',
-      'vp + product',
-    ],
+    positive: [],
     negative: ['word:intern', 'junior', '.net', 'php', 'wordpress', 'embedded', 'firmware'],
   },
   maxPostingAgeDays: 30,

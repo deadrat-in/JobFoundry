@@ -32,7 +32,6 @@ try {
       position: 'Staff AI Engineer',
       company: 'Acme Corp',
       location: 'Worldwide',
-      description: '<p>Build AI systems.</p>',
       url: 'https://remoteok.com/remote-jobs/acme-staff-ai-engineer',
       date: '2026-07-01T00:00:00+00:00',
     },
@@ -68,17 +67,16 @@ try {
     pass('remoteok.fetch() keeps 2 valid jobs (drops metadata row, null, non-object, empty-position, bad-url rows)');
   else fail(`remoteok.fetch() returned ${fetched.length} jobs (expected 2): ${JSON.stringify(fetched)}`);
 
-  // Normalized shape: { company, description, location, title, url }.
-  if (fetched[0] && Object.keys(fetched[0]).sort().join(',') === 'company,description,location,title,url')
-    pass('remoteok.fetch() returns the normalized shape with description');
+  // Normalized shape: exactly { title, url, company, location }.
+  if (fetched[0] && Object.keys(fetched[0]).sort().join(',') === 'company,location,title,url')
+    pass('remoteok.fetch() returns the normalized { title, url, company, location } shape');
   else fail(`remoteok.fetch() row 0 keys = ${JSON.stringify(fetched[0] && Object.keys(fetched[0]))}`);
 
   if (fetched[0]?.title === 'Staff AI Engineer'
       && fetched[0]?.url === 'https://remoteok.com/remote-jobs/acme-staff-ai-engineer'
       && fetched[0]?.company === 'Acme Corp'
-      && fetched[0]?.location === 'Worldwide'
-      && fetched[0]?.description === 'Build AI systems.')
-    pass('remoteok.fetch() maps position/url/company/location/description for a full row');
+      && fetched[0]?.location === 'Worldwide')
+    pass('remoteok.fetch() maps position/url/company/location for a full row');
   else fail(`remoteok.fetch() row 0 = ${JSON.stringify(fetched[0])}`);
 
   if (fetched[1]?.title === 'Platform Engineer'

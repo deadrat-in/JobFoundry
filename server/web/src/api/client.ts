@@ -188,6 +188,37 @@ export class ApiClient {
   }
 
   // --- Job Endpoints ---
+  async parseJd(payload: { text?: string; markdown?: string; url?: string }): Promise<{
+    ok: boolean;
+    job: {
+      title: string;
+      company: string;
+      location: string | null;
+      salary: string | null;
+      employmentType: string | null;
+      description: string;
+      requirements: string[];
+      url?: string;
+    };
+  }> {
+    return this.request('/api/v1/jobs/parse-jd', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async ingestJobs(jobs: Partial<Job>[] | Partial<Job>): Promise<{
+    ingested: number;
+    deduped: number;
+    ids: string[];
+  }> {
+    const payload = Array.isArray(jobs) ? jobs : [jobs];
+    return this.request('/api/v1/jobs/ingest', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
   async getJobs(filters: JobFilters = {}): Promise<Job[]> {
     const params = new URLSearchParams();
     if (filters.status) params.set('status', filters.status);

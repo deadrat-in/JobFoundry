@@ -438,6 +438,40 @@ export default defineBackground(() => {
         return { ok: false, error: 'could not detect job details on active tab' };
       }
 
+      // If Tier 3 generic web extraction was used, enrich with parse-jd endpoint
+      if (extracted.length === 1 && extracted[0].source === 'web' && extracted[0].description) {
+        try {
+          const cfg = await getConfig();
+          if (cfg.serverUrl && cfg.apiKey) {
+            const parseRes = await fetch(`${cfg.serverUrl.replace(/\/$/, '')}/api/v1/jobs/parse-jd`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${cfg.apiKey}`,
+              },
+              body: JSON.stringify({
+                text: extracted[0].description,
+                url: extracted[0].url,
+              }),
+            });
+            if (parseRes.ok) {
+              const parseData = await parseRes.json();
+              if (parseData?.ok && parseData.job) {
+                extracted[0] = {
+                  ...extracted[0],
+                  title: parseData.job.title || extracted[0].title,
+                  company: parseData.job.company || extracted[0].company,
+                  location: parseData.job.location || extracted[0].location,
+                  description: parseData.job.description || extracted[0].description,
+                };
+              }
+            }
+          }
+        } catch {
+          // Gracefully continue with client extraction
+        }
+      }
+
       const res = await processDiscoveredJobs({ rawJobs: extracted });
       if (!res.ok) {
         return { ok: false, error: res.error };

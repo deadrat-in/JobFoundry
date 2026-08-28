@@ -1,5 +1,4 @@
 import { decodeEntities } from './_html-entities.mjs';
-import { htmlToText } from './_html-to-text.mjs';
 // @ts-check
 /** @typedef {import('./_types.js').Provider} Provider */
 
@@ -123,7 +122,6 @@ export function parseNodeskFeed(xml, defaultCompany = 'NoDesk') {
 
     const { title, company } = splitTitle(rawTitle, fallback);
     const postedAt = toEpochMs(tagText(item, 'pubDate'));
-    const description = htmlToText(tagText(item, 'description'));
     const job = {
       title,
       company,
@@ -131,7 +129,6 @@ export function parseNodeskFeed(xml, defaultCompany = 'NoDesk') {
       url,
     };
     if (postedAt !== undefined) job.postedAt = postedAt;
-    if (description) job.description = description;
     jobs.push(job);
   }
 

@@ -22,6 +22,7 @@ import { JobDetailModal } from './features/detail/JobDetailModal';
 import { SettingsModal } from './features/settings/SettingsModal';
 import { PipelineView } from './features/pipeline/PipelineView';
 import { ExtensionSyncView } from './features/sync/ExtensionSyncView';
+import { AddJobModal } from './features/feed/AddJobModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 interface DashboardContentProps {
@@ -102,6 +103,7 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
   const location = useLocation();
 
   const isSettingsOpen = location.pathname === '/settings';
+  const [isAddJobOpen, setIsAddJobOpen] = useState(false);
 
   // Metrics
   const totalJobs = jobs.length;
@@ -165,6 +167,14 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
         </nav>
 
         <div className="nav-actions">
+          <button
+            onClick={() => setIsAddJobOpen(true)}
+            className="btn btn-primary btn-sm"
+            style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+            title="Add Job Manually / AI Parse"
+          >
+            <span>➕</span> Add Job
+          </button>
           <button onClick={onRefresh} className="btn btn-secondary btn-sm" title="Refresh Feed">
             🔄 Refresh
           </button>
@@ -329,6 +339,16 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
             />
             <Route path="*" element={<Navigate to="/feed" replace />} />
           </Routes>
+        )}
+
+        {isAddJobOpen && (
+          <AddJobModal
+            onClose={() => setIsAddJobOpen(false)}
+            onJobAdded={(newJob) => {
+              onJobUpdated(newJob);
+              onRefresh();
+            }}
+          />
         )}
       </main>
     </div>
