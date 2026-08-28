@@ -1,18 +1,24 @@
 # JobFoundry
 
-[![CI](https://github.com/anubra266/jobfoundry/actions/workflows/ci.yml/badge.svg)](https://github.com/anubra266/jobfoundry/actions/workflows/ci.yml)
-[![Deploy GitHub Pages](https://github.com/anubra266/jobfoundry/actions/workflows/pages.yml/badge.svg)](https://github.com/anubra266/jobfoundry/actions/workflows/pages.yml)
+[![CI](https://github.com/deadrat-in/JobFoundry/actions/workflows/ci.yml/badge.svg)](https://github.com/deadrat-in/JobFoundry/actions/workflows/ci.yml)
+[![Deploy GitHub Pages](https://github.com/deadrat-in/JobFoundry/actions/workflows/pages.yml/badge.svg)](https://github.com/deadrat-in/JobFoundry/actions/workflows/pages.yml)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
-[![Local First](https://img.shields.io/badge/Privacy-100%25%20Local--First-emerald.svg)](docs/privacy.html)
+[![Privacy: Local-First](https://img.shields.io/badge/Privacy-Local--First-emerald.svg)](docs/privacy.html)
 
-A unified, AGPL-licensed pipeline for job search → fit scoring → resume tailoring → PDF/ATS export, with a modern web dashboard. Built from scratch; MIT-licensed components lifted from `career-ops` and `jobs-auto-apply` where compatible.
+JobFoundry is an open-source, local-first platform designed to simplify job discovery, fit assessment, and resume tailoring. It pairs a privacy-respecting browser extension with a lightweight local server and web dashboard, keeping your data entirely under your control.
 
-📚 **[Explore the Documentation & Guides](docs/index.html)** &bull; 🚀 **[Quickstart Onboarding Guide](docs/welcome.html)** &bull; 🔒 **[Privacy & Invariants](docs/privacy.html)**
+📚 **[Documentation & Guides](docs/index.html)** &bull; 🚀 **[Quickstart Guide](docs/welcome.html)** &bull; 🔒 **[Privacy & Architecture Invariants](docs/privacy.html)**
+
+---
+
+## Architectural Invariant
 
 > **Architectural invariant (non-negotiable):**
 > The JobFoundry server never performs outbound job-board scraping. All scraping and job-board HTTP requests originate from the user's browser extension.
 >
 > Corollary: anything that makes an outbound job-board request (providers, liveness checks) lives in the extension. The server only receives already-scraped jobs, and its only outbound calls are to LLM providers (fit scoring / tailoring) and the local resume-ops API.
+
+---
 
 ## Architecture
 
@@ -41,91 +47,113 @@ A unified, AGPL-licensed pipeline for job search → fit scoring → resume tail
                                                └────────────────────────────────┘
 ```
 
-## Repo layout
+---
+
+## Repository Layout
 
 ```
 docs/             Documentation portal & GitHub Pages static website
-extension/        Browser extension (Chrome MV3 / Firefox MV2 / Android)
+extension/        Browser extension (Chrome MV3 / Firefox MV3 & MV2)
 server/
-  ingest/         Node/ESM ingest API + SQLite + multi-tenant auth + SimHash dedup
-  scorer/         Python fit screener + resume-ops tailoring bridge + worker
-  web/            Vite + React dashboard with real-time job feed & kanban tracker
-compose.yaml      Docker Compose orchestration
-scripts/          Healthcheck and repository validation utilities
-test/             End-to-end integration test suite
+  ingest/         Node/ESM ingest API, SQLite storage, auth, SimHash dedup
+  scorer/         Python fit screener, resume-ops tailoring bridge & worker daemon
+  web/            Vite + React 19 web dashboard (Kanban board, feed, resume manager)
+compose.yaml      Docker Compose stack configuration
+scripts/          Healthcheck and repository verification utilities
+test/             End-to-end multi-service test suite
 ```
 
-## Quickstart
+---
 
-### 1. Configure Environment
+## Getting Started
+
+### 1. Prerequisites
+
+- **Node.js**: v22+
+- **Python**: 3.12+ (or [uv](https://docs.astral.sh/uv/))
+- **Docker & Docker Compose** (optional, for containerized run)
+
+### 2. Configure Environment
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` to set your API keys and optional LLM provider configuration (OpenAI, Anthropic, or local Ollama).
+Review `.env` to configure your preferred LLM provider (OpenAI, Anthropic, or local Ollama) and secret keys.
 
-### 2. Start the Stack with Docker Compose
+### 3. Running with Docker Compose
 
 ```bash
 docker compose up --build -d
 ```
 
-Verify all services are up and healthy:
+Verify service health:
 
 ```bash
 ./scripts/healthcheck.sh
 ```
 
-- **Web Dashboard**: http://localhost:5173
-- **Ingest API**: http://localhost:8080
-- **Scorer Service**: http://localhost:8001
-- **Documentation**: [`docs/index.html`](docs/index.html)
+- **Web Dashboard**: [http://localhost:5173](http://localhost:5173)
+- **Ingest API**: [http://localhost:8080](http://localhost:8080)
+- **Scorer Service**: [http://localhost:8001](http://localhost:8001)
 
-### 3. Build & Install Browser Extension (WXT MV3)
-
-Build packages for Chrome and Firefox:
+### 4. Running Locally for Development
 
 ```bash
-# Chrome / Edge / Brave (MV3)
+# Install root & workspace dependencies
+npm install
+
+# Start Ingest Server
+npm --workspace=server/ingest run dev
+
+# Start Scorer Service
+cd server/scorer && uv run uvicorn src.app:app --port 8001 --reload
+
+# Start Web Dashboard
+npm --workspace=server/web run dev
+```
+
+---
+
+## Browser Extension Setup
+
+### Build from Source
+
+```bash
+# Build for Chromium browsers (Chrome, Edge, Brave)
 npm --workspace=extension run build
 
-# Firefox (MV3)
+# Build for Firefox
 npm --workspace=extension run build:firefox
 
-# Or live dev mode with automatic reloading
+# Or start live development with hot-reloading
 npm --workspace=extension run dev
 ```
 
-#### Chrome / Chromium / Brave / Edge:
+### Installation
 
-1. Open `chrome://extensions/`
-2. Enable **Developer mode** (top right).
-3. Click **Load unpacked** and select `extension/.output/chrome-mv3/`.
-
-#### Firefox (Desktop & Android):
-
-1. Open `about:debugging#/runtime/this-firefox`
-2. Click **Load Temporary Add-on...** and select `extension/.output/firefox-mv3/manifest.json`.
-3. Click the JobFoundry extension icon to configure server URL (`http://localhost:8080`) and your user API key.
+- **Chrome / Edge / Brave**:
+  1. Navigate to `chrome://extensions/` and enable **Developer mode**.
+  2. Click **Load unpacked** and select `extension/.output/chrome-mv3/`.
+- **Firefox**:
+  1. Navigate to `about:debugging#/runtime/this-firefox`.
+  2. Click **Load Temporary Add-on...** and select `extension/.output/firefox-mv3/manifest.json`.
 
 ---
 
-## Multi-User & Resume Workflow
+## Workflow Overview
 
-1. **Register / Login**: Open the web dashboard and create your account. An isolated workspace and API key will be generated.
-2. **Master Resume**: In the **Resume Manager** tab, upload or paste your master [JSON Resume](https://jsonresume.org/).
-3. **Ingest Jobs**: View jobs on any job board; the extension captures listings passively or via 84+ active providers.
-4. **Fit Scoring & Tailoring**: Inspect AI fit scores, missing requirements, and download your tailored multi-theme PDF or ATS-optimized plaintext resumes.
+1. **User Profile & Master Resume**: Upload your master [JSON Resume](https://jsonresume.org/) in the **Resume Manager** on the web dashboard.
+2. **Capture Listings**: Browse job portals as usual; the extension extracts listings passively or via 84+ portal adapters and sends them to your local ingest API.
+3. **Fit Evaluation & Tailoring**: Background workers evaluate qualifications against your master resume, generate a match score, and produce tailored PDF and ATS-friendly plaintext resumes.
+4. **Track Applications**: Manage the pipeline via the interactive Kanban board.
 
 ---
 
-## Testing & Verification
-
-Run the entire monorepo test suite:
+## Testing & Quality Assurance
 
 ```bash
-# Run unit, workspace, and E2E integration tests
+# Run unit, workspace, and E2E integration test suite
 npm test
 
 # Run Python scorer and tailoring test suite
@@ -137,15 +165,19 @@ npm --workspace=server/web test
 # Run Extension unit tests
 npm --workspace=extension test
 
-# Run linter and formatting checks
+# Code quality checks
 npm run lint
 npm run format:check
 ```
 
-## Execution plan
+---
 
-Every phase of this project is planned atomically (test-first, with acceptance criteria) in [`Scratch/plan/`](Scratch/plan/README.md). Read [`Scratch/plan/README.md`](Scratch/plan/README.md) for the phase index and dependency graph, and [`Scratch/plan/TESTING.md`](Scratch/plan/TESTING.md) for test conventions.
+## Attributions & Acknowledgements
+
+JobFoundry incorporates and builds upon ideas and components from open-source projects including [`career-ops`](https://github.com/career-ops) and [`jobs-auto-apply`](https://github.com/jobs-auto-apply). We are grateful to the open-source community for their foundational work.
+
+---
 
 ## License
 
-[GNU Affero General Public License v3.0](LICENSE)
+This project is licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE).
