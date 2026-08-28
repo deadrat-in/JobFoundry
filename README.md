@@ -7,7 +7,7 @@
 
 JobFoundry is an open-source, local-first platform designed to simplify job discovery, fit assessment, and resume tailoring. It pairs a privacy-respecting browser extension with a lightweight local server and web dashboard, keeping your data entirely under your control.
 
-📚 **[Documentation & Guides](docs/index.html)** &bull; 🚀 **[Quickstart Guide](docs/welcome.html)** &bull; 🔒 **[Privacy & Architecture Invariants](docs/privacy.html)**
+📚 **[Documentation & Guides](docs/index.html)** &bull; 🚀 **[Quickstart Guide](docs/welcome.html)** &bull; 🛠️ **[Development Guide](DEVELOPMENT.md)** &bull; 🤝 **[Contributing](CONTRIBUTING.md)** &bull; 🔒 **[Privacy & Security](SECURITY.md)**
 
 ---
 
