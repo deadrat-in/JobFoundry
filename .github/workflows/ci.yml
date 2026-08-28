@@ -15,6 +15,9 @@ jobs:
         with:
           node-version: 'lts/*'
           cache: npm
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --dev
+        working-directory: server/scorer
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check
