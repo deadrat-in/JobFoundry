@@ -1,19 +1,37 @@
 /**
  * indeed.js — DOM extractor for Indeed job pages.
  * Supports:
- *   1. Single job view (/viewjob or search split-view detail pane)
- *   2. Search results cards (.job_seen_beacon, .resultContent)
+ *   1. JSON-LD schema.org extraction
+ *   2. Single job view (/viewjob or search split-view detail pane)
+ *   3. Search results cards (.job_seen_beacon, .resultContent)
  */
 
-import { cleanText, absolutizeUrl, getCanonicalUrl } from './helpers.js';
+import {
+  cleanText,
+  absolutizeUrl,
+  getCanonicalUrl,
+  extractJsonLd,
+  jdHtmlToText,
+} from './helpers.js';
 
 export function extractIndeedJobDetails(doc) {
   if (!doc) return null;
 
+  // Tier 1: Try JSON-LD Schema.org
+  const jsonLd = extractJsonLd(doc);
+  if (jsonLd && jsonLd.description && jsonLd.description.length > 50) {
+    return {
+      ...jsonLd,
+      source: 'indeed',
+    };
+  }
+
+  // Tier 2: DOM Selectors
   const titleEl =
     doc.querySelector('[data-testid="jobsearch-JobInfoHeader-title"]') ||
     doc.querySelector('.jobsearch-JobInfoHeader-title') ||
-    doc.querySelector('h1.jobsearch-JobInfoHeader-title');
+    doc.querySelector('h1.jobsearch-JobInfoHeader-title') ||
+    doc.querySelector('h1');
 
   const title = cleanText(titleEl?.textContent);
   if (!title) return null;
@@ -21,19 +39,24 @@ export function extractIndeedJobDetails(doc) {
   const companyEl =
     doc.querySelector('[data-testid="inlineHeader-companyName"]') ||
     doc.querySelector('.jobsearch-CompanyInfoContainer a') ||
-    doc.querySelector('.jobsearch-InlineCompanyRating-companyHeader');
-  const company = cleanText(companyEl?.textContent);
+    doc.querySelector('.jobsearch-InlineCompanyRating-companyHeader') ||
+    doc.querySelector('[data-testid="company-name"]');
+  const company = cleanText(companyEl?.textContent) || 'Indeed Company';
 
   const locEl =
     doc.querySelector('[data-testid="inlineHeader-companyLocation"]') ||
     doc.querySelector('.jobsearch-JobInfoHeader-companyLocation') ||
-    doc.querySelector('[data-testid="job-location"]');
+    doc.querySelector('[data-testid="job-location"]') ||
+    doc.querySelector('[data-testid="text-location"]');
   const location = cleanText(locEl?.textContent) || null;
 
   const descEl =
     doc.querySelector('#jobDescriptionText') ||
-    doc.querySelector('.jobsearch-JobComponent-description');
-  const description = cleanText(descEl?.textContent);
+    doc.querySelector('.jobsearch-JobComponent-description') ||
+    doc.querySelector('.jobsearch-jobDescriptionText');
+  const description = descEl
+    ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '')
+    : '';
 
   const salaryEl =
     doc.querySelector('#salaryInfoAndJobType') ||
@@ -84,7 +107,7 @@ export function extractIndeedSearchCards(doc) {
       card.querySelector('[data-testid="company-name"]') ||
       card.querySelector('.companyName') ||
       card.querySelector('span.css-63koeb');
-    const company = cleanText(companyEl?.textContent);
+    const company = cleanText(companyEl?.textContent) || 'Indeed Company';
 
     const locEl =
       card.querySelector('[data-testid="text-location"]') ||
@@ -93,7 +116,7 @@ export function extractIndeedSearchCards(doc) {
     const location = cleanText(locEl?.textContent) || null;
 
     const snippetEl = card.querySelector('.job-snippet, .underShelfFooter');
-    const description = cleanText(snippetEl?.textContent);
+    const description = snippetEl ? cleanText(snippetEl.textContent) : '';
 
     results.push({
       title,

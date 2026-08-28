@@ -185,3 +185,85 @@ test('platform wrapper functions extract jobs cleanly', () => {
   const nkDoc = loadFixtureDoc('naukri-detail.html', 'https://www.naukri.com/job-listings-1');
   assert.equal(extractNaukri(nkDoc).length, 1);
 });
+
+test('extractJsonLd: parses Schema.org JobPosting correctly', async () => {
+  const { extractJsonLd, jdHtmlToText } = await import('../src/content/extractors/helpers.js');
+  const html = `
+    <html>
+      <head>
+        <script type="application/ld+json">
+        {
+          "@context": "https://schema.org/",
+          "@type": "JobPosting",
+          "title": "Senior AI Infrastructure Engineer",
+          "description": "<p>Build high-scale AI systems &amp; clusters.</p><ul><li>5+ years Python/C++</li><li>Kubernetes experience</li></ul>",
+          "hiringOrganization": {
+            "@type": "Organization",
+            "name": "Anthropic AI"
+          },
+          "jobLocation": {
+            "@type": "Place",
+            "address": {
+              "addressLocality": "San Francisco",
+              "addressRegion": "CA",
+              "addressCountry": "USA"
+            }
+          },
+          "datePosted": "2026-08-20"
+        }
+        </script>
+      </head>
+      <body></body>
+    </html>
+  `;
+  const dom = new JSDOM(html, { url: 'https://careers.example.com/job/ai-eng' });
+  const job = extractJsonLd(dom.window.document);
+
+  assert.ok(job);
+  assert.equal(job.title, 'Senior AI Infrastructure Engineer');
+  assert.equal(job.company, 'Anthropic AI');
+  assert.equal(job.location, 'San Francisco, CA, USA');
+  assert.ok(job.description.includes('Build high-scale AI systems & clusters.'));
+  assert.ok(job.description.includes('- 5+ years Python/C++'));
+  assert.equal(job.source, 'json-ld');
+});
+
+test('jdHtmlToText: decodes entities and formats block elements cleanly', async () => {
+  const { jdHtmlToText } = await import('../src/content/extractors/helpers.js');
+  const input =
+    '<h2>About Us</h2><p>We are building the future &amp; hiring <strong>engineers</strong>.</p><ul><li>Go &amp; Rust</li><li>Distributed systems</li></ul>';
+  const out = jdHtmlToText(input);
+
+  assert.ok(out.includes('About Us'));
+  assert.ok(out.includes('We are building the future & hiring engineers'));
+  assert.ok(out.includes('- Go & Rust'));
+  assert.ok(out.includes('- Distributed systems'));
+});
+
+test('extractGenericJob: extracts from article and semantic main content', async () => {
+  const { extractGenericJob } = await import('../src/content/extractors/ats.js');
+  const html = `
+    <html>
+      <head><title>Staff Systems Engineer - Acme Tech</title></head>
+      <body>
+        <nav><a href="/">Home</a><a href="/jobs">Careers</a></nav>
+        <main>
+          <h1>Staff Systems Engineer</h1>
+          <article>
+            <p>Acme Tech is looking for a Staff Systems Engineer to scale our global edge network.</p>
+            <p>You will architect low-latency networking software and mentor teammates.</p>
+          </article>
+        </main>
+        <footer>Copyright 2026</footer>
+      </body>
+    </html>
+  `;
+  const dom = new JSDOM(html, { url: 'https://acme.tech/careers/staff-eng' });
+  const jobs = extractGenericJob(dom.window.document);
+
+  assert.equal(jobs.length, 1);
+  assert.equal(jobs[0].title, 'Staff Systems Engineer');
+  assert.ok(jobs[0].description.includes('Staff Systems Engineer to scale our global edge network'));
+  assert.equal(jobs[0].source, 'web');
+});
+

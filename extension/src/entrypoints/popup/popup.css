@@ -42,10 +42,21 @@ body {
 
 .popup {
   width: 320px;
+  max-width: 100%;
   padding: 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  box-sizing: border-box;
+}
+
+.popup.sidepanel {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.popup.sidepanel #open-sidebar {
+  display: none;
 }
 
 .popup-header {

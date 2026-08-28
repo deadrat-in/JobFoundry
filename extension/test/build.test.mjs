@@ -18,6 +18,7 @@ test('wxt build produces chrome-mv3 and firefox-mv3 dist with required files', (
     for (const file of [
       'background.js',
       'popup.html',
+      'sidepanel.html',
       'content-scripts/content.js',
       'manifest.json',
     ]) {
@@ -29,7 +30,7 @@ test('wxt build produces chrome-mv3 and firefox-mv3 dist with required files', (
   }
 });
 
-test('chrome manifest is MV3 with action and permissions', () => {
+test('chrome manifest is MV3 with action, side_panel, and permissions', () => {
   runBuild(['build']);
   const manifest = JSON.parse(
     readFileSync(resolve(EXT, '.output', 'chrome-mv3', 'manifest.json'), 'utf8')
@@ -37,17 +38,23 @@ test('chrome manifest is MV3 with action and permissions', () => {
   assert.equal(manifest.manifest_version, 3);
   assert.equal(manifest.background.service_worker, 'background.js');
   assert.equal(manifest.action.default_popup, 'popup.html');
+  assert.equal(manifest.side_panel?.default_path, 'sidepanel.html');
   assert.ok(manifest.permissions.includes('storage'));
   assert.ok(manifest.permissions.includes('alarms'));
+  assert.ok(manifest.permissions.includes('sidePanel'));
+  assert.ok(manifest.commands?.['open-side-panel']);
 });
 
-test('firefox manifest is MV3 with browser_specific_settings', () => {
+test('firefox manifest is MV3 with sidebar_action, commands, and valid permissions', () => {
   runBuild(['build', '-b', 'firefox']);
   const manifest = JSON.parse(
     readFileSync(resolve(EXT, '.output', 'firefox-mv3', 'manifest.json'), 'utf8')
   );
   assert.equal(manifest.manifest_version, 3);
   assert.equal(manifest.action.default_popup, 'popup.html');
+  assert.equal(manifest.sidebar_action?.default_panel, 'sidepanel.html');
+  assert.equal(manifest.permissions.includes('sidePanel'), false, 'Firefox must not include Chrome-only sidePanel permission');
+  assert.ok(manifest.commands?._execute_sidebar_action);
   assert.ok(manifest.browser_specific_settings?.gecko?.id);
 });
 

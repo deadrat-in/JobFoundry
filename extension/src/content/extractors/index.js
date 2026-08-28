@@ -6,7 +6,12 @@ import { extractLinkedIn } from './linkedin.js';
 import { extractIndeed } from './indeed.js';
 import { extractGlassdoor } from './glassdoor.js';
 import { extractNaukri } from './naukri.js';
-import { extractGreenhouse, extractLever, extractAshby, extractGenericJob } from './ats.js';
+import {
+  extractGreenhouse,
+  extractLever,
+  extractAshby,
+  extractGenericJob,
+} from './ats.js';
 
 export function detectPlatform(urlOrHostname) {
   if (!urlOrHostname) return null;
@@ -27,26 +32,44 @@ export function extractJobsFromDocument(doc) {
   const hostname = doc.location?.hostname || '';
   const platform = detectPlatform(hostname || href);
 
+  let results = [];
   switch (platform) {
     case 'linkedin':
-      return extractLinkedIn(doc);
+      results = extractLinkedIn(doc);
+      break;
     case 'indeed':
-      return extractIndeed(doc);
+      results = extractIndeed(doc);
+      break;
     case 'glassdoor':
-      return extractGlassdoor(doc);
+      results = extractGlassdoor(doc);
+      break;
     case 'naukri':
-      return extractNaukri(doc);
+      results = extractNaukri(doc);
+      break;
     case 'greenhouse':
-      return extractGreenhouse(doc);
+      results = extractGreenhouse(doc);
+      break;
     case 'lever':
-      return extractLever(doc);
+      results = extractLever(doc);
+      break;
     case 'ashby':
-      return extractAshby(doc);
+      results = extractAshby(doc);
+      break;
     case 'generic':
-      return extractGenericJob(doc);
+      results = extractGenericJob(doc);
+      break;
     default:
-      return [];
+      results = [];
   }
+
+  // Fallback to JSON-LD / Semantic DOM extraction if specific extractor yielded nothing
+  if ((!results || results.length === 0) && platform !== null) {
+    results = extractGenericJob(doc);
+  } else if (!results || results.length === 0) {
+    results = extractGenericJob(doc);
+  }
+
+  return results;
 }
 
 export {

@@ -85,6 +85,23 @@ export default defineBackground(() => {
     }
   });
 
+  api.commands?.onCommand?.addListener(async (command: string) => {
+    if (command === 'open-side-panel') {
+      try {
+        const tabs = await api.tabs?.query({ active: true, currentWindow: true });
+        const tabId = tabs?.[0]?.id;
+        const windowId = tabs?.[0]?.windowId;
+        if (api?.sidePanel?.open && windowId !== undefined) {
+          await api.sidePanel.open({ windowId, tabId });
+        } else if (api?.sidebarAction?.open) {
+          await api.sidebarAction.open();
+        }
+      } catch {
+        // ignore command errors
+      }
+    }
+  });
+
   // Protocol Message Handlers
   onMessage('popup:autoConnect', async () => {
     try {
@@ -237,15 +254,90 @@ export default defineBackground(() => {
           const results = await api.scripting.executeScript({
             target: { tabId: activeTab.id },
             func: () => {
-              const clean = (t: any) =>
+              const clean = (t) =>
                 (t || '').replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
               const getCanon = () =>
-                (document.querySelector('link[rel="canonical"]') as HTMLLinkElement)?.href ||
+                document.querySelector('link[rel="canonical"]')?.getAttribute('href') ||
                 window.location.href;
 
               const url = getCanon();
               const host = window.location.hostname.toLowerCase();
 
+              const decodeEntities = (str) => {
+                if (typeof str !== 'string' || !str) return '';
+                const NAMED = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+                return str
+                  .replace(/&([a-zA-Z]+);/g, (m, name) => NAMED[name] || m)
+                  .replace(/&#([0-9]+);/g, (m, d) => {
+                    const cp = Number(d);
+                    return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : m;
+                  })
+                  .replace(/&#x([0-9a-fA-F]+);/g, (m, h) => {
+                    const cp = parseInt(h, 16);
+                    return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : m;
+                  });
+              };
+
+              const jdHtmlToText = (html) => {
+                if (typeof html !== 'string' || !html) return '';
+                const BLOCK_END = /<\/(p|div|ul|ol|h[1-6]|tr|section|article|blockquote)\s*>/gi;
+                const stripped = decodeEntities(html)
+                  .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, ' ')
+                  .replace(/<br\s*\/?>/gi, '\n')
+                  .replace(/<li[^>]*>/gi, '\n- ')
+                  .replace(BLOCK_END, '\n')
+                  .replace(/<[^>]+>/g, ' ');
+                return decodeEntities(stripped)
+                  .replace(/[ \t\u00a0]+/g, ' ')
+                  .replace(/ *\n */g, '\n')
+                  .replace(/\n{3,}/g, '\n\n')
+                  .trim();
+              };
+
+              // Tier 1: JSON-LD Schema.org JobPosting
+              const scripts = document.querySelectorAll('script[type="application/ld+json"]');
+              for (const script of scripts) {
+                try {
+                  const content = script.textContent?.trim();
+                  if (!content) continue;
+                  const data = JSON.parse(content);
+                  const items = Array.isArray(data) ? data : (data['@graph'] || [data]);
+                  for (const item of items) {
+                    if (!item || typeof item !== 'object') continue;
+                    const type = String(item['@type'] || '');
+                    if (type === 'JobPosting' || type.includes('JobPosting')) {
+                      const title = clean(item.title || item.name);
+                      let company = '';
+                      if (typeof item.hiringOrganization === 'string') company = clean(item.hiringOrganization);
+                      else if (item.hiringOrganization && typeof item.hiringOrganization === 'object') {
+                        company = clean(item.hiringOrganization.name || item.hiringOrganization.legalName);
+                      }
+                      let location = null;
+                      if (typeof item.jobLocation === 'string') location = clean(item.jobLocation);
+                      else if (item.jobLocation?.address) {
+                        const a = item.jobLocation.address;
+                        location = typeof a === 'string' ? clean(a) : clean([a.addressLocality, a.addressRegion, a.addressCountry].filter(Boolean).join(', '));
+                      }
+                      const description = item.description ? jdHtmlToText(item.description) : '';
+                      if (title && description) {
+                        return [
+                          {
+                            title,
+                            company: company || 'Company',
+                            location: location || null,
+                            description,
+                            url,
+                            source: host.includes('linkedin.com') ? 'linkedin' : host.includes('indeed.') ? 'indeed' : 'web',
+                            postedAt: item.datePosted ? Date.parse(item.datePosted) || null : null,
+                          },
+                        ];
+                      }
+                    }
+                  }
+                } catch {}
+              }
+
+              // Tier 2: Platform-Specific Selectors
               if (host.includes('linkedin.com')) {
                 const titleEl =
                   document.querySelector('.job-details-jobs-unified-top-card__job-title') ||
@@ -270,86 +362,68 @@ export default defineBackground(() => {
                 const descEl =
                   document.querySelector('#job-details') ||
                   document.querySelector('.jobs-description-content__text') ||
+                  document.querySelector('.jobs-description__content') ||
                   document.querySelector('.jobs-box__html-content') ||
+                  document.querySelector('.show-more-less-html__markup') ||
                   document.querySelector('article');
-                const description = clean(descEl?.textContent) || '';
+                const description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
                 if (title) {
-                  return [
-                    {
-                      title,
-                      company,
-                      location,
-                      description,
-                      url,
-                      source: 'linkedin',
-                      postedAt: null,
-                    },
-                  ];
+                  return [{ title, company, location, description, url, source: 'linkedin', postedAt: null }];
+                }
+              }
+
+              if (host.includes('indeed.')) {
+                const titleEl =
+                  document.querySelector('[data-testid="jobsearch-JobInfoHeader-title"]') ||
+                  document.querySelector('.jobsearch-JobInfoHeader-title') ||
+                  document.querySelector('h1');
+                const title = clean(titleEl?.textContent);
+                const companyEl =
+                  document.querySelector('[data-testid="inlineHeader-companyName"]') ||
+                  document.querySelector('.jobsearch-CompanyInfoContainer a') ||
+                  document.querySelector('[data-testid="company-name"]');
+                const company = clean(companyEl?.textContent) || 'Indeed Company';
+                const locEl =
+                  document.querySelector('[data-testid="inlineHeader-companyLocation"]') ||
+                  document.querySelector('[data-testid="job-location"]');
+                const location = clean(locEl?.textContent) || null;
+                const descEl =
+                  document.querySelector('#jobDescriptionText') ||
+                  document.querySelector('.jobsearch-JobComponent-description');
+                const description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
+                if (title) {
+                  return [{ title, company, location, description, url, source: 'indeed', postedAt: null }];
                 }
               }
 
               if (host.includes('greenhouse.io')) {
-                const titleEl =
-                  document.querySelector('h1.app-title') ||
-                  document.querySelector('h1.heading') ||
-                  document.querySelector('.job-name') ||
-                  document.querySelector('h1');
+                const titleEl = document.querySelector('h1.app-title, h1.heading, .job-name, h1');
                 const title = clean(titleEl?.textContent);
-                const companyEl =
-                  document.querySelector('.company-name') ||
-                  document.querySelector('meta[property="og:site_name"]');
-                const company =
-                  clean(companyEl?.textContent || (companyEl as HTMLMetaElement)?.content) ||
-                  window.location.pathname.split('/')[1] ||
-                  'Greenhouse Company';
-                const locEl =
-                  document.querySelector('.location') ||
-                  document.querySelector('.body--secondary');
+                const companyEl = document.querySelector('.company-name, meta[property="og:site_name"], .header__logo-text');
+                const company = clean(companyEl?.textContent || companyEl?.getAttribute?.('content')) || 'Greenhouse Company';
+                const locEl = document.querySelector('.location, .body--secondary');
                 const location = clean(locEl?.textContent) || null;
-                const descEl =
-                  document.querySelector('#content') ||
-                  document.querySelector('#app_body') ||
-                  document.querySelector('.job-description') ||
-                  document.querySelector('article');
-                const description = clean(descEl?.textContent) || '';
+                const descEl = document.querySelector('#content, #app_body, .job-description, article');
+                const description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
                 if (title) {
-                  return [
-                    {
-                      title,
-                      company,
-                      location,
-                      description,
-                      url,
-                      source: 'greenhouse',
-                      postedAt: null,
-                    },
-                  ];
+                  return [{ title, company, location, description, url, source: 'greenhouse', postedAt: null }];
                 }
               }
 
+              // Tier 3: Semantic Main-Text Extraction (career-ops readDom)
               const titleEl = document.querySelector('h1') || document.querySelector('h2');
               const title = clean(titleEl?.textContent);
-              const descEl =
-                document.querySelector('article') ||
-                document.querySelector('#job-description') ||
-                document.querySelector('main') ||
-                document.body;
-              const description = clean(descEl?.textContent) || '';
-              const company =
-                clean(document.title?.split('-')[0]?.split('|')[0]) || 'Company';
+              const root = document.querySelector('main, [role="main"], article, #content, #job-description, .job-description, .job-details') || document.body;
+              let description = '';
+              if (root) {
+                const clone = root.cloneNode(true);
+                clone.querySelectorAll('script, style, nav, header, footer, noscript, svg, button, form, iframe').forEach((el) => el.remove());
+                description = jdHtmlToText(clone.innerHTML || clone.innerText || clone.textContent || '');
+              }
+              const company = clean(document.querySelector('meta[property="og:site_name"]')?.getAttribute('content') || document.title?.split(/[-|–—]/)[0]) || 'Company';
 
-              if (title && description.length > 30) {
-                return [
-                  {
-                    title,
-                    company,
-                    location: null,
-                    description,
-                    url,
-                    source: 'web',
-                    postedAt: null,
-                  },
-                ];
+              if (title && description.length > 50) {
+                return [{ title, company, location: null, description, url, source: 'web', postedAt: null }];
               }
               return [];
             },

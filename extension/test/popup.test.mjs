@@ -24,6 +24,7 @@ test('popup exposes all required controls', () => {
     '#active-mode',
     '#status',
     '#open-options',
+    '#open-sidebar',
     '#open-dashboard',
   ]) {
     assert.ok(doc.querySelector(selector), `missing control: ${selector}`);

@@ -42,7 +42,7 @@ services:
       WORKER_POLL_INTERVAL_SECONDS: '10'
       DB_PATH: /data/jobfoundry.db
       ARTIFACTS_DIR: /data/artifacts
-      SCORER_MODEL: ${SCORER_MODEL:-openrouter/google/gemma-4-26b-a4b-it:free}
+      SCORER_MODEL: ${SCORER_MODEL:-openrouter/openrouter/free}
       SCORER_PROVIDER: ${SCORER_PROVIDER:-openrouter}
 
       SCORER_THRESHOLD: ${SCORER_THRESHOLD:-75}

@@ -148,3 +148,39 @@ test('normalizeJdText strips tags, entities and URLs', () => {
     'hello welcome hello world'
   );
 });
+
+test('existing job with empty description is enriched when re-ingested with full description', () => {
+  const db = openDb({ path: ':memory:' });
+  try {
+    const emptyJob = normalizeJob({
+      title: 'Senior Engineer',
+      company: 'Acme',
+      url: 'https://acme.example/jobs/99',
+      source: 'linkedin',
+      description: '',
+      fingerprint: '',
+    });
+    const { id: id1 } = insertIfNew(db, emptyJob);
+
+    let saved = db.prepare('SELECT description FROM jobs WHERE id = ?').get(id1);
+    assert.equal(saved.description, '');
+
+    const fullJob = normalizeJob({
+      title: 'Senior Engineer',
+      company: 'Acme',
+      url: 'https://acme.example/jobs/99',
+      source: 'linkedin',
+      description: JD_A,
+      fingerprint: fingerprintFor({ description: JD_A }),
+    });
+    const { id: id2 } = insertIfNew(db, fullJob);
+    assert.equal(id2, id1);
+
+    saved = db.prepare('SELECT description, fingerprint FROM jobs WHERE id = ?').get(id1);
+    assert.equal(saved.description, JD_A);
+    assert.equal(saved.fingerprint, fingerprintFor({ description: JD_A }));
+  } finally {
+    db.close();
+  }
+});
+

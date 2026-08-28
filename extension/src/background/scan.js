@@ -32,6 +32,7 @@ import { dedupJobs, createSessionCache } from './dedup.js';
 import { buildTitleFilter } from './filters/title-keywords.js';
 import { buildLocationFilter } from './filters/location-filter.js';
 import { buildDateFilter } from './filters/date-filter.js';
+import { jdHtmlToText } from '../content/extractors/helpers.js';
 
 export async function runScanPipeline({
   getConfig,
@@ -118,6 +119,84 @@ export async function runScanPipeline({
     if (!matchLocation(job)) return false;
     return true;
   });
+
+  // Phase 2.5 — Auto-Enrich Missing Job Descriptions (bounded per sweep)
+  let detailBudget = 25;
+  for (const raw of filtered) {
+    if (detailBudget <= 0) break;
+    if (
+      (!raw.description || raw.description.length < 50) &&
+      raw.url &&
+      /^https?:\/\//i.test(raw.url)
+    ) {
+      detailBudget--;
+      try {
+        let html = '';
+        try {
+          const fetchFn = globalThis.fetch;
+          const res = await fetchFn(raw.url, {
+            headers: {
+              'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            },
+          });
+          if (res.ok) {
+            html = await res.text();
+          }
+        } catch {
+          html = await httpCtx.fetchText(raw.url).catch(() => '');
+        }
+
+        if (html) {
+          const jsonLdMatch = html.match(
+            /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+          );
+          let foundDesc = '';
+          if (jsonLdMatch) {
+            for (const scriptTag of jsonLdMatch) {
+              try {
+                const inner = scriptTag
+                  .replace(/^<script\b[^>]*>|<\/script>$/gi, '')
+                  .trim();
+                const data = JSON.parse(inner);
+                const items = Array.isArray(data) ? data : data['@graph'] || [data];
+                for (const it of items) {
+                  if (
+                    (it['@type'] === 'JobPosting' ||
+                      String(it['@type'] || '').includes('JobPosting')) &&
+                    it.description
+                  ) {
+                    foundDesc = jdHtmlToText(it.description);
+                    break;
+                  }
+                }
+              } catch {}
+              if (foundDesc) break;
+            }
+          }
+
+          if (!foundDesc) {
+            const articleMatch =
+              html.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i) ||
+              html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i) ||
+              html.match(
+                /<div\b[^>]*class=["'][^"']*(?:job-description|jobDescription|jobDetails|description)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i
+              );
+            if (articleMatch) {
+              foundDesc = jdHtmlToText(articleMatch[1]);
+            }
+          }
+
+          if (foundDesc && foundDesc.length > 50) {
+            raw.description = foundDesc;
+          }
+        }
+      } catch {
+        // Fail-open: continue with summary row
+      }
+    }
+  }
 
   // Phase 3 — liveness → normalize → fingerprint → dedup → send
   const dedupCache = cache ?? createSessionCache();

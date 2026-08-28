@@ -36,6 +36,19 @@ class JobStore:
                 self.conn.execute("PRAGMA synchronous = NORMAL")
             except Exception:
                 pass
+        self._ensure_migrations()
+
+    def _ensure_migrations(self) -> None:
+        try:
+            self.conn.execute("ALTER TABLE jobs ADD COLUMN attempt_count INTEGER NOT NULL DEFAULT 0")
+            self.conn.commit()
+        except sqlite3.OperationalError:
+            pass
+        try:
+            self.conn.execute("ALTER TABLE user_jobs ADD COLUMN attempt_count INTEGER NOT NULL DEFAULT 0")
+            self.conn.commit()
+        except sqlite3.OperationalError:
+            pass
 
     def init_schema(self, schema_sql: str) -> None:
         self.conn.executescript(schema_sql)

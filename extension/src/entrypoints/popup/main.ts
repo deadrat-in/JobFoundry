@@ -15,6 +15,7 @@ export const DOM = {
   activeMode: '#active-mode',
   status: '#status',
   openOptions: '#open-options',
+  openSidebar: '#open-sidebar',
   openDashboard: '#open-dashboard',
 };
 
@@ -213,6 +214,24 @@ export function init(opts: { doc?: Document; [key: string]: any } = {}) {
       api.runtime.openOptionsPage();
     } else {
       window.open(url, '_blank');
+    }
+  });
+
+  $<HTMLButtonElement>(doc, DOM.openSidebar)?.addEventListener('click', async () => {
+    const api = (globalThis as any).browser ?? (globalThis as any).chrome;
+    try {
+      if (api?.sidePanel?.open) {
+        const tabs = await api.tabs?.query({ active: true, currentWindow: true });
+        const tabId = tabs?.[0]?.id;
+        const windowId = tabs?.[0]?.windowId;
+        if (windowId !== undefined) {
+          await api.sidePanel.open({ windowId, tabId });
+        }
+      } else if (api?.sidebarAction?.open) {
+        await api.sidebarAction.open();
+      }
+    } catch {
+      // ignore if sidepanel opening without gesture fails
     }
   });
 

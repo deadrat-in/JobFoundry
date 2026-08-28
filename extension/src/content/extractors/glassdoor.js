@@ -1,19 +1,32 @@
 /**
  * glassdoor.js — DOM extractor for Glassdoor job pages.
  * Supports:
- *   1. Job details pane / page ([data-test="job-details"], #JobDescriptionContainer)
- *   2. Search list cards ([data-test="jobListing"], .react-job-listing)
+ *   1. JSON-LD schema.org extraction
+ *   2. Job details pane / page ([data-test="job-details"], #JobDescriptionContainer)
+ *   3. Search list cards ([data-test="jobListing"], .react-job-listing)
  */
 
-import { cleanText, absolutizeUrl, getCanonicalUrl } from './helpers.js';
+import {
+  cleanText,
+  absolutizeUrl,
+  getCanonicalUrl,
+  extractJsonLd,
+  jdHtmlToText,
+} from './helpers.js';
 
 export function extractGlassdoorJobDetails(doc) {
   if (!doc) return null;
 
+  const jsonLd = extractJsonLd(doc);
+  if (jsonLd && jsonLd.description && jsonLd.description.length > 50) {
+    return { ...jsonLd, source: 'glassdoor' };
+  }
+
   const titleEl =
     doc.querySelector('[data-test="job-title"]') ||
     doc.querySelector('[class*="JobDetails_jobTitle__"]') ||
-    doc.querySelector('.job-title');
+    doc.querySelector('.job-title') ||
+    doc.querySelector('h1');
 
   const title = cleanText(titleEl?.textContent);
   if (!title) return null;
@@ -22,7 +35,7 @@ export function extractGlassdoorJobDetails(doc) {
     doc.querySelector('[data-test="employer-name"]') ||
     doc.querySelector('[class*="JobDetails_employerName__"]') ||
     doc.querySelector('.employer-name');
-  const company = cleanText(companyEl?.textContent);
+  const company = cleanText(companyEl?.textContent) || 'Glassdoor Company';
 
   const locEl =
     doc.querySelector('[data-test="location"]') ||
@@ -33,8 +46,11 @@ export function extractGlassdoorJobDetails(doc) {
   const descEl =
     doc.querySelector('#JobDescriptionContainer') ||
     doc.querySelector('[class*="JobDetails_jobDescription__"]') ||
-    doc.querySelector('.jobDescriptionContent');
-  const description = cleanText(descEl?.textContent);
+    doc.querySelector('.jobDescriptionContent') ||
+    doc.querySelector('article');
+  const description = descEl
+    ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '')
+    : '';
 
   const salaryEl =
     doc.querySelector('[data-test="detailSalary"]') ||
@@ -70,7 +86,10 @@ export function extractGlassdoorSearchCards(doc) {
       card.querySelector('a.jobLink');
 
     const rawUrl = linkEl?.getAttribute('href');
-    const url = absolutizeUrl(rawUrl, doc.location?.href || 'https://www.glassdoor.com');
+    const url = absolutizeUrl(
+      rawUrl,
+      doc.location?.href || 'https://www.glassdoor.com'
+    );
     const title = cleanText(
       linkEl?.textContent || card.querySelector('[data-test="job-title"]')?.textContent
     );
@@ -80,7 +99,7 @@ export function extractGlassdoorSearchCards(doc) {
       card.querySelector('[data-test="employer-name"]') ||
       card.querySelector('[class*="JobCard_employerName__"]') ||
       card.querySelector('.job-search-card__subtitle');
-    const company = cleanText(companyEl?.textContent);
+    const company = cleanText(companyEl?.textContent) || 'Glassdoor Company';
 
     const locEl =
       card.querySelector('[data-test="location"]') ||

@@ -6,10 +6,22 @@
  * - Generic fallback extractor for any job posting page
  */
 
-import { cleanText, getCanonicalUrl } from './helpers.js';
+import {
+  cleanText,
+  getCanonicalUrl,
+  extractJsonLd,
+  jdHtmlToText,
+  readSemanticDom,
+} from './helpers.js';
 
 export function extractGreenhouse(doc) {
   if (!doc) return [];
+
+  const jsonLd = extractJsonLd(doc);
+  if (jsonLd && jsonLd.description) {
+    return [{ ...jsonLd, source: 'greenhouse' }];
+  }
+
   const titleEl =
     doc.querySelector('h1.app-title') ||
     doc.querySelector('h1.heading') ||
@@ -22,7 +34,9 @@ export function extractGreenhouse(doc) {
     doc.querySelector('.company-name') ||
     doc.querySelector('meta[property="og:site_name"]') ||
     doc.querySelector('.header__logo-text');
-  let company = cleanText(companyEl?.textContent || companyEl?.getAttribute?.('content'));
+  let company = cleanText(
+    companyEl?.textContent || companyEl?.getAttribute?.('content')
+  );
   if (!company) {
     const parts = (doc.location?.pathname || '').split('/').filter(Boolean);
     company = parts[0] || 'Greenhouse Company';
@@ -40,7 +54,9 @@ export function extractGreenhouse(doc) {
     doc.querySelector('.job-description') ||
     doc.querySelector('#job-description') ||
     doc.querySelector('article');
-  const description = cleanText(descEl?.textContent) || '';
+  const description = descEl
+    ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '')
+    : '';
 
   const url = getCanonicalUrl(doc) || doc.location?.href || '';
 
@@ -59,22 +75,42 @@ export function extractGreenhouse(doc) {
 
 export function extractLever(doc) {
   if (!doc) return [];
-  const titleEl = doc.querySelector('.posting-headline h2') || doc.querySelector('h2') || doc.querySelector('h1');
+
+  const jsonLd = extractJsonLd(doc);
+  if (jsonLd && jsonLd.description) {
+    return [{ ...jsonLd, source: 'lever' }];
+  }
+
+  const titleEl =
+    doc.querySelector('.posting-headline h2') ||
+    doc.querySelector('h2') ||
+    doc.querySelector('h1');
   const title = cleanText(titleEl?.textContent);
   if (!title) return [];
 
-  const companyEl = doc.querySelector('.main-header-logo') || doc.querySelector('meta[property="og:site_name"]');
-  let company = cleanText(companyEl?.getAttribute?.('alt') || companyEl?.getAttribute?.('content'));
+  const companyEl =
+    doc.querySelector('.main-header-logo') ||
+    doc.querySelector('meta[property="og:site_name"]');
+  let company = cleanText(
+    companyEl?.getAttribute?.('alt') || companyEl?.getAttribute?.('content')
+  );
   if (!company) {
     const parts = (doc.location?.pathname || '').split('/').filter(Boolean);
     company = parts[0] || 'Lever Company';
   }
 
-  const locEl = doc.querySelector('.posting-categories .location') || doc.querySelector('.sort-by-time');
+  const locEl =
+    doc.querySelector('.posting-categories .location') ||
+    doc.querySelector('.sort-by-time');
   const location = cleanText(locEl?.textContent) || null;
 
-  const descEl = doc.querySelector('.section-wrapper') || doc.querySelector('.posting-sections') || doc.querySelector('article');
-  const description = cleanText(descEl?.textContent) || '';
+  const descEl =
+    doc.querySelector('.section-wrapper') ||
+    doc.querySelector('.posting-sections') ||
+    doc.querySelector('article');
+  const description = descEl
+    ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '')
+    : '';
 
   const url = getCanonicalUrl(doc) || doc.location?.href || '';
 
@@ -93,19 +129,35 @@ export function extractLever(doc) {
 
 export function extractAshby(doc) {
   if (!doc) return [];
+
+  const jsonLd = extractJsonLd(doc);
+  if (jsonLd && jsonLd.description) {
+    return [{ ...jsonLd, source: 'ashby' }];
+  }
+
   const titleEl = doc.querySelector('h1') || doc.querySelector('h2');
   const title = cleanText(titleEl?.textContent);
   if (!title) return [];
 
-  const companyEl = doc.querySelector('meta[property="og:site_name"]') || doc.querySelector('header h1');
-  let company = cleanText(companyEl?.getAttribute?.('content') || companyEl?.textContent);
+  const companyEl =
+    doc.querySelector('meta[property="og:site_name"]') ||
+    doc.querySelector('header h1');
+  let company = cleanText(
+    companyEl?.getAttribute?.('content') || companyEl?.textContent
+  );
   if (!company) {
     const parts = (doc.location?.pathname || '').split('/').filter(Boolean);
     company = parts[0] || 'Ashby Company';
   }
 
-  const descEl = doc.querySelector('article') || doc.querySelector('main') || doc.querySelector('.ashby-job-posting-description');
-  const description = cleanText(descEl?.textContent) || '';
+  const descEl =
+    doc.querySelector('article') ||
+    doc.querySelector('main') ||
+    doc.querySelector('.ashby-job-posting-description') ||
+    doc.querySelector('#job-description');
+  const description = descEl
+    ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '')
+    : '';
 
   const url = getCanonicalUrl(doc) || doc.location?.href || '';
 
@@ -124,17 +176,21 @@ export function extractAshby(doc) {
 
 export function extractGenericJob(doc) {
   if (!doc) return [];
-  const titleEl = doc.querySelector('h1') || doc.querySelector('h2');
-  const title = cleanText(titleEl?.textContent);
-  const descEl = doc.querySelector('article') || doc.querySelector('#job-description') || doc.querySelector('.job-description') || doc.querySelector('main');
-  const description = cleanText(descEl?.textContent) || '';
 
+  // Tier 1: JSON-LD Schema.org
+  const jsonLd = extractJsonLd(doc);
+  if (jsonLd && jsonLd.description && jsonLd.description.length >= 50) {
+    return [{ ...jsonLd, source: 'web' }];
+  }
+
+  // Tier 2: Semantic DOM Extraction (career-ops readDom)
+  const { title, description, company } = readSemanticDom(doc);
   if (!title || description.length < 50) return [];
 
   return [
     {
       title,
-      company: cleanText(doc.title?.split('-')[0]?.split('|')[0]) || 'Unknown Company',
+      company: company || 'Company',
       location: null,
       description,
       url: getCanonicalUrl(doc) || doc.location?.href || '',
