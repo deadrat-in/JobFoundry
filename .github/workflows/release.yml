@@ -2,12 +2,15 @@ name: Release Extension Bundles
 
 on:
   push:
-    branches: [main]
     tags: ['v*']
   workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   release-extension:
