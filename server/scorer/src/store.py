@@ -183,11 +183,20 @@ class JobStore:
 
     def score_user_job(self, user_job_id: str, result: ScoreResult) -> dict[str, Any]:
         now = int(time.time() * 1000)
-        status = "new" if result.score >= self.threshold else "rejected_by_score"
+        is_valid = getattr(result, "is_valid_job", True)
+        if not is_valid:
+            status = "invalid_job"
+        elif result.score >= self.threshold:
+            status = "new"
+        else:
+            status = "rejected_by_score"
+
         fit_notes = json.dumps({
             "reasoning": result.reasoning,
             "matching_skills": result.matching_skills,
             "missing_skills": result.missing_skills,
+            "is_valid_job": is_valid,
+            "is_truncated": getattr(result, "is_truncated", False),
         })
 
         self.conn.execute(
@@ -200,16 +209,33 @@ class JobStore:
                 updated_at = ?
             WHERE id = ?
             """,
-            (result.score, fit_notes, status, now, user_job_id),
+            (result.score if is_valid else None, fit_notes, status, now, user_job_id),
         )
-        if result.clean_description and result.clean_description.strip():
+
+        updates = []
+        params = []
+        if getattr(result, "clean_description", None) and result.clean_description.strip():
+            updates.append("description = ?")
+            params.append(result.clean_description.strip())
+        if getattr(result, "clean_title", None) and result.clean_title.strip():
+            updates.append("title = ?")
+            params.append(result.clean_title.strip())
+        if getattr(result, "clean_company", None) and result.clean_company.strip():
+            updates.append("company = ?")
+            params.append(result.clean_company.strip())
+
+        if updates:
+            updates.append("updated_at = ?")
+            params.append(now)
+            params.append(user_job_id)
+            set_clause = ", ".join(updates)
             self.conn.execute(
-                """
+                f"""
                 UPDATE jobs
-                SET description = ?, updated_at = ?
+                SET {set_clause}
                 WHERE id = (SELECT job_id FROM user_jobs WHERE id = ?)
                 """,
-                (result.clean_description.strip(), now, user_job_id),
+                tuple(params),
             )
         self.conn.commit()
 
@@ -263,34 +289,46 @@ class JobStore:
 
     def score_job(self, job_id: str, result: ScoreResult) -> dict[str, Any]:
         now = int(time.time() * 1000)
-        status = "new" if result.score >= self.threshold else "rejected_by_score"
+        is_valid = getattr(result, "is_valid_job", True)
+        if not is_valid:
+            status = "invalid_job"
+        elif result.score >= self.threshold:
+            status = "new"
+        else:
+            status = "rejected_by_score"
+
         fit_notes = json.dumps({
             "reasoning": result.reasoning,
             "matching_skills": result.matching_skills,
             "missing_skills": result.missing_skills,
+            "is_valid_job": is_valid,
+            "is_truncated": getattr(result, "is_truncated", False),
         })
 
+        updates = ["fit_score = ?", "fit_notes = ?", "status = ?", "attempt_count = 0", "updated_at = ?"]
+        params = [result.score if is_valid else None, fit_notes, status, now]
+
+        if getattr(result, "clean_description", None) and result.clean_description.strip():
+            updates.append("description = ?")
+            params.append(result.clean_description.strip())
+        if getattr(result, "clean_title", None) and result.clean_title.strip():
+            updates.append("title = ?")
+            params.append(result.clean_title.strip())
+        if getattr(result, "clean_company", None) and result.clean_company.strip():
+            updates.append("company = ?")
+            params.append(result.clean_company.strip())
+
+        params.append(job_id)
+        set_clause = ", ".join(updates)
+
         self.conn.execute(
-            """
+            f"""
             UPDATE jobs
-            SET fit_score = ?,
-                fit_notes = ?,
-                status = ?,
-                attempt_count = 0,
-                updated_at = ?
+            SET {set_clause}
             WHERE id = ?
             """,
-            (result.score, fit_notes, status, now, job_id),
+            tuple(params),
         )
-        if result.clean_description and result.clean_description.strip():
-            self.conn.execute(
-                """
-                UPDATE jobs
-                SET description = ?, updated_at = ?
-                WHERE id = ?
-                """,
-                (result.clean_description.strip(), now, job_id),
-            )
         self.conn.commit()
 
         cursor = self.conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,))

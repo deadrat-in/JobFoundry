@@ -68,10 +68,14 @@ async def process_unscored_user_jobs(
                     user_id,
                 )
 
+            if result.clean_title and result.clean_title.strip():
+                job_dict["title"] = result.clean_title.strip()
+            if result.clean_company and result.clean_company.strip():
+                job_dict["company"] = result.clean_company.strip()
             if result.clean_description and result.clean_description.strip():
                 job_dict["description"] = result.clean_description.strip()
 
-            if updated_uj.get("status") == "new":
+            if updated_uj.get("status") == "new" and getattr(result, "is_valid_job", True):
                 passed += 1
 
                 if tailor_bridge and tailor_bridge.base_url:
@@ -191,10 +195,14 @@ async def process_unscored_jobs(
                     job_id,
                 )
 
+            if result.clean_title and result.clean_title.strip():
+                job["title"] = result.clean_title.strip()
+            if result.clean_company and result.clean_company.strip():
+                job["company"] = result.clean_company.strip()
             if result.clean_description and result.clean_description.strip():
                 job["description"] = result.clean_description.strip()
 
-            if updated_job.get("status") == "new":
+            if updated_job.get("status") == "new" and getattr(result, "is_valid_job", True):
                 passed += 1
 
                 # Step 2: Tailoring bridge if configured

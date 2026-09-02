@@ -47,9 +47,21 @@ class ScoreResult(BaseModel):
     reasoning: str = Field(..., description="Explanation of the match and scoring rationale")
     missing_skills: list[str] = Field(default_factory=list, description="Skills required/preferred by the job but missing in the resume")
     matching_skills: list[str] = Field(default_factory=list, description="Skills present in both the resume and the job requirements")
+    clean_title: str | None = Field(
+        default=None,
+        description="Accurate, professional role title. If the scraped title is garbled, generic, or an artifact like '0 notifications' or 'Feed detail update', extract the real role title from the text.",
+    )
+    clean_company: str | None = Field(
+        default=None,
+        description="Sanitized hiring company name. If generic like 'LinkedIn Company' or 'Google' (when actually a third-party posting), extract the true hiring company.",
+    )
     clean_description: str | None = Field(
         default=None,
         description="Sanitized and structured job description in Markdown (Role Overview, Responsibilities, Requirements). Prunes corporate boilerplate, EEOC disclaimers, cookie notices, and application URL noise while preserving all technical and qualification requirements.",
+    )
+    is_valid_job: bool = Field(
+        default=True,
+        description="True if this is an authentic job posting. Set to False if this is non-job web noise, such as a LinkedIn notifications feed, user profile, social update, or login prompt.",
     )
     is_truncated: bool = Field(
         default=False,
@@ -70,7 +82,10 @@ class StubLLM:
             reasoning="Default stub reasoning",
             missing_skills=[],
             matching_skills=[],
+            clean_title=None,
+            clean_company=None,
             clean_description=None,
+            is_valid_job=True,
             is_truncated=False,
         )
         self.call_history: list[tuple[dict[str, Any], dict[str, Any]]] = []
@@ -92,10 +107,12 @@ class LiteLLMClient:
         prompt = (
             f"You are an expert technical recruiter, resume screener, and job analyst.\n"
             f"Evaluate the candidate's master resume against the following job posting.\n"
-            f"Provide a realistic fit score (0-100), concise reasoning, matching skills, and missing skills.\n"
-            f"Also, sanitize the job description into clean, well-structured Markdown (Role Overview, Responsibilities, Requirements) "
+            f"1. Check if this is a genuine job posting or non-job noise (e.g., social feed, notification counts like '0 notifications', user profile, cookie banner). Set `is_valid_job: false` if not a job posting.\n"
+            f"2. If valid, provide a realistic fit score (0-100), concise reasoning, matching skills, and missing skills.\n"
+            f"3. Sanitize the job title into `clean_title` (e.g. fix '0 notifications' or bad scrapings) and `clean_company` if needed.\n"
+            f"4. Sanitize the job description into clean, well-structured Markdown (Role Overview, Responsibilities, Requirements) "
             f"by stripping all corporate boilerplate, EEOC/diversity statements, and application links in `clean_description`.\n"
-            f"If the job description is visibly cut off, ends mid-sentence, or lacks actual requirements, set `is_truncated: true`.\n\n"
+            f"5. If the job description is visibly cut off, ends mid-sentence, or lacks actual requirements, set `is_truncated: true`.\n\n"
             f"--- JOB POSTING ---\n"
             f"Title: {job.get('title', '')}\n"
             f"Company: {job.get('company', '')}\n"
@@ -109,7 +126,7 @@ class LiteLLMClient:
             "model": self.model,
             "response_model": ScoreResult,
             "messages": [
-                {"role": "system", "content": "You evaluate resume-to-job fit and return structured scoring results including cleaned description."},
+                {"role": "system", "content": "You evaluate resume-to-job fit and return structured scoring results including cleaned title, company, description, and job validity."},
                 {"role": "user", "content": prompt},
             ],
             "max_retries": 2,

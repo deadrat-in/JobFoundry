@@ -12,6 +12,15 @@ export function cleanText(text) {
     .trim();
 }
 
+export function isNoiseTitle(title) {
+  if (!title || typeof title !== 'string') return true;
+  const t = title.trim();
+  if (!t || t.length < 2) return true;
+  if (/^\d+\s+notifications?$/i.test(t)) return true;
+  if (/^(feed detail update|notifications?|messages?|network|invitations?)$/i.test(t)) return true;
+  return false;
+}
+
 export function absolutizeUrl(rawUrl, baseUrl = 'https://localhost') {
   if (!rawUrl || typeof rawUrl !== 'string') return '';
   try {
@@ -147,10 +156,17 @@ export function readSemanticDom(doc) {
   if (!doc) return { title: '', description: '', company: '' };
 
   const titleEl =
+    doc.querySelector('[role="main"] h1') ||
+    doc.querySelector('main h1') ||
+    doc.querySelector('article h1') ||
     doc.querySelector('h1') ||
     doc.querySelector('h2') ||
     doc.querySelector('[role="heading"][aria-level="1"]');
-  const title = cleanText(titleEl?.textContent || doc.title?.split(/[-|–—]/)[0]);
+  let title = cleanText(titleEl?.textContent || doc.title?.split(/[-|–—]/)[0]);
+  if (isNoiseTitle(title)) {
+    title = cleanText(doc.title?.split(/[-|–—]/)[0]) || '';
+    if (isNoiseTitle(title)) title = '';
+  }
 
   const root =
     doc.querySelector(

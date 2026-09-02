@@ -131,7 +131,7 @@ def test_score_job_updates_clean_description(in_memory_store: JobStore):
         INSERT INTO jobs (id, title, company, url, source, description, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        ("job-clean", "ML Engineer", "Acme", "https://example.com/clean", "test", "Raw messy description with EEOC...", now, now),
+        ("job-clean", "0 notifications", "LinkedIn Company", "https://example.com/clean", "test", "Raw messy description with EEOC...", now, now),
     )
     in_memory_store.conn.commit()
 
@@ -140,13 +140,49 @@ def test_score_job_updates_clean_description(in_memory_store: JobStore):
         reasoning="Great fit",
         matching_skills=["PyTorch"],
         missing_skills=[],
+        clean_title="Staff Machine Learning Engineer",
+        clean_company="Acme AI Corp",
         clean_description="Clean sanitized markdown description",
+        is_valid_job=True,
         is_truncated=False,
     )
 
     in_memory_store.score_job(job_id="job-clean", result=result)
 
     row = in_memory_store.conn.execute(
-        "SELECT description FROM jobs WHERE id = ?", ("job-clean",)
+        "SELECT title, company, description, fit_score, status FROM jobs WHERE id = ?", ("job-clean",)
     ).fetchone()
-    assert row[0] == "Clean sanitized markdown description"
+    assert row[0] == "Staff Machine Learning Engineer"
+    assert row[1] == "Acme AI Corp"
+    assert row[2] == "Clean sanitized markdown description"
+    assert row[3] == 90
+    assert row[4] == "new"
+
+
+def test_score_job_marks_invalid_job_when_not_real_posting(in_memory_store: JobStore):
+    now = int(time.time() * 1000)
+    in_memory_store.conn.execute(
+        """
+        INSERT INTO jobs (id, title, company, url, source, description, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        ("job-junk", "0 notifications", "LinkedIn", "https://www.linkedin.com/notifications", "linkedin", "Notification feed items...", now, now),
+    )
+    in_memory_store.conn.commit()
+
+    result = ScoreResult(
+        score=0,
+        reasoning="Not a job posting: LinkedIn notifications feed",
+        matching_skills=[],
+        missing_skills=[],
+        is_valid_job=False,
+    )
+
+    in_memory_store.score_job(job_id="job-junk", result=result)
+
+    row = in_memory_store.conn.execute(
+        "SELECT fit_score, status FROM jobs WHERE id = ?", ("job-junk",)
+    ).fetchone()
+    assert row[0] is None
+    assert row[1] == "invalid_job"
+

@@ -16,10 +16,24 @@ import {
   isDescriptionIncomplete,
   cleanBoilerplate,
   readSemanticDom,
+  isNoiseTitle,
 } from './helpers.js';
 
 export function extractLinkedInJobDetails(doc) {
   if (!doc) return null;
+
+  // Discard known non-job LinkedIn paths like /notifications, /feed, /mynetwork, /messaging, /in/
+  const pathname = doc.location?.pathname || '';
+  if (
+    pathname &&
+    (pathname.startsWith('/notifications') ||
+      pathname.startsWith('/mynetwork') ||
+      pathname.startsWith('/feed') ||
+      pathname.startsWith('/messaging') ||
+      pathname.startsWith('/in/'))
+  ) {
+    return null;
+  }
 
   // Auto-expand any collapsed 'Show more' sections before extracting
   expandTruncatedContent(doc);
@@ -43,10 +57,12 @@ export function extractLinkedInJobDetails(doc) {
     doc.querySelector('h2.job-details-jobs-unified-top-card__job-title') ||
     doc.querySelector('.jobs-details__main-content h1') ||
     doc.querySelector('.job-view-layout h1') ||
-    doc.querySelector('h1');
+    doc.querySelector('.jobs-description-content__text h1') ||
+    doc.querySelector('main h1') ||
+    doc.querySelector('article h1');
 
   const title = cleanText(titleEl?.textContent);
-  if (!title) return null;
+  if (!title || isNoiseTitle(title)) return null;
 
   const companyEl =
     doc.querySelector('.job-details-jobs-unified-top-card__company-name') ||

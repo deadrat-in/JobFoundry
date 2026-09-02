@@ -21,11 +21,27 @@ export function detectPlatform(urlOrHostname) {
   return null;
 }
 
+import { isNoiseTitle } from './helpers.js';
+
 export function extractJobsFromDocument(doc) {
   if (!doc) return [];
   const href = doc.location?.href || '';
+  const pathname = doc.location?.pathname || '';
   const hostname = doc.location?.hostname || '';
   const platform = detectPlatform(hostname || href);
+
+  // If on known non-job paths on social job boards like LinkedIn, skip extraction
+  if (
+    platform === 'linkedin' &&
+    pathname &&
+    (pathname.startsWith('/notifications') ||
+      pathname.startsWith('/mynetwork') ||
+      pathname.startsWith('/feed') ||
+      pathname.startsWith('/messaging') ||
+      pathname.startsWith('/in/'))
+  ) {
+    return [];
+  }
 
   let results = [];
   switch (platform) {
@@ -64,7 +80,7 @@ export function extractJobsFromDocument(doc) {
     results = extractGenericJob(doc);
   }
 
-  return results;
+  return (results || []).filter((j) => j && j.title && !isNoiseTitle(j.title));
 }
 
 export {

@@ -484,13 +484,16 @@ export function buildApp({
   app.get('/api/v1/jobs', async (request, reply) => {
     if (!authenticate(request, reply)) return;
 
-    const { status, source, min_score, search, limit = 100 } = request.query || {};
+    const { status, source, min_score, search, sort_by = 'created_at', order = 'desc', limit = 100 } =
+      request.query || {};
     const userId = request.user.id;
+    const isMultiTenant = Boolean(userId && userId !== 'legacy-admin' && userId !== 'dev-user');
+    const sortDirection = String(order).toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
     let query;
     const params = [];
 
-    if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+    if (isMultiTenant) {
       query = `
         SELECT 
           j.id, j.title, j.company, j.location, j.url, j.source, j.posted_at, j.description, j.fingerprint, j.liveness,
@@ -510,30 +513,43 @@ export function buildApp({
     }
 
     if (status) {
-      query +=
-        userId && userId !== 'legacy-admin' && userId !== 'dev-user'
-          ? ' AND uj.status = ?'
-          : ' AND status = ?';
+      query += isMultiTenant ? ' AND uj.status = ?' : ' AND status = ?';
       params.push(status);
     }
     if (source) {
-      query += ' AND j.source = ?';
+      query += isMultiTenant ? ' AND j.source = ?' : ' AND source = ?';
       params.push(source);
     }
     if (min_score !== undefined && min_score !== '') {
-      query +=
-        userId && userId !== 'legacy-admin' && userId !== 'dev-user'
-          ? ' AND uj.fit_score >= ?'
-          : ' AND fit_score >= ?';
+      query += isMultiTenant ? ' AND uj.fit_score >= ?' : ' AND fit_score >= ?';
       params.push(Number(min_score));
     }
     if (search) {
-      query += ' AND (j.title LIKE ? OR j.company LIKE ? OR j.description LIKE ?)';
+      query += isMultiTenant
+        ? ' AND (j.title LIKE ? OR j.company LIKE ? OR j.description LIKE ?)'
+        : ' AND (title LIKE ? OR company LIKE ? OR description LIKE ?)';
       const term = `%${search}%`;
       params.push(term, term, term);
     }
 
-    query += ' ORDER BY created_at DESC LIMIT ?';
+    let orderClause = isMultiTenant ? 'ORDER BY uj.created_at DESC' : 'ORDER BY created_at DESC';
+    if (sort_by === 'fit_score') {
+      orderClause = isMultiTenant
+        ? `ORDER BY (uj.fit_score IS NULL), uj.fit_score ${sortDirection}, uj.created_at DESC`
+        : `ORDER BY (fit_score IS NULL), fit_score ${sortDirection}, created_at DESC`;
+    } else if (sort_by === 'created_at') {
+      orderClause = `ORDER BY ${isMultiTenant ? 'uj.created_at' : 'created_at'} ${sortDirection}`;
+    } else if (sort_by === 'updated_at') {
+      orderClause = `ORDER BY ${isMultiTenant ? 'uj.updated_at' : 'updated_at'} ${sortDirection}`;
+    } else if (sort_by === 'title') {
+      orderClause = `ORDER BY ${isMultiTenant ? 'j.title' : 'title'} COLLATE NOCASE ${sortDirection}`;
+    } else if (sort_by === 'company') {
+      orderClause = `ORDER BY ${isMultiTenant ? 'j.company' : 'company'} COLLATE NOCASE ${sortDirection}`;
+    } else if (sort_by === 'status') {
+      orderClause = `ORDER BY ${isMultiTenant ? 'uj.status' : 'status'} ${sortDirection}`;
+    }
+
+    query += ` ${orderClause} LIMIT ?`;
     params.push(Number(limit));
 
     const jobs = db.prepare(query).all(...params);
@@ -610,6 +626,76 @@ export function buildApp({
 
     const updatedJob = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
     return { ok: true, job: updatedJob, description: decanted };
+  });
+
+  // POST /api/v1/jobs/:id/sanitize - Fetch full page from URL if needed & clean with LLM
+  app.post('/api/v1/jobs/:id/sanitize', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+
+    const { id } = request.params;
+    const { refetch = false } = request.body || {};
+    const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+    if (!job) {
+      return reply.code(404).send({ error: 'job not found' });
+    }
+
+    let rawContent = (job.description || '').trim();
+
+    // If description is missing/short/truncated or refetch requested, fetch live URL first
+    const isTruncated =
+      !rawContent ||
+      rawContent.length < 300 ||
+      /(\.\.\.|…)\s*(see more|read more|view more)?\s*$/i.test(rawContent) ||
+      /\b(see more|read more)\s*$/i.test(rawContent);
+
+    if ((refetch || isTruncated) && job.url && /^https?:\/\//i.test(job.url)) {
+      try {
+        const decanted = await fetchAndDecantUrl(job.url, { timeoutMs: 8000 });
+        if (decanted && decanted.length > 50) {
+          rawContent = decanted;
+        }
+      } catch {}
+    }
+
+    if (!rawContent || rawContent.length < 15) {
+      return reply.code(422).send({
+        error: 'Unable to retrieve sufficient job description content from database or live URL',
+      });
+    }
+
+    try {
+      const parsed = await parseJobDescription({
+        text: rawContent,
+        url: job.url,
+      });
+
+      const now = Date.now();
+      const userId = request.user.id;
+
+      const title =
+        parsed.title && parsed.title !== 'Job Opportunity' && !/^\d+\s+notifications?$/i.test(parsed.title)
+          ? parsed.title
+          : job.title;
+      const company =
+        parsed.company && parsed.company !== 'Company' ? parsed.company : job.company;
+      const location = parsed.location || job.location;
+      const description = parsed.description || rawContent;
+
+      db.prepare(
+        'UPDATE jobs SET title = ?, company = ?, location = ?, description = ?, updated_at = ? WHERE id = ?'
+      ).run(title, company, location, description, now, id);
+
+      if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+        db.prepare(
+          "UPDATE user_jobs SET fit_score = NULL, fit_notes = NULL, status = 'new', updated_at = ? WHERE job_id = ? AND user_id = ?"
+        ).run(now, id, userId);
+      }
+
+      const updatedJob = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+      return { ok: true, job: updatedJob, parsed };
+    } catch (err) {
+      return reply.code(500).send({ error: `Sanitization failed: ${err.message}` });
+    }
   });
 
   // PATCH /api/v1/jobs/:id - Update job status or description
@@ -977,29 +1063,60 @@ export function buildApp({
   app.get('/api/v1/pipeline/jobs', async (request, reply) => {
     if (!authenticate(request, reply)) return;
     const userId = request.user?.id;
+    const { sort_by = 'updated_at', order = 'desc', limit = 100 } = request.query || {};
+
+    const isMultiTenant = Boolean(userId && userId !== 'legacy-admin' && userId !== 'dev-user');
+    const sortDirection = String(order).toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+
+    let orderClause = isMultiTenant
+      ? `ORDER BY uj.updated_at ${sortDirection}`
+      : `ORDER BY updated_at ${sortDirection}`;
+    if (sort_by === 'fit_score') {
+      orderClause = isMultiTenant
+        ? `ORDER BY (uj.fit_score IS NULL), uj.fit_score ${sortDirection}`
+        : `ORDER BY (fit_score IS NULL), fit_score ${sortDirection}`;
+    } else if (sort_by === 'title') {
+      orderClause = isMultiTenant
+        ? `ORDER BY j.title COLLATE NOCASE ${sortDirection}`
+        : `ORDER BY title COLLATE NOCASE ${sortDirection}`;
+    } else if (sort_by === 'company') {
+      orderClause = isMultiTenant
+        ? `ORDER BY j.company COLLATE NOCASE ${sortDirection}`
+        : `ORDER BY company COLLATE NOCASE ${sortDirection}`;
+    } else if (sort_by === 'source') {
+      orderClause = isMultiTenant
+        ? `ORDER BY j.source COLLATE NOCASE ${sortDirection}`
+        : `ORDER BY source COLLATE NOCASE ${sortDirection}`;
+    } else if (sort_by === 'status') {
+      orderClause = isMultiTenant ? `ORDER BY uj.status ${sortDirection}` : `ORDER BY status ${sortDirection}`;
+    } else if (sort_by === 'has_description') {
+      orderClause = `ORDER BY has_description ${sortDirection}`;
+    } else if (sort_by === 'created_at') {
+      orderClause = isMultiTenant ? `ORDER BY uj.created_at ${sortDirection}` : `ORDER BY created_at ${sortDirection}`;
+    }
 
     let rows;
-    if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+    if (isMultiTenant) {
       rows = db
         .prepare(
-          `SELECT uj.id, j.title, j.company, j.source, j.location, uj.status, uj.fit_score,
+          `SELECT uj.id, j.id as job_id, j.title, j.company, j.source, j.location, uj.status, uj.fit_score,
                   j.description IS NOT NULL AND LENGTH(j.description) > 10 as has_description,
                   uj.created_at, uj.updated_at
            FROM user_jobs uj
            JOIN jobs j ON uj.job_id = j.id
            WHERE uj.user_id = ?
-           ORDER BY uj.updated_at DESC LIMIT 100`
+           ${orderClause} LIMIT ?`
         )
-        .all(userId);
+        .all(userId, Number(limit));
     } else {
       rows = db
         .prepare(
-          `SELECT id, title, company, source, location, status, fit_score,
+          `SELECT id, id as job_id, title, company, source, location, status, fit_score,
                   description IS NOT NULL AND LENGTH(description) > 10 as has_description,
                   created_at, updated_at
-           FROM jobs ORDER BY updated_at DESC LIMIT 100`
+           FROM jobs ${orderClause} LIMIT ?`
         )
-        .all();
+        .all(Number(limit));
     }
 
     return { ok: true, jobs: rows };

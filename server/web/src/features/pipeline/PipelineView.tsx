@@ -4,6 +4,7 @@ import { ErrorBoundary } from '../../components/ErrorBoundary';
 
 interface PipelineJob {
   id: string;
+  job_id?: string;
   title: string;
   company: string;
   source: string;
@@ -35,10 +36,19 @@ export const PipelineView: React.FC<{
   });
   const [jobs, setJobs] = useState<PipelineJob[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'unscored' | 'scored' | 'tailored' | 'failed'>(
+  const [filter, setFilter] = useState<'all' | 'unscored' | 'scored' | 'tailored' | 'failed' | 'invalid'>(
     'all'
   );
   const [activeResumeLoaded, setActiveResumeLoaded] = useState<boolean | null>(null);
+
+  const [sortField, setSortField] = useState<
+    'title' | 'company' | 'source' | 'has_description' | 'fit_score' | 'status' | 'updated_at'
+  >('updated_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sanitizingId, setSanitizingId] = useState<string | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<{ id: string; text: string; isError?: boolean } | null>(
+    null
+  );
 
   const fetchPipelineData = async () => {
     setLoading(true);
@@ -47,7 +57,7 @@ export const PipelineView: React.FC<{
         api
           .getPipelineStats()
           .catch(() => ({ total: 0, unscored: 0, scored: 0, tailored: 0, failed: 0 })),
-        api.getPipelineJobs().catch(() => []),
+        api.getPipelineJobs({ sort_by: sortField, order: sortOrder }).catch(() => []),
         api.getActiveResume().catch(() => null),
       ]);
       setStats(statsData);
@@ -64,10 +74,44 @@ export const PipelineView: React.FC<{
     fetchPipelineData();
   }, []);
 
+  const handleSortHeader = (
+    field: 'title' | 'company' | 'source' | 'has_description' | 'fit_score' | 'status' | 'updated_at'
+  ) => {
+    if (sortField === field) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortOrder(field === 'fit_score' || field === 'updated_at' ? 'desc' : 'asc');
+    }
+  };
+
+  const handleSanitizeJob = async (job: PipelineJob) => {
+    const targetId = job.job_id || job.id;
+    setSanitizingId(targetId);
+    setActionFeedback(null);
+    try {
+      const res = await api.sanitizeJob(targetId, { refetch: true });
+      setActionFeedback({
+        id: targetId,
+        text: `Sanitized: "${res.job.title}"`,
+      });
+      fetchPipelineData();
+    } catch (err: any) {
+      setActionFeedback({
+        id: targetId,
+        text: `Failed: ${err.message}`,
+        isError: true,
+      });
+    } finally {
+      setSanitizingId(null);
+    }
+  };
+
   const filteredJobs = jobs.filter((j) => {
-    if (filter === 'unscored') return j.fit_score === null && j.status !== 'failed';
+    if (filter === 'unscored') return j.fit_score === null && j.status !== 'failed' && j.status !== 'invalid_job';
     if (filter === 'scored') return j.fit_score !== null;
     if (filter === 'tailored') return j.status === 'tailored';
+    if (filter === 'invalid') return j.status === 'invalid_job';
     if (filter === 'failed')
       return (
         j.status === 'failed' ||
@@ -76,6 +120,43 @@ export const PipelineView: React.FC<{
       );
     return true;
   });
+
+  const sortedJobs = [...filteredJobs].sort((a, b) => {
+    let cmp = 0;
+    if (sortField === 'title') {
+      cmp = (a.title || '').localeCompare(b.title || '');
+    } else if (sortField === 'company') {
+      cmp = (a.company || '').localeCompare(b.company || '');
+    } else if (sortField === 'source') {
+      cmp = (a.source || '').localeCompare(b.source || '');
+    } else if (sortField === 'has_description') {
+      const aDesc = a.has_description ? 1 : 0;
+      const bDesc = b.has_description ? 1 : 0;
+      cmp = aDesc - bDesc;
+    } else if (sortField === 'fit_score') {
+      const aScore = a.fit_score ?? -1;
+      const bScore = b.fit_score ?? -1;
+      cmp = aScore - bScore;
+    } else if (sortField === 'status') {
+      cmp = (a.status || '').localeCompare(b.status || '');
+    } else {
+      cmp = (a.updated_at || 0) - (b.updated_at || 0);
+    }
+    return sortOrder === 'asc' ? cmp : -cmp;
+  });
+
+  const renderSortIndicator = (
+    field: 'title' | 'company' | 'source' | 'has_description' | 'fit_score' | 'status' | 'updated_at'
+  ) => {
+    if (sortField !== field) {
+      return <span style={{ opacity: 0.25, marginLeft: '0.35rem' }}>⇅</span>;
+    }
+    return (
+      <span style={{ color: 'var(--accent-primary)', marginLeft: '0.35rem', fontWeight: 'bold' }}>
+        {sortOrder === 'asc' ? '▲' : '▼'}
+      </span>
+    );
+  };
 
   return (
     <ErrorBoundary fallbackTitle="Pipeline View Error">
@@ -116,6 +197,32 @@ export const PipelineView: React.FC<{
             {loading ? 'Refreshing...' : '🔄 Refresh Queue'}
           </button>
         </div>
+
+        {/* Action Feedback Banner */}
+        {actionFeedback && (
+          <div
+            style={{
+              padding: '0.75rem 1rem',
+              borderRadius: 'var(--radius-md)',
+              marginBottom: '1rem',
+              fontSize: '0.875rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: actionFeedback.isError ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+              border: `1px solid ${actionFeedback.isError ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
+              color: actionFeedback.isError ? '#fca5a5' : '#86efac',
+            }}
+          >
+            <span>{actionFeedback.text}</span>
+            <button
+              onClick={() => setActionFeedback(null)}
+              style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
         {/* Master Resume Prerequisite Alert */}
         {activeResumeLoaded === false && (
@@ -256,6 +363,7 @@ export const PipelineView: React.FC<{
         <div
           style={{
             display: 'flex',
+            flexWrap: 'wrap',
             gap: '0.5rem',
             marginBottom: '1rem',
             borderBottom: '1px solid var(--border-subtle)',
@@ -286,6 +394,12 @@ export const PipelineView: React.FC<{
           >
             Tailored ({stats.tailored})
           </button>
+          <button
+            onClick={() => setFilter('invalid')}
+            className={`btn btn-sm ${filter === 'invalid' ? 'btn-primary' : 'btn-secondary'}`}
+          >
+            🚫 Invalid / Noise
+          </button>
         </div>
 
         {/* Jobs Pipeline Queue Table */}
@@ -305,18 +419,48 @@ export const PipelineView: React.FC<{
                   borderBottom: '1px solid var(--border-subtle)',
                 }}
               >
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Job Title & Company</th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Portal Source</th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>JD Status</th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Fit Score</th>
-                <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Pipeline Stage</th>
+                <th
+                  onClick={() => handleSortHeader('title')}
+                  style={{ padding: '0.85rem 1rem', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }}
+                  title="Click to sort by Title"
+                >
+                  Job Title & Company {renderSortIndicator('title')}
+                </th>
+                <th
+                  onClick={() => handleSortHeader('source')}
+                  style={{ padding: '0.85rem 1rem', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }}
+                  title="Click to sort by Source"
+                >
+                  Portal Source {renderSortIndicator('source')}
+                </th>
+                <th
+                  onClick={() => handleSortHeader('has_description')}
+                  style={{ padding: '0.85rem 1rem', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }}
+                  title="Click to sort by JD Status"
+                >
+                  JD Status {renderSortIndicator('has_description')}
+                </th>
+                <th
+                  onClick={() => handleSortHeader('fit_score')}
+                  style={{ padding: '0.85rem 1rem', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }}
+                  title="Click to sort by Fit Score"
+                >
+                  Fit Score {renderSortIndicator('fit_score')}
+                </th>
+                <th
+                  onClick={() => handleSortHeader('status')}
+                  style={{ padding: '0.85rem 1rem', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }}
+                  title="Click to sort by Pipeline Stage"
+                >
+                  Pipeline Stage {renderSortIndicator('status')}
+                </th>
                 <th style={{ padding: '0.85rem 1rem', fontWeight: 600, textAlign: 'right' }}>
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody>
-              {filteredJobs.length === 0 ? (
+              {sortedJobs.length === 0 ? (
                 <tr>
                   <td
                     colSpan={6}
@@ -326,87 +470,119 @@ export const PipelineView: React.FC<{
                   </td>
                 </tr>
               ) : (
-                filteredJobs.map((j) => (
-                  <tr
-                    key={j.id}
-                    style={{
-                      borderBottom: '1px solid var(--border-subtle)',
-                      transition: 'background 0.15s',
-                    }}
-                  >
-                    <td style={{ padding: '0.85rem 1rem' }}>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{j.title}</div>
-                      <div style={{ fontSize: '0.775rem', color: 'var(--text-secondary)' }}>
-                        {j.company} {j.location ? `• ${j.location}` : ''}
-                      </div>
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem' }}>
-                      <span className="badge badge-indigo">{j.source}</span>
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem' }}>
-                      {j.has_description ? (
-                        <span style={{ color: 'var(--color-green, #10b981)', fontSize: '0.8rem' }}>
-                          ✓ Complete JD
-                        </span>
-                      ) : (
-                        <span style={{ color: 'var(--color-red, #ef4444)', fontSize: '0.8rem' }}>
-                          ✗ Empty JD
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem' }}>
-                      {j.fit_score !== null && j.fit_score !== undefined ? (
-                        <span
-                          className={`score-badge ${j.fit_score >= 75 ? 'score-high' : j.fit_score >= 50 ? 'score-medium' : 'score-low'}`}
-                          style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
-                        >
-                          {j.fit_score}%
-                        </span>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                          Pending
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem' }}>
-                      <span
-                        className={`badge ${j.status === 'tailored' ? 'badge-purple' : j.status === 'new' ? 'badge-blue' : 'badge-secondary'}`}
-                      >
-                        {j.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                        {onSelectJob && (
-                          <button
-                            onClick={() => onSelectJob(j.id)}
-                            className="btn btn-secondary btn-sm"
-                            style={{ fontSize: '0.75rem' }}
-                          >
-                            Details →
-                          </button>
+                sortedJobs.map((j) => {
+                  const targetJobId = j.job_id || j.id;
+                  const isSanitizing = sanitizingId === targetJobId;
+                  const isInvalid = j.status === 'invalid_job';
+
+                  return (
+                    <tr
+                      key={j.id}
+                      style={{
+                        borderBottom: '1px solid var(--border-subtle)',
+                        transition: 'background 0.15s',
+                        background: isInvalid ? 'rgba(239, 68, 68, 0.04)' : undefined,
+                      }}
+                    >
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{j.title}</div>
+                        <div style={{ fontSize: '0.775rem', color: 'var(--text-secondary)' }}>
+                          {j.company} {j.location ? `• ${j.location}` : ''}
+                        </div>
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        <span className="badge badge-indigo">{j.source}</span>
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        {j.has_description ? (
+                          <span style={{ color: 'var(--color-green, #10b981)', fontSize: '0.8rem' }}>
+                            ✓ Complete JD
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--color-red, #ef4444)', fontSize: '0.8rem' }}>
+                            ✗ Empty JD
+                          </span>
                         )}
-                        <button
-                          onClick={async () => {
-                            if (window.confirm(`Delete "${j.title}" from database?`)) {
-                              try {
-                                await api.deleteJob(j.id);
-                                fetchPipelineData();
-                              } catch (err: any) {
-                                alert(`Failed to delete: ${err.message}`);
-                              }
-                            }
-                          }}
-                          className="btn btn-secondary btn-sm"
-                          style={{ fontSize: '0.75rem', color: 'var(--color-red, #ef4444)' }}
-                          title="Delete from DB"
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        {j.fit_score !== null && j.fit_score !== undefined ? (
+                          <span
+                            className={`score-badge ${j.fit_score >= 75 ? 'score-high' : j.fit_score >= 50 ? 'score-medium' : 'score-low'}`}
+                            style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
+                          >
+                            {j.fit_score}%
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                            {isInvalid ? 'N/A' : 'Pending'}
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem' }}>
+                        <span
+                          className={`badge ${
+                            isInvalid
+                              ? 'badge-secondary'
+                              : j.status === 'tailored'
+                                ? 'badge-purple'
+                                : j.status === 'new'
+                                  ? 'badge-blue'
+                                  : 'badge-secondary'
+                          }`}
+                          style={isInvalid ? { border: '1px solid rgba(239, 68, 68, 0.4)', color: '#fca5a5' } : undefined}
                         >
-                          🗑️
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          {isInvalid ? '🚫 invalid_job' : j.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                          <button
+                            onClick={() => handleSanitizeJob(j)}
+                            disabled={isSanitizing}
+                            className="btn btn-secondary btn-sm"
+                            style={{
+                              fontSize: '0.75rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              borderColor: 'rgba(99, 102, 241, 0.3)',
+                            }}
+                            title="Fetch full URL & sanitize title/description with AI"
+                          >
+                            {isSanitizing ? '⏳ Cleaning...' : '✨ AI Sanitize'}
+                          </button>
+
+                          {onSelectJob && (
+                            <button
+                              onClick={() => onSelectJob(targetJobId)}
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '0.75rem' }}
+                            >
+                              Details →
+                            </button>
+                          )}
+                          <button
+                            onClick={async () => {
+                              if (window.confirm(`Delete "${j.title}" from database?`)) {
+                                try {
+                                  await api.deleteJob(targetJobId);
+                                  fetchPipelineData();
+                                } catch (err: any) {
+                                  alert(`Failed to delete: ${err.message}`);
+                                }
+                              }
+                            }}
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '0.75rem', color: 'var(--color-red, #ef4444)' }}
+                            title="Delete from DB"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

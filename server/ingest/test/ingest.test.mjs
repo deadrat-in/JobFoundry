@@ -217,3 +217,68 @@ test('loadConfig reads env with defaults', () => {
   assert.equal(custom.artifactsDir, '/custom/artifacts');
   assert.equal(custom.serverUrl, 'https://jobs.example.com');
 });
+
+test('GET /api/v1/jobs supports sort_by and order query parameters', async () => {
+  const { app, db } = makeApp();
+  const now = Date.now();
+  db.prepare(
+    'INSERT INTO jobs (id, title, company, url, source, fit_score, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run('j1', 'Beta Engineer', 'Zeta Corp', 'https://example.com/1', 'test', 50, 'new', now - 2000, now - 2000);
+  db.prepare(
+    'INSERT INTO jobs (id, title, company, url, source, fit_score, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run('j2', 'Alpha Engineer', 'Acme Corp', 'https://example.com/2', 'test', 90, 'new', now - 1000, now - 1000);
+
+  // Sort by fit_score desc
+  const scoreRes = await app.inject({
+    method: 'GET',
+    url: '/api/v1/jobs?sort_by=fit_score&order=desc',
+    headers: { authorization: 'Bearer testkey' },
+  });
+  assert.equal(scoreRes.statusCode, 200);
+  const scoreJobs = scoreRes.json().jobs;
+  assert.equal(scoreJobs[0].id, 'j2'); // 90 > 50
+
+  // Sort by title asc
+  const titleRes = await app.inject({
+    method: 'GET',
+    url: '/api/v1/jobs?sort_by=title&order=asc',
+    headers: { authorization: 'Bearer testkey' },
+  });
+  assert.equal(titleRes.statusCode, 200);
+  const titleJobs = titleRes.json().jobs;
+  assert.equal(titleJobs[0].title, 'Alpha Engineer');
+
+  await app.close();
+});
+
+test('POST /api/v1/jobs/:id/sanitize sanitizes title and description', async () => {
+  const { app, db } = makeApp();
+  const now = Date.now();
+  db.prepare(
+    'INSERT INTO jobs (id, title, company, url, source, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(
+    'j-messy',
+    '0 notifications',
+    'LinkedIn',
+    'https://example.com/posting',
+    'linkedin',
+    '# Senior Cloud Architect at CloudScale\nLocation: Remote\nRequirements:\n- Kubernetes\n- Terraform\nResponsibilities:\nArchitect multi-region systems.',
+    now,
+    now
+  );
+
+  const res = await app.inject({
+    method: 'POST',
+    url: '/api/v1/jobs/j-messy/sanitize',
+    headers: { authorization: 'Bearer testkey' },
+    payload: { refetch: false },
+  });
+  assert.equal(res.statusCode, 200);
+  const body = res.json();
+  assert.equal(body.ok, true);
+  assert.notEqual(body.job.title, '0 notifications');
+  assert.equal(body.job.title, 'Senior Cloud Architect');
+
+  await app.close();
+});
+

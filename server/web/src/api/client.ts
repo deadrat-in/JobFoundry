@@ -227,6 +227,8 @@ export class ApiClient {
     if (filters.source) params.set('source', filters.source);
     if (filters.min_score !== undefined) params.set('min_score', String(filters.min_score));
     if (filters.search) params.set('search', filters.search);
+    if (filters.sort_by) params.set('sort_by', filters.sort_by);
+    if (filters.order) params.set('order', filters.order);
     if (filters.limit) params.set('limit', String(filters.limit));
 
     const queryString = params.toString();
@@ -261,6 +263,19 @@ export class ApiClient {
       `/api/v1/jobs/${id}/decant`,
       {
         method: 'POST',
+      }
+    );
+  }
+
+  async sanitizeJob(
+    id: string,
+    opts: { refetch?: boolean } = {}
+  ): Promise<{ ok: boolean; job: Job; parsed?: any }> {
+    return this.request<{ ok: boolean; job: Job; parsed?: any }>(
+      `/api/v1/jobs/${id}/sanitize`,
+      {
+        method: 'POST',
+        body: JSON.stringify(opts),
       }
     );
   }
@@ -324,8 +339,14 @@ export class ApiClient {
     return res.stats;
   }
 
-  async getPipelineJobs(): Promise<any[]> {
-    const res = await this.request<{ ok: boolean; jobs: any[] }>('/api/v1/pipeline/jobs');
+  async getPipelineJobs(paramsObj: { sort_by?: string; order?: string } = {}): Promise<any[]> {
+    const params = new URLSearchParams();
+    if (paramsObj.sort_by) params.set('sort_by', paramsObj.sort_by);
+    if (paramsObj.order) params.set('order', paramsObj.order);
+    const qs = params.toString();
+    const res = await this.request<{ ok: boolean; jobs: any[] }>(
+      `/api/v1/pipeline/jobs${qs ? `?${qs}` : ''}`
+    );
     return res.jobs;
   }
 

@@ -77,6 +77,29 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
     }
   };
 
+  const [sanitizing, setSanitizing] = useState(false);
+  const [sanitizeSuccess, setSanitizeSuccess] = useState<string | null>(null);
+
+  const handleSanitize = async () => {
+    if (!job) return;
+    setSanitizing(true);
+    setDescError(null);
+    setSanitizeSuccess(null);
+    try {
+      const res = await api.sanitizeJob(job.id, { refetch: true });
+      if (res.ok && res.job) {
+        onJobUpdated(res.job);
+        setDescDraft(res.job.description || '');
+        setSanitizeSuccess('Job title, company, and description sanitized with AI!');
+        setTimeout(() => setSanitizeSuccess(null), 4000);
+      }
+    } catch (err: any) {
+      setDescError(err.message || 'AI sanitization failed');
+    } finally {
+      setSanitizing(false);
+    }
+  };
+
   useEffect(() => {
     if (job && (job.status === 'tailored' || job.tailored_resume_id)) {
       setLoadingDiff(true);
@@ -310,6 +333,15 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                       {!editingDesc && (
                         <>
                           <button
+                            onClick={handleSanitize}
+                            disabled={sanitizing}
+                            className="btn btn-primary btn-sm"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                            title="Fetch full URL & use AI to clean title, company, requirements, and boilerplate"
+                          >
+                            {sanitizing ? '⏳ Sanitizing...' : '✨ AI Sanitize & Repair'}
+                          </button>
+                          <button
                             onClick={handleDecantFromUrl}
                             disabled={decanting || !job.url}
                             className="btn btn-secondary btn-sm"
@@ -338,6 +370,22 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                       </a>
                     </div>
                   </div>
+
+                  {sanitizeSuccess && (
+                    <div
+                      style={{
+                        background: 'rgba(16, 185, 129, 0.15)',
+                        border: '1px solid rgba(16, 185, 129, 0.4)',
+                        color: 'var(--color-green, #10b981)',
+                        padding: '0.6rem 0.85rem',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.8rem',
+                        marginBottom: '0.75rem',
+                      }}
+                    >
+                      ✓ {sanitizeSuccess}
+                    </div>
+                  )}
 
                   {descError && (
                     <div

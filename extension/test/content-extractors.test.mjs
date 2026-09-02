@@ -324,3 +324,27 @@ We participate in E-Verify.
   assert.ok(!cleaned.toLowerCase().includes('equal opportunity employer'));
   assert.ok(!cleaned.toLowerCase().includes('we participate in e-verify'));
 });
+
+test('LinkedIn: rejects noise titles such as 0 notifications and notifications page', async () => {
+  const { isNoiseTitle } = await import('../src/content/extractors/helpers.js');
+  assert.equal(isNoiseTitle('0 notifications'), true);
+  assert.equal(isNoiseTitle('1 notification'), true);
+  assert.equal(isNoiseTitle('Feed detail update'), true);
+  assert.equal(isNoiseTitle('Software Engineer'), false);
+
+  const html = `
+    <html>
+      <header><h1>0 notifications</h1></header>
+      <body>
+        <main><p>Notifications and user activity feed...</p></main>
+      </body>
+    </html>
+  `;
+  const dom = new JSDOM(html, { url: 'https://www.linkedin.com/notifications/?filter=all' });
+  const results = extractJobsFromDocument(dom.window.document);
+  assert.equal(results.length, 0);
+
+  const detail = extractLinkedInJobDetails(dom.window.document);
+  assert.equal(detail, null);
+});
+

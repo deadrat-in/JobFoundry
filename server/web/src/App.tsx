@@ -104,6 +104,7 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
 
   const isSettingsOpen = location.pathname === '/settings';
   const [isAddJobOpen, setIsAddJobOpen] = useState(false);
+  const [feedInitialFilters, setFeedInitialFilters] = useState<any>(undefined);
 
   // Metrics
   const totalJobs = jobs.length;
@@ -143,56 +144,58 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
             to="/tracker"
             className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
           >
-            📊 Application Tracker
+            📊 Tracker
           </NavLink>
           <NavLink
             to="/pipeline"
             className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
           >
-            ⚡ Pipeline
+            ⚡ Pipeline Monitor
           </NavLink>
           <NavLink
             to="/profile"
-            className={({ isActive }) =>
-              `nav-tab ${isActive || location.pathname.startsWith('/resume') ? 'active' : ''}`
-            }
+            className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
           >
-            📄 Profile & Resume
+            📄 Master Profile
           </NavLink>
           <NavLink
             to="/extension-sync"
             className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
           >
-            🔌 Extension Sync
+            🧩 Extension Sync
           </NavLink>
         </nav>
 
         <div className="nav-actions">
           <button
             onClick={() => setIsAddJobOpen(true)}
-            className="btn btn-primary btn-sm"
-            style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-            title="Add Job Manually / AI Parse"
+            className="btn btn-secondary btn-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
           >
-            <span>➕</span> Add Job
+            <span>+</span> Add Job
           </button>
-          <button onClick={onRefresh} className="btn btn-secondary btn-sm" title="Refresh Feed">
-            🔄 Refresh
+          <button
+            onClick={onRefresh}
+            disabled={loading}
+            className="btn btn-secondary btn-sm"
+            title="Refresh jobs from server"
+          >
+            {loading ? 'Refreshing...' : '🔄 Refresh'}
           </button>
           <button
             onClick={() => navigate('/settings')}
             className={`btn btn-secondary btn-sm ${isSettingsOpen ? 'btn-primary' : ''}`}
             title="Settings"
           >
-            ⚙️ Settings
+            ⚙️
           </button>
           <button
             onClick={logout}
             className="btn btn-secondary btn-sm"
-            style={{ borderRadius: 'var(--radius-full)' }}
-            title="Sign Out"
+            title="Sign out"
+            style={{ color: 'var(--text-muted)' }}
           >
-            🚪 Logout
+            🚪
           </button>
         </div>
       </header>
@@ -201,7 +204,15 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
       <main className="main-content">
         {!isStandalonePage && (
           <div className="stats-grid">
-            <div className="stat-card">
+            <div
+              className="stat-card"
+              onClick={() => {
+                setFeedInitialFilters({ status: 'all', minScore: undefined });
+                navigate('/feed');
+              }}
+              style={{ cursor: 'pointer' }}
+              title="Click to view all jobs in feed"
+            >
               <div className="stat-icon-wrapper" style={{ color: 'var(--color-blue)' }}>
                 💼
               </div>
@@ -211,7 +222,15 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
               </div>
             </div>
 
-            <div className="stat-card">
+            <div
+              className="stat-card"
+              onClick={() => {
+                setFeedInitialFilters({ minScore: 50 });
+                navigate('/feed');
+              }}
+              style={{ cursor: 'pointer' }}
+              title="Click to view jobs with ≥ 50% match"
+            >
               <div className="stat-icon-wrapper" style={{ color: 'var(--color-green)' }}>
                 🎯
               </div>
@@ -221,7 +240,15 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
               </div>
             </div>
 
-            <div className="stat-card">
+            <div
+              className="stat-card"
+              onClick={() => {
+                setFeedInitialFilters({ status: 'tailored' });
+                navigate('/feed');
+              }}
+              style={{ cursor: 'pointer' }}
+              title="Click to view tailored jobs"
+            >
               <div className="stat-icon-wrapper" style={{ color: 'var(--color-purple)' }}>
                 ✨
               </div>
@@ -231,7 +258,15 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
               </div>
             </div>
 
-            <div className="stat-card">
+            <div
+              className="stat-card"
+              onClick={() => {
+                setFeedInitialFilters({ minScore: settings.threshold });
+                navigate('/feed');
+              }}
+              style={{ cursor: 'pointer' }}
+              title={`Click to view qualified jobs (≥ ${settings.threshold}%)`}
+            >
               <div className="stat-icon-wrapper" style={{ color: 'var(--color-amber)' }}>
                 🔥
               </div>
@@ -276,6 +311,7 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
                 <JobFeed
                   jobs={jobs}
                   threshold={settings.threshold}
+                  initialFilters={feedInitialFilters}
                   onSelectJob={(job) => navigate(`/jobs/${job.id}`)}
                   onJobUpdated={onJobUpdated}
                 />

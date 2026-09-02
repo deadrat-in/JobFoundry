@@ -12,7 +12,8 @@ export type JobStatus =
   | 'applied'
   | 'interview'
   | 'offer'
-  | 'rejected';
+  | 'rejected'
+  | 'invalid_job';
 
 export interface Job {
   id: string;
@@ -38,6 +39,8 @@ export interface JobFilters {
   source?: string;
   min_score?: number;
   search?: string;
+  sort_by?: 'fit_score' | 'created_at' | 'updated_at' | 'title' | 'company' | 'status';
+  order?: 'asc' | 'desc';
   limit?: number;
 }
 
