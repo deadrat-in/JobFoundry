@@ -49,13 +49,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     ALLOWED_THEMES="jsonresume-theme-folio jsonresume-theme-stackoverflow" \
     API_KEYS=""
 
-# 1. Install system utilities, Node.js, Chromium, and Supervisor
+# 1. Install system utilities, Node.js 22 (NodeSource), Chromium, and Supervisor
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         curl ca-certificates supervisor \
-        nodejs npm \
         chromium chromium-sandbox \
         fonts-liberation fonts-noto-color-emoji \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
     && npm install -g resumed puppeteer ${NPM_THEMES} \
     && rm -rf /var/lib/apt/lists/*
 
@@ -72,9 +73,10 @@ COPY server/tailor/pyproject.toml server/tailor/uv.lock server/tailor/README.md 
 COPY server/tailor/src ./server/tailor/src
 RUN cd server/tailor && uv pip install --system -e .
 
-# 4. Copy Ingest Server and node_modules
+# 4. Copy Ingest Server and node_modules, rebuild native modules for runtime Node version
 COPY --from=ingest-builder /app/node_modules ./node_modules
 COPY server/ingest/ ./server/ingest/
+RUN npm rebuild --prefix /app
 
 
 # 5. Copy Scorer Source
