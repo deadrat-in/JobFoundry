@@ -36,20 +36,17 @@ export function decodeHtmlEntities(text) {
     .replace(/&([a-zA-Z]+);/g, (match, name) => NAMED_ENTITIES[name.toLowerCase()] ?? match)
     .replace(/&#(\d+);/g, (_, code) => {
       const num = parseInt(code, 10);
-      return Number.isFinite(num) && num > 0 && num < 0x10ffff
-        ? String.fromCodePoint(num)
-        : _;
+      return Number.isFinite(num) && num > 0 && num < 0x10ffff ? String.fromCodePoint(num) : _;
     })
     .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
       const num = parseInt(hex, 16);
-      return Number.isFinite(num) && num > 0 && num < 0x10ffff
-        ? String.fromCodePoint(num)
-        : _;
+      return Number.isFinite(num) && num > 0 && num < 0x10ffff ? String.fromCodePoint(num) : _;
     });
 }
 
 const BLOCK_END_RE = /<\/(p|div|ul|ol|h[1-6]|tr|section|article|blockquote)\s*>/gi;
-const NON_CONTENT_RE = /<(script|style|nav|header|footer|noscript|svg|button|form|iframe|select|option)\b[^>]*>[\s\S]*?<\/\1\s*>/gi;
+const NON_CONTENT_RE =
+  /<(script|style|nav|header|footer|noscript|svg|button|form|iframe|select|option)\b[^>]*>[\s\S]*?<\/\1\s*>/gi;
 const DIALOG_RE = /<[^>]+(?:role=["']dialog["']|aria-hidden=["']true["'])[^>]*>[\s\S]*?<\/[^>]+>/gi;
 
 /**

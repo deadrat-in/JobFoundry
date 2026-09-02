@@ -56,8 +56,8 @@
         <div class="hero-pill">Podman-First FastAPI Service</div>
         <h1>Resume Ops Documentation</h1>
         <p class="hero-subtitle">
-          Headless API service for tailoring JSON Resumes using a structured
-          LangGraph state machine while strictly protecting immutable resume fields.
+          Headless API service for tailoring JSON Resumes using a structured LangGraph state machine
+          while strictly protecting immutable resume fields.
         </p>
       </section>
 
@@ -71,28 +71,26 @@
           <div class="card">
             <h3 class="card-section-title text-cyan">🎯 Signal Over Noise</h3>
             <p class="endpoint-desc">
-              Re-aligns your authentic experience to match the target job description
-              so your true fit is immediately clear to recruiters—without keyword
-              stuffing or spam.
+              Re-aligns your authentic experience to match the target job description so your true
+              fit is immediately clear to recruiters—without keyword stuffing or spam.
             </p>
           </div>
 
           <div class="card">
             <h3 class="card-section-title text-purple">🛡️ Truth Over Fabrication</h3>
             <p class="endpoint-desc">
-              Your contact details, job titles, companies, dates, and degrees are
-              strictly immutable. <code>resume-ops</code> reformulates real
-              achievements; it <strong>never</strong> invents fake projects or
-              unverified skills.
+              Your contact details, job titles, companies, dates, and degrees are strictly
+              immutable. <code>resume-ops</code> reformulates real achievements; it
+              <strong>never</strong> invents fake projects or unverified skills.
             </p>
           </div>
 
           <div class="card">
             <h3 class="card-section-title text-green">🔒 Privacy & Self-Hosting</h3>
             <p class="endpoint-desc">
-              Runs in your own isolated Podman/Docker container. Retain full control
-              over model routing—whether running 100% offline with local LLMs (vLLM,
-              Ollama) or routing to your trusted API provider of choice.
+              Runs in your own isolated Podman/Docker container. Retain full control over model
+              routing—whether running 100% offline with local LLMs (vLLM, Ollama) or routing to your
+              trusted API provider of choice.
             </p>
           </div>
         </div>
@@ -103,28 +101,21 @@
         <div class="section-header">
           <h2 class="section-title">Deployment Snippets</h2>
           <p class="section-desc">
-            Copy-pasteable setup commands for Podman, Docker Compose, systemd
-            Quadlets, and API requests.
+            Copy-pasteable setup commands for Podman, Docker Compose, systemd Quadlets, and API
+            requests.
           </p>
         </div>
 
         <div class="snippet-box">
           <div class="snippet-header">
             <div class="snippet-tabs">
-              <button class="tab-btn active" data-tab="tab-podman-run">
-                Podman Run
-              </button>
+              <button class="tab-btn active" data-tab="tab-podman-run">Podman Run</button>
               <button class="tab-btn" data-tab="tab-compose">Podman Compose</button>
-              <button class="tab-btn" data-tab="tab-quadlet">
-                Podman Quadlet (systemd)
-              </button>
+              <button class="tab-btn" data-tab="tab-quadlet">Podman Quadlet (systemd)</button>
               <button class="tab-btn" data-tab="tab-curl-sync">cURL (Sync)</button>
               <button class="tab-btn" data-tab="tab-curl-async">cURL (Async)</button>
             </div>
-            <button
-              class="copy-btn"
-              onclick="copyText('current-snippet-content', 'command')"
-            >
+            <button class="copy-btn" onclick="copyText('current-snippet-content', 'command')">
               <svg
                 width="14"
                 height="14"
@@ -202,8 +193,8 @@ WantedBy=default.target</code></pre>
           <h2 class="section-title">Interactive .env Configurator</h2>
           <p class="section-desc">
             Generate a complete <code>.env</code> configuration file matching
-            <code>.env.example</code> with live model fetching from OpenRouter or
-            custom OpenAI base URLs.
+            <code>.env.example</code> with live model fetching from OpenRouter or custom OpenAI base
+            URLs.
           </p>
         </div>
 
@@ -222,20 +213,16 @@ WantedBy=default.target</code></pre>
                   placeholder="https://openrouter.ai/api/v1"
                   value="https://openrouter.ai/api/v1"
                 />
-                <button id="btn-fetch-models" class="btn-fetch">
-                  ⚡ Fetch Models
-                </button>
+                <button id="btn-fetch-models" class="btn-fetch">⚡ Fetch Models</button>
               </div>
               <div class="form-subtext">
-                Queries <code>/v1/models</code> to auto-populate available LLM models
-                into dropdowns.
+                Queries <code>/v1/models</code> to auto-populate available LLM models into
+                dropdowns.
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="env-openai-key"
-                >OPENAI_API_KEY / OpenRouter Key</label
-              >
+              <label class="form-label" for="env-openai-key">OPENAI_API_KEY / OpenRouter Key</label>
               <input
                 type="password"
                 id="env-openai-key"
@@ -245,9 +232,7 @@ WantedBy=default.target</code></pre>
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="env-anthropic-key"
-                >ANTHROPIC_API_KEY</label
-              >
+              <label class="form-label" for="env-anthropic-key">ANTHROPIC_API_KEY</label>
               <input
                 type="password"
                 id="env-anthropic-key"
@@ -277,16 +262,11 @@ WantedBy=default.target</code></pre>
               <label class="form-label" for="env-strategy-model"
                 >STRATEGY_MODEL (Optional Override)</label
               >
-              <select
-                id="env-strategy-model"
-                class="form-control env-input"
-              ></select>
+              <select id="env-strategy-model" class="form-control env-input"></select>
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="env-work-model"
-                >WORK_MODEL (Optional Override)</label
-              >
+              <label class="form-label" for="env-work-model">WORK_MODEL (Optional Override)</label>
               <select id="env-work-model" class="form-control env-input"></select>
             </div>
 
@@ -297,16 +277,12 @@ WantedBy=default.target</code></pre>
               <select id="env-skills-model" class="form-control env-input"></select>
             </div>
 
-            <h3 class="card-section-title text-green">
-              3. Theme, Tone & Rate Limits
-            </h3>
+            <h3 class="card-section-title text-green">3. Theme, Tone & Rate Limits</h3>
 
             <div class="form-group">
               <label class="form-label" for="env-theme">DEFAULT_THEME</label>
               <select id="env-theme" class="form-control env-input">
-                <option value="jsonresume-theme-folio">
-                  jsonresume-theme-folio (Default)
-                </option>
+                <option value="jsonresume-theme-folio">jsonresume-theme-folio (Default)</option>
                 <option value="jsonresume-theme-stackoverflow">
                   jsonresume-theme-stackoverflow
                 </option>
@@ -326,9 +302,7 @@ WantedBy=default.target</code></pre>
 
             <div class="grid-2">
               <div class="form-group">
-                <label class="form-label" for="env-concurrency"
-                  >LLM_MAX_CONCURRENCY</label
-                >
+                <label class="form-label" for="env-concurrency">LLM_MAX_CONCURRENCY</label>
                 <input
                   type="number"
                   id="env-concurrency"
@@ -337,9 +311,7 @@ WantedBy=default.target</code></pre>
                 />
               </div>
               <div class="form-group">
-                <label class="form-label" for="env-max-retries"
-                  >LLM_MAX_RETRIES</label
-                >
+                <label class="form-label" for="env-max-retries">LLM_MAX_RETRIES</label>
                 <input
                   type="number"
                   id="env-max-retries"
@@ -360,19 +332,10 @@ WantedBy=default.target</code></pre>
                 margin-bottom: 1rem;
               "
             >
-              <h3
-                style="
-                  font-size: 1.05rem;
-                  font-weight: 700;
-                  color: var(--text-primary);
-                "
-              >
+              <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary)">
                 Generated .env File
               </h3>
-              <button
-                class="copy-btn"
-                onclick="copyText('env-code-output', '.env file')"
-              >
+              <button class="copy-btn" onclick="copyText('env-code-output', '.env file')">
                 <svg
                   width="14"
                   height="14"
@@ -401,8 +364,8 @@ WantedBy=default.target</code></pre>
         <div class="section-header">
           <h2 class="section-title">Tailoring & Field Protection Rules</h2>
           <p class="section-desc">
-            Conservative boundaries prevent LLM hallucinations while aligning resume
-            content to job requirements.
+            Conservative boundaries prevent LLM hallucinations while aligning resume content to job
+            requirements.
           </p>
         </div>
 
@@ -445,27 +408,21 @@ WantedBy=default.target</code></pre>
                   <td><code>skills</code></td>
                   <td><span class="badge badge-tailored">⚡ Tailored</span></td>
                   <td>
-                    Regrouped and prioritized based on target JD, strictly derived
-                    from master resume.
+                    Regrouped and prioritized based on target JD, strictly derived from master
+                    resume.
                   </td>
                 </tr>
                 <tr>
                   <td><code>projects</code></td>
                   <td><span class="badge badge-tailored">⚡ Tailored</span></td>
-                  <td>
-                    Selected and reordered. New unverified projects are never
-                    hallucinated.
-                  </td>
+                  <td>Selected and reordered. New unverified projects are never hallucinated.</td>
                 </tr>
                 <tr>
                   <td><code>certificates</code></td>
                   <td>
                     <span class="badge badge-protected">🔒 Selection Only</span>
                   </td>
-                  <td>
-                    Content is not rewritten; final output is capped at maximum 18
-                    items.
-                  </td>
+                  <td>Content is not rewritten; final output is capped at maximum 18 items.</td>
                 </tr>
               </tbody>
             </table>
@@ -477,9 +434,7 @@ WantedBy=default.target</code></pre>
       <section id="api">
         <div class="section-header">
           <h2 class="section-title">API Endpoints</h2>
-          <p class="section-desc">
-            FastAPI OpenAPI endpoints available on running instances.
-          </p>
+          <p class="section-desc">FastAPI OpenAPI endpoints available on running instances.</p>
         </div>
 
         <div class="grid-3">
@@ -493,16 +448,14 @@ WantedBy=default.target</code></pre>
           <div class="card">
             <h3 class="endpoint-title text-purple">GET /api/v1/tasks/{task_id}</h3>
             <p class="endpoint-desc">
-              Polls execution status and fetches completed output of background
-              tasks.
+              Polls execution status and fetches completed output of background tasks.
             </p>
           </div>
 
           <div class="card">
             <h3 class="endpoint-title text-green">GET /api/v1/themes</h3>
             <p class="endpoint-desc">
-              Lists installed and data-mounted JSON Resume themes available for PDF
-              rendering.
+              Lists installed and data-mounted JSON Resume themes available for PDF rendering.
             </p>
           </div>
         </div>

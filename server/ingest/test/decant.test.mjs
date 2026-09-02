@@ -2,7 +2,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { decantHtml } from '../src/jobs/decant.mjs';
 
-
 test('decantHtml extracts Tier 1 JSON-LD JobPosting description', () => {
   const html = `
     <!DOCTYPE html>

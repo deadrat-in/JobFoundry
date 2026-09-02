@@ -9,6 +9,7 @@
 Tracing is **disabled by default** (`ENABLE_TRACING=false`). When disabled, `resume-ops` executes locally with zero external network overhead.
 
 ### How to Enable Tracing:
+
 In your `.env` file or environment:
 
 ```bash
@@ -37,6 +38,7 @@ pytest -m eval
 ```
 
 ### Configuring Evaluation Model:
+
 Evaluation tests use an LLM to judge output quality. You can route evaluation requests to your local model or cloud API by setting:
 
 ```bash
@@ -61,6 +63,7 @@ npx promptfoo@latest view
 ```
 
 ### Benchmark Checks:
+
 - **Strict Immutability**: Ensures company names, start/end dates, and candidate identities remain unchanged.
 - **JSON Schema Validation**: Verifies that responses comply with JSON Resume schema.
 - **LLM Rubric Scoring**: Evaluates keyword alignment against job description requirements.

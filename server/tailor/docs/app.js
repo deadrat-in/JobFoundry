@@ -27,23 +27,26 @@ window.copyText = function (elementId, label) {
   const el = document.getElementById(elementId);
   if (!el) return;
   const text = el.innerText || el.value;
-  navigator.clipboard.writeText(text).then(() => {
-    showToast(`Copied ${label || 'snippet'} to clipboard!`);
-  }).catch(() => {
-    showToast('Failed to copy');
-  });
+  navigator.clipboard
+    .writeText(text)
+    .then(() => {
+      showToast(`Copied ${label || 'snippet'} to clipboard!`);
+    })
+    .catch(() => {
+      showToast('Failed to copy');
+    });
 };
 
 // Snippet tabs switching
 function initSnippetTabs() {
   const tabBtns = document.querySelectorAll('.tab-btn[data-tab]');
-  tabBtns.forEach(btn => {
+  tabBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
       const parent = btn.closest('.snippet-box');
       if (!parent) return;
-      parent.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      parent.querySelectorAll('.snippet-pane').forEach(p => p.style.display = 'none');
-      
+      parent.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+      parent.querySelectorAll('.snippet-pane').forEach((p) => (p.style.display = 'none'));
+
       btn.classList.add('active');
       const targetId = btn.getAttribute('data-tab');
       const targetPane = document.getElementById(targetId);
@@ -61,7 +64,7 @@ const FALLBACK_MODELS = [
   'openai/gpt-4o-mini',
   'qwen/minimax/minimax-m2.7',
   'qwen/qwen3.6-plus',
-  'ibm-granite/granite-4.1-8b'
+  'ibm-granite/granite-4.1-8b',
 ];
 
 // Model fetcher logic (Queries OpenRouter / custom OPENAI_BASE_URL)
@@ -88,7 +91,7 @@ async function fetchModelsFromProvider() {
   try {
     const response = await fetch(endpoint, {
       method: 'GET',
-      headers: { 'Accept': 'application/json' }
+      headers: { Accept: 'application/json' },
     });
 
     if (!response.ok) {
@@ -98,9 +101,9 @@ async function fetchModelsFromProvider() {
     const data = await response.json();
     let modelList = [];
     if (Array.isArray(data.data)) {
-      modelList = data.data.map(m => m.id).filter(Boolean);
+      modelList = data.data.map((m) => m.id).filter(Boolean);
     } else if (Array.isArray(data)) {
-      modelList = data.map(m => m.id || m).filter(Boolean);
+      modelList = data.map((m) => m.id || m).filter(Boolean);
     }
 
     if (modelList.length === 0) {
@@ -123,21 +126,22 @@ function updateModelSelects(models) {
     'env-default-model',
     'env-strategy-model',
     'env-work-model',
-    'env-skills-model'
+    'env-skills-model',
   ];
 
-  selectIds.forEach(id => {
+  selectIds.forEach((id) => {
     const sel = document.getElementById(id);
     if (!sel) return;
     const currentVal = sel.value;
     sel.innerHTML = '';
-    
+
     const optDefault = document.createElement('option');
     optDefault.value = '';
-    optDefault.textContent = id === 'env-default-model' ? '-- Select Default Model --' : '-- Inherit DEFAULT_MODEL --';
+    optDefault.textContent =
+      id === 'env-default-model' ? '-- Select Default Model --' : '-- Inherit DEFAULT_MODEL --';
     sel.appendChild(optDefault);
 
-    models.forEach(m => {
+    models.forEach((m) => {
       const opt = document.createElement('option');
       opt.value = m;
       opt.textContent = m;
@@ -152,11 +156,11 @@ function updateModelSelects(models) {
 // Interactive .env generator
 function initEnvBuilder() {
   const inputs = document.querySelectorAll('.env-input');
-  inputs.forEach(input => {
+  inputs.forEach((input) => {
     input.addEventListener('input', generateEnvOutput);
     input.addEventListener('change', generateEnvOutput);
   });
-  
+
   // Populate initial fallback models
   updateModelSelects(FALLBACK_MODELS);
   generateEnvOutput();

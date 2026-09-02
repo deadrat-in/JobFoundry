@@ -686,36 +686,19 @@
   "interests": [
     {
       "name": "Open Source Involvement",
-      "keywords": [
-        "Mozilla Firefox",
-        "Fedora Project",
-        "Wikimedia",
-        "XFCE Desktop"
-      ]
+      "keywords": ["Mozilla Firefox", "Fedora Project", "Wikimedia", "XFCE Desktop"]
     },
     {
       "name": "Community Leadership",
-      "keywords": [
-        "FOSS Evangelism",
-        "Un-conferences",
-        "Community Organizing"
-      ]
+      "keywords": ["FOSS Evangelism", "Un-conferences", "Community Organizing"]
     },
     {
       "name": "Social Entrepreneurship",
-      "keywords": [
-        "Agricultural Technology",
-        "Marginal Farmers",
-        "kannukutty.com"
-      ]
+      "keywords": ["Agricultural Technology", "Marginal Farmers", "kannukutty.com"]
     },
     {
       "name": "Linux Distro Maintainer",
-      "keywords": [
-        "GNU/Linux Distribution",
-        "Kalvi OS",
-        "Beta Testing"
-      ]
+      "keywords": ["GNU/Linux Distribution", "Kalvi OS", "Beta Testing"]
     }
   ],
   "volunteer": [],

@@ -10,4 +10,3 @@ export function loadConfig(env = process.env) {
   const staticDir = env.STATIC_DIR ?? null;
   return { port, apiKeys, dbPath, artifactsDir, serverUrl, staticDir };
 }
-

@@ -78,6 +78,7 @@ curl -fsSL https://raw.githubusercontent.com/Rat-S/JobFoundry/main/install.sh | 
 ```
 
 This script:
+
 1. Validates Docker & Docker Compose prerequisites.
 2. Clones or updates the JobFoundry stack.
 3. Automatically creates `.env` with a secure generated API key.
@@ -126,7 +127,6 @@ Verify service health:
 - **Web Dashboard & Ingest API**: [http://localhost:8080](http://localhost:8080)
 - **Browser Extension Guide**: [https://deadrat-in.github.io/JobFoundry/extension.html](https://deadrat-in.github.io/JobFoundry/extension.html)
 
-
 ### 4. Running Locally for Development
 
 ```bash
@@ -145,7 +145,6 @@ cd server/tailor && uv run python -m resume_ops_api
 # Start Web Dashboard
 npm --workspace=server/web run dev
 ```
-
 
 ---
 

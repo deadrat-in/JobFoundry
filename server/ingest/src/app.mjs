@@ -1,5 +1,12 @@
 import Fastify from 'fastify';
-import { existsSync, readFileSync, mkdirSync, writeFileSync, statSync, createReadStream } from 'node:fs';
+import {
+  existsSync,
+  readFileSync,
+  mkdirSync,
+  writeFileSync,
+  statSync,
+  createReadStream,
+} from 'node:fs';
 import { resolve, extname } from 'node:path';
 
 import { randomUUID } from 'node:crypto';
@@ -31,7 +38,6 @@ export function buildApp({
   staticDir = null,
   logger = process.env.NODE_ENV === 'test' ? false : true,
 }) {
-
   const legacyKeys = new Set(apiKeys ?? []);
   const app = Fastify({
     logger,
@@ -411,7 +417,11 @@ export function buildApp({
       }
 
       // Universal Decanter safety net: fetch and populate if description is missing
-      if ((!row.description || row.description.trim().length < 50) && row.url && /^https?:\/\//i.test(row.url)) {
+      if (
+        (!row.description || row.description.trim().length < 50) &&
+        row.url &&
+        /^https?:\/\//i.test(row.url)
+      ) {
         try {
           const decanted = await fetchAndDecantUrl(row.url, { timeoutMs: 5000 });
           if (decanted && decanted.length > 50) {
@@ -567,11 +577,15 @@ export function buildApp({
     const now = Date.now();
     const userId = request.user.id;
 
-    db.prepare('UPDATE jobs SET description = ?, updated_at = ? WHERE id = ?').run(decanted, now, id);
+    db.prepare('UPDATE jobs SET description = ?, updated_at = ? WHERE id = ?').run(
+      decanted,
+      now,
+      id
+    );
 
     if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
       db.prepare(
-        'UPDATE user_jobs SET fit_score = NULL, fit_notes = NULL, status = \'new\', updated_at = ? WHERE job_id = ? AND user_id = ?'
+        "UPDATE user_jobs SET fit_score = NULL, fit_notes = NULL, status = 'new', updated_at = ? WHERE job_id = ? AND user_id = ?"
       ).run(now, id, userId);
     }
 
@@ -593,10 +607,14 @@ export function buildApp({
     const userId = request.user.id;
 
     if (description !== undefined) {
-      db.prepare('UPDATE jobs SET description = ?, updated_at = ? WHERE id = ?').run(description, now, id);
+      db.prepare('UPDATE jobs SET description = ?, updated_at = ? WHERE id = ?').run(
+        description,
+        now,
+        id
+      );
       if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
         db.prepare(
-          'UPDATE user_jobs SET fit_score = NULL, fit_notes = NULL, status = \'new\', updated_at = ? WHERE job_id = ? AND user_id = ?'
+          "UPDATE user_jobs SET fit_score = NULL, fit_notes = NULL, status = 'new', updated_at = ? WHERE job_id = ? AND user_id = ?"
         ).run(now, id, userId);
       }
     }
@@ -604,7 +622,9 @@ export function buildApp({
     if (status) {
       if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
         const info = db
-          .prepare('UPDATE user_jobs SET status = ?, updated_at = ? WHERE job_id = ? AND user_id = ?')
+          .prepare(
+            'UPDATE user_jobs SET status = ?, updated_at = ? WHERE job_id = ? AND user_id = ?'
+          )
           .run(status, now, id, userId);
 
         if (info.changes === 0) {
@@ -985,4 +1005,3 @@ export function buildApp({
 
   return app;
 }
-

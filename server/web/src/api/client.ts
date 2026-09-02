@@ -73,7 +73,6 @@ export class ApiClient {
     this.apiKey = config?.apiKey || null;
   }
 
-
   setApiKey(key: string | null) {
     this.apiKey = key;
   }
@@ -258,9 +257,12 @@ export class ApiClient {
   }
 
   async decantJob(id: string): Promise<{ ok: boolean; job: Job; description: string }> {
-    return this.request<{ ok: boolean; job: Job; description: string }>(`/api/v1/jobs/${id}/decant`, {
-      method: 'POST',
-    });
+    return this.request<{ ok: boolean; job: Job; description: string }>(
+      `/api/v1/jobs/${id}/decant`,
+      {
+        method: 'POST',
+      }
+    );
   }
 
   async deleteJob(id: string): Promise<{ ok: boolean }> {

@@ -17,7 +17,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   threshold: 75,
 };
 
-
 export function loadSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);

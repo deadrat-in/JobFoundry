@@ -13,4 +13,3 @@ const { url } = await startServer({
   staticDir: config.staticDir,
 });
 console.log(`ingest listening on ${url}`);
-

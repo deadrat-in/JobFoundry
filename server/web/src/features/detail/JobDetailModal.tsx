@@ -375,7 +375,14 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                           boxSizing: 'border-box',
                         }}
                       />
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'flex-end',
+                          gap: '0.5rem',
+                          marginTop: '0.5rem',
+                        }}
+                      >
                         <button
                           onClick={() => setEditingDesc(false)}
                           disabled={savingDesc}
