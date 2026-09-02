@@ -11,22 +11,35 @@ export default defineConfig({
   manifest: (env) => ({
     name: 'JobFoundry',
     description: 'Capture job postings in your browser and push them to your JobFoundry server.',
-    version: '0.1.0',
+    version: '0.1.1',
     icons: {
-      16: 'icons/favicon-16x16.png',
-      32: 'icons/favicon-32x32.png',
-      48: 'icons/logo.webp',
-      128: 'icons/logo.webp',
+      16: 'icons/icon-16.png',
+      32: 'icons/icon-32.png',
+      48: 'icons/icon-48.png',
+      128: 'icons/icon-128.png',
     },
     action: {
       default_title: 'JobFoundry',
       default_icon: {
-        16: 'icons/favicon-16x16.png',
-        32: 'icons/favicon-32x32.png',
-        48: 'icons/logo.webp',
-        128: 'icons/logo.webp',
+        16: 'icons/icon-16.png',
+        32: 'icons/icon-32.png',
+        48: 'icons/icon-48.png',
+        128: 'icons/icon-128.png',
       },
     },
+    ...(env.browser === 'firefox'
+      ? {
+          sidebar_action: {
+            default_panel: 'sidepanel.html',
+            default_title: 'JobFoundry Sidebar',
+            default_icon: {
+              16: 'icons/icon-16.png',
+              32: 'icons/icon-32.png',
+              48: 'icons/icon-48.png',
+            },
+          },
+        }
+      : {}),
     permissions: [
       'storage',
       'alarms',
