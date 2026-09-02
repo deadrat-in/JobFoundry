@@ -3,7 +3,7 @@ name: Release Extension Bundles
 on:
   push:
     branches: [main]
-    tags: ['v*']
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
@@ -26,9 +26,10 @@ jobs:
         run: npm ci
 
       - name: Build and Package Browser Extensions
+        working-directory: extension
         run: |
-          npm --workspace=extension run zip
-          npm --workspace=extension run zip:firefox
+          npm run zip
+          npm run zip:firefox
 
       - name: Upload Extension Artifacts (CI)
         uses: actions/upload-artifact@v4
@@ -38,6 +39,9 @@ jobs:
             extension/.output/*-chrome.zip
             extension/.output/*-firefox.zip
             extension/.output/*-sources.zip
+            .output/*-chrome.zip
+            .output/*-firefox.zip
+            .output/*-sources.zip
 
       - name: Attach Extension Zips to Release
         uses: softprops/action-gh-release@v3
@@ -47,3 +51,6 @@ jobs:
             extension/.output/*-chrome.zip
             extension/.output/*-firefox.zip
             extension/.output/*-sources.zip
+            .output/*-chrome.zip
+            .output/*-firefox.zip
+            .output/*-sources.zip
