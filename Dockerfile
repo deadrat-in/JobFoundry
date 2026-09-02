@@ -63,6 +63,10 @@ RUN apt-get update \
 # 2. Install uv for fast Python dependency installation
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
+# 2b. Install Gatepass LLM Proxy
+COPY bin/gatepass /usr/local/bin/gatepass
+RUN chmod +x /usr/local/bin/gatepass
+
 WORKDIR /app
 
 # 3. Install Python dependencies for Scorer and Tailor

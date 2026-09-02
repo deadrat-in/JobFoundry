@@ -177,6 +177,7 @@ class StructuredLLMClient:
                     ],
                     temperature=0.2,
                     drop_params=True,
+                    timeout=90,
                     extra_headers=extra_headers or None,
                     validation_context=validation_context,
                 )
@@ -198,6 +199,7 @@ class StructuredLLMClient:
                 ],
                 temperature=0.2,
                 drop_params=True,
+                timeout=90,
                 extra_headers=extra_headers or None,
                 validation_context=validation_context,
             )
@@ -219,6 +221,7 @@ class StructuredLLMClient:
                 ],
                 temperature=0.2,
                 drop_params=True,
+                timeout=90,
                 extra_headers=extra_headers or None,
                 validation_context=validation_context,
             )
@@ -240,6 +243,7 @@ class StructuredLLMClient:
                 ],
                 temperature=0.2,
                 drop_params=True,
+                timeout=90,
                 extra_headers=extra_headers or None,
                 validation_context=validation_context,
             )
@@ -260,6 +264,7 @@ class StructuredLLMClient:
                     ],
                     temperature=0.2,
                     drop_params=True,
+                    timeout=90,
                     response_format={"type": "json_object"},
                     extra_headers=extra_headers or None,
                 )
@@ -277,6 +282,7 @@ class StructuredLLMClient:
                     ],
                     temperature=0.2,
                     drop_params=True,
+                    timeout=90,
                     extra_headers=extra_headers or None,
                 )
             content = completion["choices"][0]["message"]["content"]

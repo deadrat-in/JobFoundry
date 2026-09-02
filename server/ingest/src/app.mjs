@@ -772,19 +772,24 @@ export function buildApp({
     writeFileSync(resolve(jobDir, 'resume.txt'), plainText, 'utf-8');
     writeFileSync(resolve(jobDir, 'resume-text.txt'), plainText, 'utf-8');
 
-    // Attempt external resume-ops call for PDF rendering if available
+    // Attempt external resume-ops call for tailoring and PDF rendering
     const resumeOpsUrl = process.env.RESUME_OPS_URL || 'http://127.0.0.1:8081';
+    let tailorSuccess = false;
+    let tailorError = null;
+
     if (resumeOpsUrl) {
       try {
         const resp = await fetch(`${resumeOpsUrl.replace(/\/$/, '')}/api/v1/tailor`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(600000), // 10 minute timeout
           body: JSON.stringify({
             job_description: jobRecord.description,
             resume: tailoredResume,
             theme: 'jsonresume-theme-folio',
           }),
         });
+
         if (resp.ok) {
           const data = await resp.json();
           if (data.pdf_base64) {
@@ -792,15 +797,42 @@ export function buildApp({
           }
           if (data.plain_text) {
             writeFileSync(resolve(jobDir, 'resume.txt'), data.plain_text, 'utf-8');
+            writeFileSync(resolve(jobDir, 'resume-text.txt'), data.plain_text, 'utf-8');
           }
+          if (data.resume) {
+            writeFileSync(resolve(jobDir, 'resume.json'), JSON.stringify(data.resume, null, 2), 'utf-8');
+          }
+          tailorSuccess = true;
+        } else {
+          const errBody = await resp.text().catch(() => '');
+          tailorError = `resume-ops returned ${resp.status}: ${errBody}`;
+          request.log?.error?.(tailorError);
         }
       } catch (err) {
-        // Log and continue with synthesized text/json
-        request.log?.warn?.(`resume-ops tailor call error: ${err.message}`);
+        tailorError = `resume-ops tailor call error: ${err.message}`;
+        request.log?.error?.(tailorError);
       }
     }
 
-    // 4. Update Database
+    if (!tailorSuccess) {
+      // Clean up incomplete artifacts if any
+      const statusToSet = 'failed';
+      if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+        db.prepare(
+          'UPDATE user_jobs SET status = ?, updated_at = ? WHERE job_id = ? AND user_id = ?'
+        ).run(statusToSet, now, id, userId);
+      } else {
+        db.prepare(
+          'UPDATE jobs SET status = ?, updated_at = ? WHERE id = ?'
+        ).run(statusToSet, now, id);
+      }
+      return reply.code(502).send({
+        error: tailorError || 'Failed to tailor resume via AI service',
+        status: 'failed',
+      });
+    }
+
+    // 4. Update Database on success
     if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
       db.prepare(
         'UPDATE user_jobs SET status = ?, tailored_resume_id = ?, updated_at = ? WHERE job_id = ? AND user_id = ?'
