@@ -57,7 +57,7 @@ extension/        Browser extension (Chrome MV3 / Firefox MV3 & MV2)
 server/
   ingest/         Node/ESM ingest API, SQLite storage, auth, SimHash dedup
   scorer/         Python fit screener & worker daemon polling SQLite queue
-  tailor/         Python resume-ops engine (LangGraph + resumed / Puppeteer PDF & ATS)
+  tailor/         Python resume-ops engine (LangGraph + folio-export / Puppeteer PDF & ATS)
   web/            Vite + React 19 web dashboard (Kanban board, feed, resume manager)
 Dockerfile        Multi-stage All-in-One container build
 compose.yaml      Docker Compose single-service configuration

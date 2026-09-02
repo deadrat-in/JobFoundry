@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 
-ARG NPM_THEMES="jsonresume-theme-folio jsonresume-theme-stackoverflow"
+ARG NPM_THEMES="jsonresume-theme-folio@^1.3.1 jsonresume-theme-stackoverflow"
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -16,7 +16,7 @@ RUN apt-get update \
         chromium chromium-sandbox \
         # Fonts for resume rendering
         fonts-liberation fonts-noto-color-emoji \
-    && npm install -g resumed puppeteer ${NPM_THEMES} \
+    && npm install -g puppeteer ${NPM_THEMES} \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

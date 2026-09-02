@@ -29,7 +29,7 @@ RUN npm ci --omit=dev --workspace=server/ingest
 # --- Stage 3: Final All-in-One Runtime ---
 FROM python:3.12-slim
 
-ARG NPM_THEMES="jsonresume-theme-folio jsonresume-theme-stackoverflow"
+ARG NPM_THEMES="jsonresume-theme-folio@^1.3.1 jsonresume-theme-stackoverflow"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -57,7 +57,7 @@ RUN apt-get update \
         fonts-liberation fonts-noto-color-emoji \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
-    && npm install -g resumed puppeteer ${NPM_THEMES} \
+    && npm install -g puppeteer ${NPM_THEMES} \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. Install uv for fast Python dependency installation

@@ -10,7 +10,7 @@ from resume_ops_api.core.exceptions import AppError
 
 
 class ResumeRenderer:
-    def __init__(self, binary: str = "resumed") -> None:
+    def __init__(self, binary: str = "folio-export") -> None:
         self.binary = binary
 
     def _resolve_binary(self) -> str:
@@ -40,14 +40,15 @@ class ResumeRenderer:
         paths = [p for p in extra_paths + existing_node_path.split(":") if p]
         env["NODE_PATH"] = ":".join(dict.fromkeys(paths))
 
+        meta = resume.get("meta") if isinstance(resume.get("meta"), dict) else {}
+        is_multi_page = bool(meta.get("multiPage", False) or (meta.get("singlePage") is False))
+        page_flag = "--multi-page" if is_multi_page else "--single-page"
+
         process = await asyncio.create_subprocess_exec(
             binary,
-            "export",
             str(input_path),
-            "--theme",
-            theme,
-            "-o",
             str(pdf_path),
+            page_flag,
             "--puppeteer-arg=--no-sandbox",
             "--puppeteer-arg=--disable-setuid-sandbox",
             stdout=asyncio.subprocess.PIPE,

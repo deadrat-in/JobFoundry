@@ -29,7 +29,7 @@ It then:
 - keeps protected fields unchanged
 - tailors only allowed sections
 - validates the final output against the JSON Resume schema
-- renders a PDF using `resumed`
+- renders a PDF using `folio-export` (from `jsonresume-theme-folio`)
 
 ## Tailoring Rules
 
@@ -291,9 +291,9 @@ podman run --rm \
     --jd ./target-job.md \
     --output ./tailored-resume.pdf
 
-# Or natively (requires global npm install of resumed & themes):
+# Or natively (requires global npm install of jsonresume-theme-folio & puppeteer):
 uv pip install -e .
-npm install -g resumed @deadrat/jsonresume-theme-stackoverflow
+npm install -g jsonresume-theme-folio puppeteer
 resume-ops --resume master-resume.json --jd target-job.md --output ./tailored-resume.pdf
 ```
 
@@ -302,7 +302,7 @@ resume-ops --resume master-resume.json --jd target-job.md --output ./tailored-re
 - No authentication is built in
 - Background execution is single-process and intended for one API worker
 - Theme support is allowlist-based, not dynamic package installation at request time
-- The service relies on `resumed` being installed in the runtime environment
+- The service relies on `folio-export` being installed in the runtime environment
 
 ## License
 

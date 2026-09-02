@@ -455,25 +455,25 @@ class TestResumeRenderer:
 
     @pytest.fixture
     def renderer(self) -> ResumeRenderer:
-        return ResumeRenderer(binary="fake-resumed")
+        return ResumeRenderer(binary="fake-folio-export")
 
     def test_resolve_binary_uses_which_first(self, renderer: ResumeRenderer) -> None:
-        with patch("resume_ops_api.services.renderer.shutil.which", return_value="/usr/local/bin/fake-resumed"):
+        with patch("resume_ops_api.services.renderer.shutil.which", return_value="/usr/local/bin/fake-folio-export"):
             resolved = renderer._resolve_binary()
-            assert resolved == "/usr/local/bin/fake-resumed"
+            assert resolved == "/usr/local/bin/fake-folio-export"
 
     def test_resolve_binary_falls_back_to_local_npm(self, renderer: ResumeRenderer) -> None:
         with patch("resume_ops_api.services.renderer.shutil.which", return_value=None):
             with patch.object(Path, "exists", return_value=True):
                 with patch.object(Path, "home", return_value=Path("/home/testuser")):
                     resolved = renderer._resolve_binary()
-                    assert resolved == "/home/testuser/.npm-global/bin/fake-resumed"
+                    assert resolved == "/home/testuser/.npm-global/bin/fake-folio-export"
 
     def test_resolve_binary_returns_original_when_not_found(self, renderer: ResumeRenderer) -> None:
         with patch("resume_ops_api.services.renderer.shutil.which", return_value=None):
             with patch.object(Path, "exists", return_value=False):
                 resolved = renderer._resolve_binary()
-                assert resolved == "fake-resumed"
+                assert resolved == "fake-folio-export"
 
     @pytest.mark.asyncio
     async def test_render_success(self, renderer: ResumeRenderer, tmp_path: Path) -> None:
@@ -486,21 +486,66 @@ class TestResumeRenderer:
         mock_process.returncode = 0
         mock_process.communicate = AsyncMock(side_effect=mock_communicate)
 
-        with patch("resume_ops_api.services.renderer.shutil.which", return_value="/usr/bin/fake-resumed"):
-            with patch("resume_ops_api.services.renderer.asyncio.create_subprocess_exec", AsyncMock(return_value=mock_process)):
+        mock_exec = AsyncMock(return_value=mock_process)
+        with patch("resume_ops_api.services.renderer.shutil.which", return_value="/usr/bin/fake-folio-export"):
+            with patch("resume_ops_api.services.renderer.asyncio.create_subprocess_exec", mock_exec):
                 # Pre-create a valid PDF in the expected output path so
                 # the post-render header check passes
                 output_dir.mkdir(parents=True, exist_ok=True)
                 (output_dir / "output.pdf").write_bytes(b"%PDF-1.4 fake")
                 result = await renderer.render(
                     resume={"basics": {"name": "Test"}},
-                    theme="jsonresume-theme-stackoverflow",
+                    theme="jsonresume-theme-folio",
                     output_dir=output_dir,
                 )
 
         assert result == output_dir / "output.pdf"
         assert (output_dir / "resume.json").exists()
         assert (output_dir / "output.pdf").exists()
+        # Verify folio-export arguments: [binary, input_path, output_pdf, page_flag, puppeteer_args...]
+        called_args = mock_exec.call_args[0]
+        assert called_args[0] == "/usr/bin/fake-folio-export"
+        assert called_args[1] == str(output_dir / "resume.json")
+        assert called_args[2] == str(output_dir / "output.pdf")
+        assert called_args[3] == "--single-page"
+
+    @pytest.mark.asyncio
+    async def test_render_multi_page_from_meta(self, renderer: ResumeRenderer, tmp_path: Path) -> None:
+        output_dir = tmp_path / "output"
+
+        async def mock_communicate():
+            return b"", b""
+
+        mock_process = MagicMock()
+        mock_process.returncode = 0
+        mock_process.communicate = AsyncMock(side_effect=mock_communicate)
+
+        mock_exec = AsyncMock(return_value=mock_process)
+        with patch("resume_ops_api.services.renderer.shutil.which", return_value="/usr/bin/fake-folio-export"):
+            with patch("resume_ops_api.services.renderer.asyncio.create_subprocess_exec", mock_exec):
+                output_dir.mkdir(parents=True, exist_ok=True)
+                (output_dir / "output.pdf").write_bytes(b"%PDF-1.4 fake")
+                await renderer.render(
+                    resume={"basics": {"name": "Test"}, "meta": {"multiPage": True}},
+                    theme="jsonresume-theme-folio",
+                    output_dir=output_dir,
+                )
+
+        called_args = mock_exec.call_args[0]
+        assert called_args[3] == "--multi-page"
+
+        # Also test singlePage: False triggers multi-page
+        mock_exec.reset_mock()
+        with patch("resume_ops_api.services.renderer.shutil.which", return_value="/usr/bin/fake-folio-export"):
+            with patch("resume_ops_api.services.renderer.asyncio.create_subprocess_exec", mock_exec):
+                await renderer.render(
+                    resume={"basics": {"name": "Test"}, "meta": {"singlePage": False}},
+                    theme="jsonresume-theme-folio",
+                    output_dir=output_dir,
+                )
+
+        called_args = mock_exec.call_args[0]
+        assert called_args[3] == "--multi-page"
 
     @pytest.mark.asyncio
     async def test_render_writes_resume_json(self, renderer: ResumeRenderer, tmp_path: Path) -> None:
@@ -514,7 +559,7 @@ class TestResumeRenderer:
         mock_process.returncode = 0
         mock_process.communicate = AsyncMock(side_effect=mock_communicate)
 
-        with patch("resume_ops_api.services.renderer.shutil.which", return_value="/usr/bin/fake-resumed"):
+        with patch("resume_ops_api.services.renderer.shutil.which", return_value="/usr/bin/fake-folio-export"):
             with patch("resume_ops_api.services.renderer.asyncio.create_subprocess_exec", AsyncMock(return_value=mock_process)):
                 # Pre-create PDF header
                 pdf_path = output_dir / "output.pdf"
@@ -523,7 +568,7 @@ class TestResumeRenderer:
 
                 await renderer.render(
                     resume=resume_data,
-                    theme="jsonresume-theme-stackoverflow",
+                    theme="jsonresume-theme-folio",
                     output_dir=output_dir,
                 )
 
@@ -535,18 +580,18 @@ class TestResumeRenderer:
         output_dir = tmp_path / "output"
 
         async def mock_communicate():
-            return b"", b"rendering error: theme not found"
+            return b"", b"rendering error: export failed"
 
         mock_process = MagicMock()
         mock_process.returncode = 1
         mock_process.communicate = AsyncMock(side_effect=mock_communicate)
 
-        with patch("resume_ops_api.services.renderer.shutil.which", return_value="/usr/bin/fake-resumed"):
+        with patch("resume_ops_api.services.renderer.shutil.which", return_value="/usr/bin/fake-folio-export"):
             with patch("resume_ops_api.services.renderer.asyncio.create_subprocess_exec", AsyncMock(return_value=mock_process)):
                 with pytest.raises(AppError) as exc_info:
                     await renderer.render(
                         resume={"basics": {"name": "Test"}},
-                        theme="jsonresume-theme-stackoverflow",
+                        theme="jsonresume-theme-folio",
                         output_dir=output_dir,
                     )
 
@@ -565,7 +610,7 @@ class TestResumeRenderer:
         mock_process.returncode = 0
         mock_process.communicate = AsyncMock(side_effect=mock_communicate)
 
-        with patch("resume_ops_api.services.renderer.shutil.which", return_value="/usr/bin/fake-resumed"):
+        with patch("resume_ops_api.services.renderer.shutil.which", return_value="/usr/bin/fake-folio-export"):
             with patch("resume_ops_api.services.renderer.asyncio.create_subprocess_exec", AsyncMock(return_value=mock_process)):
                 # Pre-create a file that is NOT a valid PDF
                 output_dir.mkdir(parents=True, exist_ok=True)
@@ -573,7 +618,7 @@ class TestResumeRenderer:
                 with pytest.raises(AppError) as exc_info:
                     await renderer.render(
                         resume={"basics": {"name": "Test"}},
-                        theme="jsonresume-theme-stackoverflow",
+                        theme="jsonresume-theme-folio",
                         output_dir=output_dir,
                     )
 
