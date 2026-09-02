@@ -74,8 +74,8 @@ RUN cd server/tailor && uv pip install --system -e .
 
 # 4. Copy Ingest Server and node_modules
 COPY --from=ingest-builder /app/node_modules ./node_modules
-COPY --from=ingest-builder /app/server/ingest/node_modules ./server/ingest/node_modules
 COPY server/ingest/ ./server/ingest/
+
 
 # 5. Copy Scorer Source
 COPY server/scorer/src/ ./server/scorer/src/
