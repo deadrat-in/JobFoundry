@@ -10,12 +10,12 @@ jobs:
     name: Node lint + test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: 'lts/*'
           cache: npm
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v10
       - run: uv sync --dev
         working-directory: server/scorer
       - run: npm ci
@@ -30,9 +30,11 @@ jobs:
       run:
         working-directory: server/scorer
     steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
       - run: uv sync --dev
+        env:
+          UV_EXTRA_BUILD_DEPENDENCIES: hatchling
       - run: uv run pytest
 
   tailor:
@@ -41,9 +43,12 @@ jobs:
     defaults:
       run:
         working-directory: server/tailor
+    env:
+      DEFAULT_MODEL: test-model
     steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
       - run: uv sync --dev
+        env:
+          UV_EXTRA_BUILD_DEPENDENCIES: hatchling
       - run: uv run pytest tests/test_api.py tests/test_merge.py tests/test_cli.py tests/test_config.py tests/test_db.py
-

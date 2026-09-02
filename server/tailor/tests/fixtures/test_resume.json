@@ -1,0 +1,740 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jsonresume/resume-schema/v1.0.0/schema.json",
+  "basics": {
+    "name": "Jay S",
+    "label": "Product & Technology Leader",
+    "email": "jay.s@covai.org",
+    "phone": "+91 986 528 2692",
+    "url": "https://jay.covai.org/",
+    "summary": "Technology & Product Leader with 12+ years of experience bridging the gap between complex enterprise engineering and business strategy. Expert in open-source enterprise stacks, RegTech/tax compliance, and AI-native product development. Proven track record of architecting scalable platforms for regulated markets, leading cross-functional teams (engineering, design, GTM), and driving cost-efficient delivery through open-source adoption. Pioneering AI-native product methodologies that combine rapid LLM-based validation with enterprise-scale execution. Experienced in zero-to-one launches, international market expansion, and legacy system modernization.",
+    "location": {
+      "address": "1/339, Gandhi Nagar",
+      "postalCode": "641669",
+      "city": "Coimbatore",
+      "countryCode": "IN",
+      "region": "Tamil Nadu"
+    },
+    "profiles": [
+      {
+        "network": "dribbble",
+        "username": "Interactive Resume",
+        "url": "https://jay.covai.org/"
+      },
+      {
+        "network": "LinkedIn",
+        "username": "Jay S",
+        "url": "https://www.linkedin.com/in/deadrat/"
+      }
+    ]
+  },
+  "work": [
+    {
+      "name": "Covai Labs",
+      "position": "Founder & Principal Consultant",
+      "location": "Coimbatore, India",
+      "startDate": "2023-08",
+      "endDate": "2026-03",
+      "summary": "Spearheaded the technical strategy, product execution, and infrastructure modernization for a legacy telecom AI platform (Client: Skyvera). Managed a $2M+ vendor consolidation initiative and achieved an 85% technical debt reduction while maintaining 99.9% uptime.",
+      "highlights": [
+        "Infrastructure Modernization & Cost Optimization: Championed Oracle-to-PostgreSQL migration, eliminating $2M+ annual licensing costs and reinvesting in platform reliability improvements and customer-facing innovation while maintaining 99.9% uptime.",
+        "Platform Strategy & Technical Debt Reduction: Defined unified product vision to consolidate 11 fragmented software versions into a unified platform architecture, reducing technical debt by 85% and enabling faster feature iteration and release velocity.",
+        "AI-Enabled Service Operations: Designed and launched self-service support portals with embedded RAG AI agents, automating release note distribution and deflecting 40%+ of routine support tickets.",
+        "Legacy System Lifecycle Management: Formulated and executed a version deprecation strategy for an SMS center product suite, seamlessly migrating clients to a single supported infrastructure within existing SLAs and contract constraints, significantly reducing engineering load.",
+        "Cross-Functional IT Leadership: Operated as the central technical liaison coordinating between engineering (50+), DevOps, commercial, and customer support teams, authoring detailed technical specifications and establishing API scalability and security standards.",
+        "AI Infrastructure Innovation & Launch: Ideated, architected, and launched AI-native products including Kandy Notetaker (UCaaS integration for call transcription, diarization, and AI-driven insights) and Lithium Defender (LLM-based phishing detection), extending the lifecycle of legacy UCaaS systems and establishing secure, high-value ARR from existing legacy customer bases.",
+        "IT Process Automation & Productivity: Championed productivity tooling for internal teams (Markdown, LaTeX, Marp) and set up self-hosted RAG tools (Cinnamon/kotaemon) for automated documentation workflows, later migrating to ephor.ai and NotebookLM to streamline knowledge management.",
+        "Product Discovery: Accelerated time-to-market by 60% by prototyping LLM concepts (Claude Code, Cursor) to validate user value before engineering commitment.",
+        "Release Engineering & Standards: Established SemVer (Major.Minor.Patch) versioning standards across legacy and modern assets to align release engineering cycles with product maturity.",
+        "Independent Contract / MVP Delivery: Managed the end-to-end development lifecycle for two MVP products (Live Shopping application, Garage Management Portal). Translated stakeholder needs into user stories and defined technical architecture (React.js, Node.js, MongoDB) with precise API specifications for rapid market entry."
+      ],
+      "url": "https://updates.skyvera.com/authors/jay/"
+    },
+    {
+      "name": "Taxilla IT Solutions",
+      "position": "Product Manager",
+      "location": "Hyderabad, India",
+      "startDate": "2021-07",
+      "endDate": "2023-07",
+      "summary": "Owned the product lifecycle for a Fintech/RegTech SaaS platform, driving international expansion and compliance.",
+      "highlights": [
+        "RegTech Strategy & Global Expansion: Led the product roadmap for entering stringent international markets (KSA, UAE), ensuring the platform met complex data sovereignty and cryptographic signing requirements.",
+        "Platform Scalability: Collaborated with architects to redesign a core high-throughput transaction engine for reconciliation across Banking, Insurance, and E-commerce, supporting a 350% increase in volume.",
+        "Customer Success & MVP: Built MVP solutions for each industry use-case, personally conducting capability demos for prospective leads and onboarding key accounts for initial User Acceptance Testing (UAT).",
+        "User Adoption & Growth: Achieved an 80% increase in platform adoption and a 350% increase in web traffic by conducting user research to identify friction points and redesigning the onboarding flow.",
+        "Cross-Functional Enablement: Reduced internal team ramp-up time by 50% by establishing a structured knowledge framework that aligned Inside Sales, Support, Development, and QA teams.",
+        "GTM & Sales Enablement: Spearheaded marketing initiatives, lead generation, and conducted technical sales presentations and POC demos, accelerating the enterprise sales cycle."
+      ],
+      "url": "https://www.taxilla.com/enreconcile"
+    },
+    {
+      "name": "ValueLabs",
+      "position": "Growth Product Manager",
+      "location": "Hyderabad, India",
+      "startDate": "2019-04",
+      "endDate": "2021-01",
+      "summary": "Led growth-focused product initiatives and zero-to-one digital transformation for enterprise clients.",
+      "highlights": [
+        "New Product Development: Led a zero-to-one digital transformation initiative, validating the concept through pilots and securing 3 enterprise contracts before General Availability (GA).",
+        "Cloud Solution Design: Collaborated with technical architects to define cloud-based solutions (AWS) that addressed complex business challenges, ensuring technical feasibility matched business goals.",
+        "Conversion Optimization: Partnered with design and engineering to implement ML-driven user flows, resulting in a 10% increase in conversion rates for client platforms.",
+        "Presales & Marketing: Led marketing efforts and cross-functional presales activities, delivering tailored sales presentations and technical product demos to secure enterprise contracts."
+      ]
+    },
+    {
+      "name": "CIBI (Startup Incubator)",
+      "position": "Program Intern",
+      "location": "Coimbatore, India",
+      "startDate": "2018-04",
+      "endDate": "2018-05",
+      "summary": "MBA Internship with IIM Trichy. CIBI is a pre-incubation program supporting early-stage startup teams.",
+      "highlights": [
+        "Startup Enablement: Advised and supported a cohort of 15 startup teams in the pre-incubation phase on market analysis, product development, and business strategy. Conducted comprehensive startup assessments, provided sector insights, and developed pitch materials.",
+        "Workshops & Training: Initiated and conducted educational sessions equipping incubatees with strategic frameworks and methodologies for successful business development."
+      ],
+      "url": "https://www.forge-iv.co/"
+    },
+    {
+      "name": "IBM",
+      "position": "Senior Consultant",
+      "location": "Bangalore, India",
+      "startDate": "2015-08",
+      "endDate": "2017-06",
+      "summary": "Architected IT automation scripts and incident response processes for large enterprise IT service operations.",
+      "highlights": [
+        "Process Automation: Developed and deployed Python/Bash automation scripts that reduced service desk ticket resolution time by 30%, directly improving SLA adherence.",
+        "Incident Management: Managed incident triage and resolution workflows, collaborating with cross-functional engineering teams to troubleshoot complex technical issues and ensure system reliability.",
+        "Knowledge Management: Architected a centralized knowledge repository for the team, streamlining daily operations, standardizing edge-case handling, and reducing onboarding time by 40%."
+      ],
+      "url": "https://www.ibm.com"
+    },
+    {
+      "name": "LightMass",
+      "position": "Senior Manager",
+      "location": "Bangalore, India",
+      "startDate": "2014-01",
+      "endDate": "2015-07",
+      "summary": "Led enterprise IT systems migration and operational support desk management.",
+      "highlights": [
+        "Open Source Infrastructure Initiative: Initiated and executed a company-wide migration from unlicensed Windows environments to CentOS Linux,LibreOffice, and other OSS. This eliminated legal compliance risk, saved $50k+ in licensing fees, and reduced malware incidents to zero.",
+        "Performance Leadership: Managed a team of 18 agents, improving Service Level Agreement (SLA) delivery by 35% through rigorous data-driven performance metrics."
+      ]
+    },
+    {
+      "name": "Sutherland",
+      "position": "Consultant",
+      "location": "Kochi, India",
+      "startDate": "2012-06",
+      "endDate": "2013-09",
+      "summary": "Delivered high-performance technical support and security mitigation for enterprise clients.",
+      "highlights": [
+        "Security Specialization: Diagnosed and removed complex rootkits and ransomware from compromised Windows endpoints, gathering critical threat signature data to refine McAfee's detection algorithms.",
+        "Performance Excellence: Exceeded performance targets by 120% for a major U.S. credit bureau client, maintaining high customer retention rates.",
+        "Knowledge Management: Spearheaded knowledge management initiatives, continuously updating standard operating procedures (SOPs) and leading on-the-job training programs to accelerate onboarding and optimize team performance."
+      ],
+      "url": "https://www.sutherlandglobal.com/"
+    }
+  ],
+  "education": [
+    {
+      "institution": "IIM Trichy",
+      "area": "Business Administration",
+      "studyType": "MBA",
+      "startDate": "2017",
+      "endDate": "2019",
+      "url": "https://www.iimtrichy.ac.in/"
+    },
+    {
+      "institution": "RVS CET (Anna University)",
+      "area": "Aeronautical Engineering",
+      "studyType": "B.E.",
+      "startDate": "2008",
+      "endDate": "2012"
+    }
+  ],
+  "skills": [
+    {
+      "name": "IT Strategy & Governance",
+      "level": "",
+      "keywords": [
+        "IT Roadmap & Strategic Planning",
+        "Vendor Consolidation & Cost Optimization",
+        "Data Sovereignty & Compliance (RegTech, GAIT)",
+        "ITIL Frameworks",
+        "Risk Management & Governance",
+        "Open-Source Enterprise Strategy"
+      ]
+    },
+    {
+      "name": "Infrastructure & Operations",
+      "level": "",
+      "keywords": [
+        "Cloud Migration (AWS/GCP)",
+        "Legacy Modernization & Technical Debt Reduction",
+        "Database migration (Oracle\u2192PostgreSQL)",
+        "High-Availability Systems (99.9% Uptime)",
+        "Infrastructure Scaling (350%+ volume)",
+        "IT Service Management & SLA Governance"
+      ]
+    },
+    {
+      "name": "AI & IT Automation",
+      "level": "",
+      "keywords": [
+        "AI-Enabled IT Operations",
+        "IT Process Automation (Python/Bash)",
+        "RAG Systems & Knowledge Management",
+        "GenAI for Service Desk & Support",
+        "Agentic Workflows & Tools"
+      ]
+    },
+    {
+      "name": "Product Strategy",
+      "level": "",
+      "keywords": [
+        "Product Vision",
+        "Roadmap Planning",
+        "Go-to-Market (GTM)",
+        "Zero-to-One Launches",
+        "Stakeholder Alignment",
+        "RegTech & Compliance"
+      ]
+    },
+    {
+      "name": "Product Execution",
+      "level": "",
+      "keywords": [
+        "PRD/Technical Spec Authoring",
+        "User Stories",
+        "Prioritization Frameworks (RICE/MoSCoW)",
+        "Backlog Management",
+        "Agile/Scrum Transformation"
+      ]
+    },
+    {
+      "name": "Metrics & Process",
+      "level": "",
+      "keywords": [
+        "OKRs",
+        "KPI Definition",
+        "NPS",
+        "Activation Rate",
+        "Retention",
+        "ARR/MRR",
+        "Product Discovery",
+        "User Research",
+        "Competitive Analysis",
+        "Behavioral Analytics",
+        "A/B Testing",
+        "Product-Led Growth",
+        "Conversion Optimization"
+      ]
+    },
+    {
+      "name": "Technical Fluency",
+      "level": "",
+      "keywords": [
+        "GenAI & LLMs (RAG, Agents, Local Deployment)",
+        "Python/Bash Scripting",
+        "Agentic Frameworks (LangGraph, Autogen)",
+        "Agentic Dev Tools (Cursor, OpenCode, OpenHands)",
+        "API Integration",
+        "WebRTC",
+        "Cloud Architecture (AWS/GCP)",
+        "Legacy Modernization",
+        "BMAD"
+      ]
+    },
+    {
+      "name": "Engineering & IT Leadership",
+      "level": "",
+      "keywords": [
+        "IT Team Building (50+ person orgs)",
+        "Cross-Functional IT Leadership",
+        "IT Knowledge Management Systems",
+        "Incident & Problem Management",
+        "Security & Compliance Frameworks",
+        "Executive Stakeholder Communication"
+      ]
+    },
+    {
+      "name": "Enterprise Operations & Strategy",
+      "level": "",
+      "keywords": [
+        "Open Source Strategy",
+        "Remote Team Leadership",
+        "Cost Optimization",
+        "Process Engineering",
+        "P&L Ownership",
+        "Board/Executive Presentation",
+        "M&A Product Due Diligence",
+        "Enterprise Sales Strategy"
+      ]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Anthropic Performance Take-Home (AI Orchestration)",
+      "description": "Achieved a 113x performance speedup (147,734 to 1,307 cycles) on Anthropic's VLIW SIMD architecture take-home test purely through strategic orchestration of AI agents.",
+      "highlights": [
+        "Orchestrated a multi-agent AI system (Claude, Qwen Coder, ACP) to optimize a complex VLIW SIMD kernel, reducing simulated execution cycles from 147,734 down to 1,307 (98.8% reduction)",
+        "Engineered iterative AI workflows utilizing Model Context Protocol (MCP) for targeted research and Agent Collaboration Protocol (ACP) for dividing architecture, implementation, and coordination tasks",
+        "Implemented strict validation guardrails (read-only tests, atomic commits) to prevent AI hallucination and ensure optimization correctness during complex SIMD vectorization and VLIW instruction packing",
+        "Surpassed the Claude Opus 4.5 baseline benchmark (1,487 cycles) through human-guided AI architecture exploration and parameters tuning"
+      ],
+      "startDate": "2026-05",
+      "url": "https://github.com/Rat-S/original_performance_takehome"
+    },
+    {
+      "name": "ResumeOps Engine",
+      "description": "A decoupled, schema-first AI microservice that transforms static professional data into targeted, ATS-optimized resumes with zero-hallucination guarantees.",
+      "highlights": [
+        "Engineered a decoupled AI tailoring microservice using Python, FastAPI, and Prefect to automate ATS-optimized resume generation",
+        "Implemented strict schema validation using Pydantic and standardized data on the JSON Resume specification to ensure full data portability",
+        "Developed a token-efficient 'Resume Compression' algorithm and anti-hallucination guardrails, resulting in 100% factual accuracy across tailored outputs",
+        "Optimized delivery by building a local Puppeteer-based PDF rendering engine, eliminating external API dependencies and improving system reliability by 40%"
+      ],
+      "startDate": "2025-01",
+      "url": "https://github.com/Rat-S/resume-ops"
+    },
+    {
+      "name": "Safe LGBT Dating Platform",
+      "description": "Designed and prototyped a secure dating platform with integrated government-grade ID verification workflows to ensure user safety. Led product validation and scalability feasibility analysis.",
+      "highlights": [],
+      "url": "https://github.com/Rat-S/osun"
+    },
+    {
+      "name": "AI-Powered Relationship Counselor",
+      "description": "Conducted product discovery and architected an AI-powered relationship counseling prototype. Evaluated LLM capabilities in high-stakes conversational domains, concluding a comprehensive feasibility study on current model compliance limitations.",
+      "highlights": []
+    },
+    {
+      "name": "AI Chat Export - Browser Extension",
+      "description": "A browser extension that exports AI conversations from web UIs (ChatGPT, Gemini, Claude, etc.) to markdown files. Published on Firefox Add-ons with thousands of users.",
+      "highlights": [
+        "Designed and built a cross-platform browser extension (Firefox/Chrome) that captures and exports AI chat conversations from major LLM platforms including ChatGPT, Gemini, and Claude to clean, formatted markdown files",
+        "Implemented intelligent DOM parsing and mutation observers to reliably detect and extract conversation content across dynamic, single-page web applications with varying UI structures",
+        "Architected a modular export pipeline supporting multiple output formats with customizable templates, enabling users to preserve prompts, responses, metadata, and formatting in portable markdown files",
+        "Published on Mozilla Add-ons (Firefox) with strong user adoption and positive reviews, addressing a critical gap in AI workflow tooling for researchers, developers, and content creators",
+        "Engineered robust error handling and fallback strategies to maintain functionality across platform UI updates and varying network conditions",
+        "Optimized extension performance to handle large conversations with hundreds of messages while maintaining fast export speeds and minimal memory footprint"
+      ],
+      "startDate": "2024-06",
+      "url": "https://addons.mozilla.org/en-US/firefox/addon/ai-chat-export/"
+    },
+    {
+      "name": "Jay S. AI Clone (Digital Twin)",
+      "description": "Architected and deployed a highly customized AI portfolio platform using an agentic RAG pipeline and multi-model orchestration.",
+      "highlights": [
+        "Multi-Model Orchestration: Integrated OpenRouter (IBM Granite), Google (Gemini 3.1 Live), and OpenAI (Embeddings) to create a low-latency, voice-first user experience",
+        "Agentic RAG: Engineered a custom retrieval system with Contextual Retrieval (using IBM Granite to pre-summarize chunks), achieving high-precision responses from career documentation",
+        "Voice-First Interaction: Implemented real-time voice mode with Turn-Detection, allowing users to talk directly to the AI 'Jay' as a professional ghostwriter",
+        "Observability: Integrated Langfuse for trace analysis and Microsoft Clarity for UX monitoring to continuously optimize model performance and user engagement"
+      ],
+      "startDate": "2026-05",
+      "url": "https://jay.covai.org"
+    },
+    {
+      "name": "Job-Ops Tailoring Workflow",
+      "url": "https://github.com/Rat-S/job-ops/tree/feat/tailoring",
+      "description": "Open Source Contributor for Career-Ops / Job-Ops: Redesigned the resume tailoring workflow to streamline ATS optimization pipelines. Authored technical enhancements that were adopted upstream by the project maintainers, improving system architecture and data ingestion speeds."
+    },
+    {
+      "name": "Free DNS Server Coimbatore",
+      "description": "Privacy-focused Public DNS Infrastructure: Designed and deployed a zero-logging public DNS resolver in Coimbatore to reduce latency for the local community. Integrated automated network-level adblocking and malware filtering using AdGuard Home, serving local DNS queries securely."
+    }
+  ],
+  "certificates": [
+    {
+      "name": "ServiceNow IT Leadership Professional Certificate",
+      "issuer": "ServiceNow"
+    },
+    {
+      "name": "ITIL 4: Foundations and Framework",
+      "issuer": "Logical Operations"
+    },
+    {
+      "name": "ITIL 4: Core Principles and Components",
+      "issuer": "Logical Operations"
+    },
+    {
+      "name": "ITIL 4: Management Practices",
+      "issuer": "Logical Operations"
+    },
+    {
+      "name": "Google IT Support Specialization",
+      "issuer": "Google"
+    },
+    {
+      "name": "AWS Cloud Economics",
+      "issuer": "Amazon Web Services (AWS)"
+    },
+    {
+      "name": "Creating Your IT Strategy",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Program Management for IT Professionals",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Introduction to IT Architecture",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Project Management Principles and Practices Specialization",
+      "issuer": "University of California, Irvine Division of Continuing Education"
+    },
+    {
+      "name": "IT Security: Defense against the digital dark arts",
+      "issuer": "Coursera"
+    },
+    {
+      "name": "Six Sigma Foundations",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Product Management Certification Specialization",
+      "issuer": "SkillUp Online"
+    },
+    {
+      "name": "IBM Product Manager Professional Certificate",
+      "issuer": "IBM"
+    },
+    {
+      "name": "Google AI Professional Certificate",
+      "issuer": "Google"
+    },
+    {
+      "name": "Generative AI Leader Specialization",
+      "issuer": "Google"
+    },
+    {
+      "name": "Supply Chain Foundations: Demand Planning Professional Certificate",
+      "issuer": "CSCMP - Council of Supply Chain Management Professionals"
+    },
+    {
+      "name": "Atlassian Agile Project Management Professional Certificate",
+      "issuer": "Atlassian"
+    },
+    {
+      "name": "Product Management Professional Certificate",
+      "issuer": "Aha!"
+    },
+    {
+      "name": "IBM AI Product Manager Professional Certificate",
+      "issuer": "IBM"
+    },
+    {
+      "name": "Salesforce Sales Operations Specialization",
+      "issuer": "Pathstream"
+    },
+    {
+      "name": "Product Management: Building AI-Powered Products",
+      "issuer": "SkillUp Online"
+    },
+    {
+      "name": "Practice Exam for AIPMM Certified Product Manager (CPM)",
+      "issuer": "SkillUp Online"
+    },
+    {
+      "name": "Product Management: Capstone Project",
+      "issuer": "IBM"
+    },
+    {
+      "name": "Agile Development and Scrum",
+      "issuer": "IBM"
+    },
+    {
+      "name": "Product Management: Developing and Delivering a New Product",
+      "issuer": "SkillUp Online"
+    },
+    {
+      "name": "Product Management: Initial Product Strategy and Plan",
+      "issuer": "SkillUp Online"
+    },
+    {
+      "name": "Product Management: Stakeholder Collaboration",
+      "issuer": "SkillUp Online"
+    },
+    {
+      "name": "Product Management: Foundations & Stakeholder Collaboration",
+      "issuer": "SkillUP\u2122"
+    },
+    {
+      "name": "Foundations of User Experience (UX) Design",
+      "issuer": "Google"
+    },
+    {
+      "name": "Build a Product Roadmap with Aha!",
+      "issuer": "Aha!"
+    },
+    {
+      "name": "Product Management: Building a Product Roadmap",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Product Management: Building a Product Strategy",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Agile for the Modern Product Manager",
+      "issuer": "Scrum Alliance"
+    },
+    {
+      "name": "Metrics that Matter: Improving Product Outcomes",
+      "issuer": "Scrum Alliance"
+    },
+    {
+      "name": "AI for Product Owners",
+      "issuer": "Scrum Alliance"
+    },
+    {
+      "name": "AI for Product Discovery & Strategy",
+      "issuer": "Scrum Alliance"
+    },
+    {
+      "name": "Agile Essentials",
+      "issuer": "Scrum Alliance"
+    },
+    {
+      "name": "Uncommon Sense Teaching",
+      "issuer": "Deep Teaching Solutions"
+    },
+    {
+      "name": "Product Management: Customer Development",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Technical Product Management",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Software Processes and Agile Practices",
+      "issuer": "University of Alberta"
+    },
+    {
+      "name": "Managing Machine Learning Projects",
+      "issuer": "Google"
+    },
+    {
+      "name": "Business Transformation with Google Cloud",
+      "issuer": "Google"
+    },
+    {
+      "name": "Digital Transformation Using AI/ML with Google Cloud",
+      "issuer": "Google"
+    },
+    {
+      "name": "Machine Learning for Business Professionals",
+      "issuer": "Google"
+    },
+    {
+      "name": "Career Essentials in Business Analysis by Microsoft and LinkedIn",
+      "issuer": "Microsoft"
+    },
+    {
+      "name": "Career Essentials in Sustainable Tech by Microsoft and LinkedIn",
+      "issuer": "Microsoft"
+    },
+    {
+      "name": "Microsoft Cloud for Sustainability: ESG and the Future of Business",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Including Sustainability in Your Cloud Strategy",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Sustainability as an Innovation Opportunity",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Closing the Green Skills Gap to Power a Greener Economy and Drive Sustainability",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Sustainability Foundations: Core Concepts",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Sales Fundamentals",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "How to Motivate Your Sales Teams",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Sales Performance Measurement and Reporting",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Empathy for Sales Professionals",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Sales Management Foundations",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Key Account Management",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Digital Transformation",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Change Leadership",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Cert Prep: PMI Agile Certified Practitioner (PMI-ACP)\u00ae",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Succeeding as a First-Time Tech Manager",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Supply Chain Foundations: Analytics",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Career Essentials in Generative AI by Microsoft and LinkedIn",
+      "issuer": "Microsoft"
+    },
+    {
+      "name": "Reports, Dashboards, and Customer Success in Salesforce",
+      "issuer": "Trailhead by Salesforce"
+    },
+    {
+      "name": "Lead Management in Salesforce",
+      "issuer": "Trailhead by Salesforce"
+    },
+    {
+      "name": "The Fundamentals of Digital Marketing",
+      "issuer": "Google Digital Unlocked"
+    },
+    {
+      "name": "Philosophy",
+      "issuer": "University of Edinburgh School of Philosophy, Psychology and Language Sciences"
+    },
+    {
+      "name": "Requirements Elicitation and Analysis",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Learning Data Science: Understanding the Basics",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Business Benefits Realization Foundations",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Managing Project Stakeholders",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Agile Project Management with Jira Cloud: 3 Advanced Topics",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Agile Project Management with Jira Cloud: 2 Lean and Agile Processes",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Agile Project Management with Jira Cloud: 1 Projects, Boards, and Issues",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Accounting Foundations",
+      "issuer": "LinkedIn"
+    },
+    {
+      "name": "Sales and CRM Overview",
+      "issuer": "Salesforce"
+    },
+    {
+      "name": "IBM Data Science Professional Certificate",
+      "issuer": "LinkedIn"
+    }
+  ],
+  "languages": [
+    {
+      "language": "English",
+      "fluency": "Native"
+    },
+    {
+      "language": "Tamil",
+      "fluency": "Native"
+    },
+    {
+      "language": "Telugu",
+      "fluency": "Speaking - Beginner"
+    },
+    {
+      "language": "Malayalam",
+      "fluency": "Elementary"
+    },
+    {
+      "language": "Spanish",
+      "fluency": "Elementary"
+    }
+  ],
+  "interests": [
+    {
+      "name": "Open Source Involvement",
+      "keywords": [
+        "Mozilla Firefox",
+        "Fedora Project",
+        "Wikimedia",
+        "XFCE Desktop"
+      ]
+    },
+    {
+      "name": "Community Leadership",
+      "keywords": [
+        "FOSS Evangelism",
+        "Un-conferences",
+        "Community Organizing"
+      ]
+    },
+    {
+      "name": "Social Entrepreneurship",
+      "keywords": [
+        "Agricultural Technology",
+        "Marginal Farmers",
+        "kannukutty.com"
+      ]
+    },
+    {
+      "name": "Linux Distro Maintainer",
+      "keywords": [
+        "GNU/Linux Distribution",
+        "Kalvi OS",
+        "Beta Testing"
+      ]
+    }
+  ],
+  "volunteer": [],
+  "awards": [],
+  "publications": [
+    {
+      "name": "Homelab Rationalization",
+      "publisher": "Covai Labs",
+      "releaseDate": "2026-04",
+      "url": "https://www.covai.org/labs/articles/digital-operations/homelab-rationalization/",
+      "summary": "Digital Operations Homelab Rationalization article exploring system architecture and self-hosted infrastructure."
+    },
+    {
+      "name": "Evaporative Cooling Coimbatore",
+      "publisher": "Covai Labs",
+      "releaseDate": "2026-04",
+      "url": "https://www.covai.org/labs/articles/sundry/evaporative-cooling-coimbatore/",
+      "summary": "Technical and environmental exploration of evaporative cooling solutions in Coimbatore."
+    }
+  ],
+  "references": []
+}

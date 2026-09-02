@@ -13,13 +13,13 @@ from resume_ops_api.core.config import Settings, get_settings
 
 
 def _clean_settings(**overrides: object) -> Settings:
-    """Build a Settings instance ignoring any .env file.
+    """Build a Settings instance ignoring any .env file."""
+    defaults: dict[str, object] = {
+        "default_model": "test-model",
+    }
+    defaults.update(overrides)
+    return Settings(_env_file=None, **defaults)  # type: ignore[call-arg]
 
-    Explicit overrides take precedence.  Callers should still supply the
-    exact defaults they expect when the host environment may carry
-    conflicting OS-level environment variables.
-    """
-    return Settings(_env_file=None, **overrides)  # type: ignore[call-arg]
 
 
 class TestSettingsDefaults:
@@ -29,10 +29,13 @@ class TestSettingsDefaults:
         settings = _clean_settings()
         assert settings.app_name == "resume-ops-api"
 
-    def test_default_host_and_port(self) -> None:
+    def test_default_host_and_port(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("PORT", raising=False)
+        monkeypatch.delenv("HOST", raising=False)
         settings = _clean_settings()
         assert settings.host == "0.0.0.0"
         assert settings.port == 8000
+
 
     def test_default_log_level(self) -> None:
         settings = _clean_settings()

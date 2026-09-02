@@ -135,16 +135,25 @@ class FakeCallbackService:
         self.deliveries.append((callback_url, payload))
 
 
+@pytest.fixture(autouse=True)
+def set_default_test_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DEFAULT_MODEL", "test-model")
+
+
 @pytest.fixture
 def sample_resume() -> dict[str, Any]:
+
+    fixture_path = Path(__file__).resolve().parent / "fixtures" / "test_resume.json"
+    if fixture_path.exists():
+        return json.loads(fixture_path.read_text(encoding="utf-8"))
     local_path = Path(".local/master-resume.json")
     if local_path.exists():
         return json.loads(local_path.read_text(encoding="utf-8"))
     example_path = Path("master-resume.json.example")
     if example_path.exists():
         return json.loads(example_path.read_text(encoding="utf-8"))
-    fixture_path = Path(__file__).resolve().parents[1] / "master-resume.json.example"
-    return json.loads(fixture_path.read_text(encoding="utf-8"))
+    return json.loads(example_path.read_text(encoding="utf-8"))
+
 
 
 @pytest.fixture

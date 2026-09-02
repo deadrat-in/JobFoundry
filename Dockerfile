@@ -16,12 +16,15 @@ ENV VITE_API_URL=""
 RUN npm --workspace=server/web run build
 
 # --- Stage 2: Install Node Ingest Dependencies ---
-FROM node:22-slim AS ingest-builder
+FROM node:22-bookworm-slim AS ingest-builder
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
 COPY server/ingest/package.json ./server/ingest/
 RUN npm ci --omit=dev --workspace=server/ingest
+
 
 # --- Stage 3: Final All-in-One Runtime ---
 FROM python:3.12-slim
