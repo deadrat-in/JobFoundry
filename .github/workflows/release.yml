@@ -26,31 +26,22 @@ jobs:
         run: npm ci
 
       - name: Build and Package Browser Extensions
-        working-directory: extension
         run: |
-          npm run zip
-          npm run zip:firefox
+          npm --workspace=extension run zip
+          npm --workspace=extension run zip:firefox
+          mkdir -p dist-extension
+          cp -f extension/.output/*.zip dist-extension/ 2>/dev/null || true
+          cp -f .output/*.zip dist-extension/ 2>/dev/null || true
+          ls -lh dist-extension/
 
       - name: Upload Extension Artifacts (CI)
         uses: actions/upload-artifact@v4
         with:
           name: extension-bundles
-          path: |
-            extension/.output/*-chrome.zip
-            extension/.output/*-firefox.zip
-            extension/.output/*-sources.zip
-            .output/*-chrome.zip
-            .output/*-firefox.zip
-            .output/*-sources.zip
+          path: dist-extension/*.zip
 
       - name: Attach Extension Zips to Release
         uses: softprops/action-gh-release@v3
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: |
-            extension/.output/*-chrome.zip
-            extension/.output/*-firefox.zip
-            extension/.output/*-sources.zip
-            .output/*-chrome.zip
-            .output/*-firefox.zip
-            .output/*-sources.zip
+          files: dist-extension/*.zip
