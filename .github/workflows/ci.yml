@@ -34,3 +34,16 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --dev
       - run: uv run pytest
+
+  tailor:
+    name: Resume tailor tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server/tailor
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --dev
+      - run: uv run pytest tests/test_api.py tests/test_merge.py tests/test_cli.py tests/test_config.py tests/test_db.py
+

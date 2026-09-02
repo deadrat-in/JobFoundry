@@ -1,0 +1,12 @@
+.pytest_cache/
+__pycache__/
+.venv/
+*.pyc
+data/
+*.local
+.local/ 
+.agents/ 
+.env
+master-resume.json
+career-ops/ 
+.env*

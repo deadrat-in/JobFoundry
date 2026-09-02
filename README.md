@@ -56,22 +56,42 @@ docs/             Documentation portal & GitHub Pages static website
 extension/        Browser extension (Chrome MV3 / Firefox MV3 & MV2)
 server/
   ingest/         Node/ESM ingest API, SQLite storage, auth, SimHash dedup
-  scorer/         Python fit screener, resume-ops tailoring bridge & worker daemon
+  scorer/         Python fit screener & worker daemon polling SQLite queue
+  tailor/         Python resume-ops engine (LangGraph + resumed / Puppeteer PDF & ATS)
   web/            Vite + React 19 web dashboard (Kanban board, feed, resume manager)
-compose.yaml      Docker Compose stack configuration
+compose.yaml      Docker Compose stack configuration (all 4 services)
+install.sh        Single-command curl installer script
 scripts/          Healthcheck and repository verification utilities
 test/             End-to-end multi-service test suite
 ```
 
 ---
 
-## Getting Started
+## Quickstart (Single-Command Install)
+
+To install and launch the complete JobFoundry stack with one command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Rat-S/JobFoundry/main/install.sh | bash
+```
+
+This script:
+1. Validates Docker & Docker Compose prerequisites.
+2. Clones or updates the JobFoundry stack.
+3. Automatically creates `.env` with a secure generated API key.
+4. Builds and starts all 4 services (`ingest`, `scorer`, `tailor`, `web`) in the background.
+5. Verifies service health via `./scripts/healthcheck.sh`.
+
+---
+
+## Getting Started (Manual)
 
 ### 1. Prerequisites
 
-- **Node.js**: v22+
-- **Python**: 3.12+ (or [uv](https://docs.astral.sh/uv/))
-- **Docker & Docker Compose** (optional, for containerized run)
+- **Docker & Docker Compose** (recommended for containerized run)
+- Or for bare-metal:
+  - **Node.js**: v22+
+  - **Python**: 3.12+ (or [uv](https://docs.astral.sh/uv/))
 
 ### 2. Configure Environment
 
@@ -79,7 +99,7 @@ test/             End-to-end multi-service test suite
 cp .env.example .env
 ```
 
-Review `.env` to configure your preferred LLM provider (OpenAI, Anthropic, or local Ollama) and secret keys.
+Review `.env` to configure your preferred LLM provider (OpenRouter, OpenAI, Anthropic, or local Ollama) and secret keys.
 
 ### 3. Running with Docker Compose
 
@@ -95,7 +115,8 @@ Verify service health:
 
 - **Web Dashboard**: [http://localhost:5173](http://localhost:5173)
 - **Ingest API**: [http://localhost:8080](http://localhost:8080)
-- **Scorer Service**: [http://localhost:8001](http://localhost:8001)
+- **Fit Scorer**: [http://localhost:8001](http://localhost:8001)
+- **Resume Tailor (resume-ops)**: [http://localhost:8081](http://localhost:8081)
 
 ### 4. Running Locally for Development
 
@@ -109,9 +130,13 @@ npm --workspace=server/ingest run dev
 # Start Scorer Service
 cd server/scorer && uv run uvicorn src.app:app --port 8001 --reload
 
+# Start Tailor Service (resume-ops)
+cd server/tailor && uv run python -m resume_ops_api
+
 # Start Web Dashboard
 npm --workspace=server/web run dev
 ```
+
 
 ---
 
