@@ -32,6 +32,10 @@ jobs:
           mkdir -p dist-extension
           cp -f extension/.output/*.zip dist-extension/ 2>/dev/null || true
           cp -f .output/*.zip dist-extension/ 2>/dev/null || true
+          for f in dist-extension/*-[0-9]*.*.zip; do
+            [ -f "$f" ] || continue
+            mv -f "$f" "$(echo "$f" | sed -E 's/-[0-9]+\.[0-9]+(\.[0-9]+)?//')"
+          done
           ls -lh dist-extension/
 
       - name: Upload Extension Artifacts (CI)

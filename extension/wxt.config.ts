@@ -4,6 +4,10 @@ import { defineConfig } from 'wxt';
 export default defineConfig({
   srcDir: 'src',
   manifestVersion: 3,
+  zip: {
+    artifactTemplate: '{{name}}-{{browser}}{{modeSuffix}}.zip',
+    sourcesTemplate: '{{name}}-sources{{modeSuffix}}.zip',
+  },
   manifest: (env) => ({
     name: 'JobFoundry',
     description: 'Capture job postings in your browser and push them to your JobFoundry server.',
