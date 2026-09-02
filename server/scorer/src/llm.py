@@ -47,6 +47,14 @@ class ScoreResult(BaseModel):
     reasoning: str = Field(..., description="Explanation of the match and scoring rationale")
     missing_skills: list[str] = Field(default_factory=list, description="Skills required/preferred by the job but missing in the resume")
     matching_skills: list[str] = Field(default_factory=list, description="Skills present in both the resume and the job requirements")
+    clean_description: str | None = Field(
+        default=None,
+        description="Sanitized and structured job description in Markdown (Role Overview, Responsibilities, Requirements). Prunes corporate boilerplate, EEOC disclaimers, cookie notices, and application URL noise while preserving all technical and qualification requirements.",
+    )
+    is_truncated: bool = Field(
+        default=False,
+        description="True if the provided job description appears incomplete, cut off mid-sentence, or truncated.",
+    )
 
 
 @runtime_checkable
@@ -62,6 +70,8 @@ class StubLLM:
             reasoning="Default stub reasoning",
             missing_skills=[],
             matching_skills=[],
+            clean_description=None,
+            is_truncated=False,
         )
         self.call_history: list[tuple[dict[str, Any], dict[str, Any]]] = []
 
@@ -80,9 +90,12 @@ class LiteLLMClient:
     async def score(self, job: dict[str, Any], resume: dict[str, Any]) -> ScoreResult:
         resume_str = format_resume_for_prompt(resume)
         prompt = (
-            f"You are an expert technical recruiter and resume screener.\n"
+            f"You are an expert technical recruiter, resume screener, and job analyst.\n"
             f"Evaluate the candidate's master resume against the following job posting.\n"
-            f"Provide a realistic fit score (0-100), concise reasoning, matching skills, and missing skills.\n\n"
+            f"Provide a realistic fit score (0-100), concise reasoning, matching skills, and missing skills.\n"
+            f"Also, sanitize the job description into clean, well-structured Markdown (Role Overview, Responsibilities, Requirements) "
+            f"by stripping all corporate boilerplate, EEOC/diversity statements, and application links in `clean_description`.\n"
+            f"If the job description is visibly cut off, ends mid-sentence, or lacks actual requirements, set `is_truncated: true`.\n\n"
             f"--- JOB POSTING ---\n"
             f"Title: {job.get('title', '')}\n"
             f"Company: {job.get('company', '')}\n"
@@ -96,7 +109,7 @@ class LiteLLMClient:
             "model": self.model,
             "response_model": ScoreResult,
             "messages": [
-                {"role": "system", "content": "You evaluate resume-to-job fit and return structured scoring results."},
+                {"role": "system", "content": "You evaluate resume-to-job fit and return structured scoring results including cleaned description."},
                 {"role": "user", "content": prompt},
             ],
             "max_retries": 2,

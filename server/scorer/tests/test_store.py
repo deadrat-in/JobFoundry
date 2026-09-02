@@ -122,3 +122,31 @@ def test_score_job_below_threshold(in_memory_store: JobStore):
     ).fetchone()
     assert row[0] == 60
     assert row[1] == "rejected_by_score"
+
+
+def test_score_job_updates_clean_description(in_memory_store: JobStore):
+    now = int(time.time() * 1000)
+    in_memory_store.conn.execute(
+        """
+        INSERT INTO jobs (id, title, company, url, source, description, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        ("job-clean", "ML Engineer", "Acme", "https://example.com/clean", "test", "Raw messy description with EEOC...", now, now),
+    )
+    in_memory_store.conn.commit()
+
+    result = ScoreResult(
+        score=90,
+        reasoning="Great fit",
+        matching_skills=["PyTorch"],
+        missing_skills=[],
+        clean_description="Clean sanitized markdown description",
+        is_truncated=False,
+    )
+
+    in_memory_store.score_job(job_id="job-clean", result=result)
+
+    row = in_memory_store.conn.execute(
+        "SELECT description FROM jobs WHERE id = ?", ("job-clean",)
+    ).fetchone()
+    assert row[0] == "Clean sanitized markdown description"

@@ -175,3 +175,96 @@ export function readSemanticDom(doc) {
 
   return { title, description, company };
 }
+
+/**
+ * Expand collapsed or truncated job description sections by clicking known 'Show more' buttons.
+ * Safe no-op if buttons are missing or in non-DOM test environments.
+ * @param {Document} doc
+ */
+export function expandTruncatedContent(doc) {
+  if (!doc || typeof doc.querySelectorAll !== 'function') return;
+
+  const selectors = [
+    'button.show-more-less-html__button--more',
+    'button[data-tracking-control-name*="show-more"]',
+    '.jobs-description__footer-button',
+    'button[data-testid="view-job-details"]',
+    'button#viewJobDetailsButton',
+    'button[data-test="show-more"]',
+    'button.css-15g7vfa',
+    'button[aria-label*="Show more" i]',
+    'button[aria-label*="Read more" i]',
+    'button[aria-label*="View full" i]',
+    'button.read-more',
+    'span.show-more-less-html__button--more',
+  ];
+
+  for (const selector of selectors) {
+    try {
+      const buttons = doc.querySelectorAll(selector);
+      for (const btn of buttons) {
+        if (typeof btn.click === 'function') {
+          btn.click();
+        }
+      }
+    } catch {
+      // Safe to ignore selector or click failures
+    }
+  }
+}
+
+/**
+ * Checks if a job description appears truncated or incomplete.
+ * @param {string} text
+ * @returns {boolean}
+ */
+export function isDescriptionIncomplete(text) {
+  if (!text || typeof text !== 'string') return true;
+  const trimmed = text.trim();
+  if (trimmed.length < 250) return true;
+
+  // Check for common truncation signals at the end
+  const truncationRegex = /(\.\.\.|…)\s*(see more|read more|view more)?\s*$/i;
+  const readMoreSuffix = /\b(see more|read more)\s*$/i;
+  return truncationRegex.test(trimmed) || readMoreSuffix.test(trimmed);
+}
+
+/**
+ * Strips common corporate boilerplate, EEOC statements, and legal disclaimers.
+ * @param {string} text
+ * @returns {string}
+ */
+export function cleanBoilerplate(text) {
+  if (!text || typeof text !== 'string') return '';
+
+  let cleaned = text
+    // EEO / Affirmative Action paragraphs
+    .replace(
+      /(?:we are an\s+)?equal opportunity employer[\s\S]*?(?=\n\n|\n(?=[A-Z0-9#*-])|$)/gi,
+      ''
+    )
+    .replace(
+      /(?:all qualified applicants will receive consideration[\s\S]*?)(?=\n\n|\n(?=[A-Z0-9#*-])|$)/gi,
+      ''
+    )
+    .replace(
+      /(?:we participate in e-verify[\s\S]*?)(?=\n\n|\n(?=[A-Z0-9#*-])|$)/gi,
+      ''
+    )
+    .replace(
+      /(?:affirmative action\s+(?:employer|policy)[\s\S]*?)(?=\n\n|\n(?=[A-Z0-9#*-])|$)/gi,
+      ''
+    )
+    // Cookie / privacy footer remnants
+    .replace(
+      /(?:by clicking (?:apply|submit|continue), you agree to our terms[\s\S]*?)(?=\n\n|$)/gi,
+      ''
+    )
+    // Normalize excessive newlines and whitespace
+    .replace(/[ \t\u00a0]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  return cleaned || text.trim();
+}

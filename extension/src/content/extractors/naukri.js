@@ -12,14 +12,25 @@ import {
   getCanonicalUrl,
   extractJsonLd,
   jdHtmlToText,
+  expandTruncatedContent,
+  isDescriptionIncomplete,
+  cleanBoilerplate,
+  readSemanticDom,
 } from './helpers.js';
 
 export function extractNaukriJobDetails(doc) {
   if (!doc) return null;
 
+  // Auto-expand any collapsed 'Show more' sections before extracting
+  expandTruncatedContent(doc);
+
   const jsonLd = extractJsonLd(doc);
-  if (jsonLd && jsonLd.description && jsonLd.description.length > 50) {
-    return { ...jsonLd, source: 'naukri' };
+  if (jsonLd && jsonLd.description && !isDescriptionIncomplete(jsonLd.description)) {
+    return {
+      ...jsonLd,
+      description: cleanBoilerplate(jsonLd.description),
+      source: 'naukri',
+    };
   }
 
   const titleEl =
@@ -48,7 +59,22 @@ export function extractNaukriJobDetails(doc) {
     doc.querySelector('[class*="styles_JDC__dang-inner-html"]') ||
     doc.querySelector('.dang-inner-html') ||
     doc.querySelector('article');
-  const description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
+  let description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
+
+  // Fallback to JSON-LD if DOM was incomplete
+  if (isDescriptionIncomplete(description) && jsonLd?.description) {
+    description = jsonLd.description;
+  }
+
+  // Fallback to semantic DOM / decanter if still incomplete
+  if (isDescriptionIncomplete(description)) {
+    const semantic = readSemanticDom(doc);
+    if (semantic.description && semantic.description.length > description.length) {
+      description = semantic.description;
+    }
+  }
+
+  description = cleanBoilerplate(description);
 
   const salaryEl =
     doc.querySelector('[class*="styles_jdc__top-section__salary"]') ||

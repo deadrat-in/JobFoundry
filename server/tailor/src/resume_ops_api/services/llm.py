@@ -164,13 +164,29 @@ class StructuredLLMClient:
         if "json" not in system_prompt.lower() and "json" not in user_prompt.lower():
             system_prompt = system_prompt + "\n\nNote: The output must be valid JSON."
 
-        # For OpenRouter models, try MD_JSON first to avoid tool-calling schema rejections
+        def _clamp_parsed_data(d: Any) -> Any:
+            if isinstance(d, dict):
+                # Clamp project keywords and highlights
+                if "projects" in d and isinstance(d["projects"], list):
+                    for p in d["projects"]:
+                        if isinstance(p, dict):
+                            if "highlights" in p and isinstance(p["highlights"], list):
+                                p["highlights"] = p["highlights"][:3]
+                            if "keywords" in p and isinstance(p["keywords"], list):
+                                p["keywords"] = p["keywords"][:6]
+
+                # Clamp skills keywords
+                if "skills" in d and isinstance(d["skills"], list):
+                    for s in d["skills"]:
+                        if isinstance(s, dict) and "keywords" in s and isinstance(s["keywords"], list):
+                            s["keywords"] = s["keywords"][:8]
+            return d
+
+        # For OpenRouter models, execute direct completion with markdown JSON parsing and field clamping
         if "openrouter" in model.lower():
             try:
-                client = cast(Any, instructor.from_litellm(self.completion_fn, mode=instructor.Mode.MD_JSON, max_retries=2))
-                response = await client.chat.completions.create(
+                completion = await self.completion_fn(
                     model=model,
-                    response_model=response_model,
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},
@@ -179,13 +195,35 @@ class StructuredLLMClient:
                     drop_params=True,
                     timeout=90,
                     extra_headers=extra_headers or None,
-                    validation_context=validation_context,
                 )
-                if isinstance(response, response_model):
-                    return response
+                content = completion["choices"][0]["message"]["content"]
+                if isinstance(content, dict):
+                    parsed = content
+                else:
+                    content_str = content.strip()
+                    import re
+                    match = re.search(r"```(?:json)?\s*(.*?)\s*```", content_str, re.DOTALL)
+                    if match:
+                        content_str = match.group(1).strip()
+                    else:
+                        first_idx = min(
+                            [idx for idx in [content_str.find("{"), content_str.find("[")] if idx != -1],
+                            default=-1
+                        )
+                        last_idx = max(
+                            [idx for idx in [content_str.rfind("}"), content_str.rfind("]")] if idx != -1],
+                            default=-1
+                        )
+                        if first_idx != -1 and last_idx != -1 and last_idx > first_idx:
+                            content_str = content_str[first_idx : last_idx + 1].strip()
+
+                    parsed = json.loads(content_str)
+
+                parsed = _clamp_parsed_data(parsed)
+                return response_model.model_validate(parsed, context=validation_context)
             except Exception as e:
                 import logging
-                logging.debug(f"MD_JSON mode failed for model '{model}': {e}. Falling back to standard modes.")
+                logging.debug(f"Direct OpenRouter completion failed for model '{model}': {e}. Falling back to standard modes.")
 
         # 1. First, try strict JSON Schema mode (OpenAI Structured Outputs)
         try:
@@ -340,8 +378,7 @@ class StructuredLLMClient:
                             from typing import get_origin
                             if get_origin(field_info.annotation) is list:
                                 parsed = {field_name: list_values[0]}
-                                break
-
+            parsed = _clamp_parsed_data(parsed)
             return response_model.model_validate(parsed, context=validation_context)
         except Exception as exc:
             import logging

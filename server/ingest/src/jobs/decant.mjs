@@ -95,7 +95,7 @@ export function decantHtml(html) {
               String(item['@type'] || '').includes('JobPosting')) &&
             item.description
           ) {
-            const parsed = markupToText(String(item.description));
+            const parsed = cleanBoilerplate(markupToText(String(item.description)));
             if (parsed.length > 50) return parsed;
           }
         }
@@ -117,7 +117,7 @@ export function decantHtml(html) {
     );
 
   if (semanticMatch && semanticMatch[1]) {
-    const text = markupToText(semanticMatch[1].replace(NON_CONTENT_RE, ' '));
+    const text = cleanBoilerplate(markupToText(semanticMatch[1].replace(NON_CONTENT_RE, ' ')));
     if (text.length > 50) return text;
   }
 
@@ -125,7 +125,44 @@ export function decantHtml(html) {
   const bodyMatch = html.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
   const contentHtml = bodyMatch ? bodyMatch[1] : html;
   const clean = contentHtml.replace(NON_CONTENT_RE, ' ').replace(DIALOG_RE, ' ');
-  return markupToText(clean);
+  return cleanBoilerplate(markupToText(clean));
+}
+
+/**
+ * Strips common corporate boilerplate, EEOC statements, and legal disclaimers.
+ * @param {string} text
+ * @returns {string}
+ */
+export function cleanBoilerplate(text) {
+  if (!text || typeof text !== 'string') return '';
+
+  let cleaned = text
+    .replace(
+      /(?:we are an\s+)?equal opportunity employer[\s\S]*?(?=\n\n|\n(?=[A-Z0-9#*-])|$)/gi,
+      ''
+    )
+    .replace(
+      /(?:all qualified applicants will receive consideration[\s\S]*?)(?=\n\n|\n(?=[A-Z0-9#*-])|$)/gi,
+      ''
+    )
+    .replace(
+      /(?:we participate in e-verify[\s\S]*?)(?=\n\n|\n(?=[A-Z0-9#*-])|$)/gi,
+      ''
+    )
+    .replace(
+      /(?:affirmative action\s+(?:employer|policy)[\s\S]*?)(?=\n\n|\n(?=[A-Z0-9#*-])|$)/gi,
+      ''
+    )
+    .replace(
+      /(?:by clicking (?:apply|submit|continue), you agree to our terms[\s\S]*?)(?=\n\n|$)/gi,
+      ''
+    )
+    .replace(/[ \t\u00a0]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  return cleaned || text.trim();
 }
 
 /**

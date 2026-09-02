@@ -202,6 +202,15 @@ class JobStore:
             """,
             (result.score, fit_notes, status, now, user_job_id),
         )
+        if result.clean_description and result.clean_description.strip():
+            self.conn.execute(
+                """
+                UPDATE jobs
+                SET description = ?, updated_at = ?
+                WHERE id = (SELECT job_id FROM user_jobs WHERE id = ?)
+                """,
+                (result.clean_description.strip(), now, user_job_id),
+            )
         self.conn.commit()
 
         cursor = self.conn.execute("SELECT * FROM user_jobs WHERE id = ?", (user_job_id,))
@@ -273,6 +282,15 @@ class JobStore:
             """,
             (result.score, fit_notes, status, now, job_id),
         )
+        if result.clean_description and result.clean_description.strip():
+            self.conn.execute(
+                """
+                UPDATE jobs
+                SET description = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (result.clean_description.strip(), now, job_id),
+            )
         self.conn.commit()
 
         cursor = self.conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,))

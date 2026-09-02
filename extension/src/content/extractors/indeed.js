@@ -12,16 +12,24 @@ import {
   getCanonicalUrl,
   extractJsonLd,
   jdHtmlToText,
+  expandTruncatedContent,
+  isDescriptionIncomplete,
+  cleanBoilerplate,
+  readSemanticDom,
 } from './helpers.js';
 
 export function extractIndeedJobDetails(doc) {
   if (!doc) return null;
 
+  // Auto-expand any collapsed 'Show more' sections before extracting
+  expandTruncatedContent(doc);
+
   // Tier 1: Try JSON-LD Schema.org
   const jsonLd = extractJsonLd(doc);
-  if (jsonLd && jsonLd.description && jsonLd.description.length > 50) {
+  if (jsonLd && jsonLd.description && !isDescriptionIncomplete(jsonLd.description)) {
     return {
       ...jsonLd,
+      description: cleanBoilerplate(jsonLd.description),
       source: 'indeed',
     };
   }
@@ -54,7 +62,22 @@ export function extractIndeedJobDetails(doc) {
     doc.querySelector('#jobDescriptionText') ||
     doc.querySelector('.jobsearch-JobComponent-description') ||
     doc.querySelector('.jobsearch-jobDescriptionText');
-  const description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
+  let description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
+
+  // Fallback to JSON-LD if DOM was incomplete
+  if (isDescriptionIncomplete(description) && jsonLd?.description) {
+    description = jsonLd.description;
+  }
+
+  // Fallback to semantic DOM / decanter if still incomplete
+  if (isDescriptionIncomplete(description)) {
+    const semantic = readSemanticDom(doc);
+    if (semantic.description && semantic.description.length > description.length) {
+      description = semantic.description;
+    }
+  }
+
+  description = cleanBoilerplate(description);
 
   const salaryEl =
     doc.querySelector('#salaryInfoAndJobType') ||

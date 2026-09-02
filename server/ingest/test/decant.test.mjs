@@ -76,3 +76,21 @@ test('decantHtml Tier 3 strips chrome, nav, forms, footers and decants readable 
   assert.ok(!result.includes('Privacy Policy'));
   assert.ok(!result.includes('Home'));
 });
+
+test('cleanBoilerplate strips corporate and EEOC disclaimers', async () => {
+  const { cleanBoilerplate } = await import('../src/jobs/decant.mjs');
+  const raw = `
+Senior Infrastructure Engineer
+
+Requirements:
+- Kubernetes
+- Terraform
+
+Equal Opportunity Employer:
+We are an equal opportunity employer and value diversity at our company. All qualified applicants will receive consideration.
+  `;
+  const cleaned = cleanBoilerplate(raw);
+  assert.ok(cleaned.includes('Senior Infrastructure Engineer'));
+  assert.ok(cleaned.includes('Kubernetes'));
+  assert.ok(!cleaned.toLowerCase().includes('equal opportunity employer'));
+});

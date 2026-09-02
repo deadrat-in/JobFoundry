@@ -61,6 +61,16 @@ async def process_unscored_user_jobs(
             updated_uj = store.score_user_job(user_job_id=user_job_id, result=result)
             processed += 1
 
+            if result.is_truncated:
+                logger.warning(
+                    "Job %s (user %s) marked as truncated by LLM screener",
+                    job_id,
+                    user_id,
+                )
+
+            if result.clean_description and result.clean_description.strip():
+                job_dict["description"] = result.clean_description.strip()
+
             if updated_uj.get("status") == "new":
                 passed += 1
 
@@ -174,6 +184,15 @@ async def process_unscored_jobs(
             result = await screener.score(job=job, master_resume=master_resume)
             updated_job = store.score_job(job_id=job_id, result=result)
             processed += 1
+
+            if result.is_truncated:
+                logger.warning(
+                    "Job %s marked as truncated by LLM screener",
+                    job_id,
+                )
+
+            if result.clean_description and result.clean_description.strip():
+                job["description"] = result.clean_description.strip()
 
             if updated_job.get("status") == "new":
                 passed += 1

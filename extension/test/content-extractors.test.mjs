@@ -268,3 +268,59 @@ test('extractGenericJob: extracts from article and semantic main content', async
   );
   assert.equal(jobs[0].source, 'web');
 });
+
+test('expandTruncatedContent clicks show-more button', async () => {
+  const { expandTruncatedContent } = await import('../src/content/extractors/helpers.js');
+  const dom = new JSDOM(`
+    <div>
+      <p id="desc">Short preview...</p>
+      <button class="show-more-less-html__button--more">Show more</button>
+    </div>
+  `);
+  let clicked = false;
+  const btn = dom.window.document.querySelector('button');
+  btn.addEventListener('click', () => {
+    clicked = true;
+  });
+
+  expandTruncatedContent(dom.window.document);
+  assert.equal(clicked, true);
+});
+
+test('isDescriptionIncomplete identifies truncated or tiny descriptions', async () => {
+  const { isDescriptionIncomplete } = await import('../src/content/extractors/helpers.js');
+  assert.equal(isDescriptionIncomplete(''), true);
+  assert.equal(isDescriptionIncomplete('Too short to be a valid full job description'), true);
+  assert.equal(
+    isDescriptionIncomplete(
+      'We are looking for a Senior Staff Distributed Systems Engineer with 10+ years of experience in Go, Rust, and Kubernetes to lead our core infrastructure initiatives and mentor team members... see more'
+    ),
+    true
+  );
+  // Full text > 250 characters without trailing ellipsis
+  const fullText =
+    'We are looking for a Senior Staff Distributed Systems Engineer with 10+ years of experience in Go, Rust, and Kubernetes to lead our core infrastructure initiatives and mentor team members across multiple timezones. Responsibilities include architecture design, reliability engineering, on-call support, and cross-functional alignment with product managers.';
+  assert.equal(isDescriptionIncomplete(fullText), false);
+});
+
+test('cleanBoilerplate strips EEOC statements and preserves requirements', async () => {
+  const { cleanBoilerplate } = await import('../src/content/extractors/helpers.js');
+  const raw = `
+About the Job:
+We need a Senior Backend Engineer proficient with TypeScript and PostgreSQL.
+
+Responsibilities:
+- Build APIs
+- Improve latency
+
+Equal Opportunity Employer:
+We are an equal opportunity employer and do not discriminate based on race, gender, religion, age, or sexual orientation. All qualified applicants will receive consideration.
+
+We participate in E-Verify.
+  `;
+  const cleaned = cleanBoilerplate(raw);
+  assert.ok(cleaned.includes('Senior Backend Engineer proficient with TypeScript'));
+  assert.ok(cleaned.includes('Build APIs'));
+  assert.ok(!cleaned.toLowerCase().includes('equal opportunity employer'));
+  assert.ok(!cleaned.toLowerCase().includes('we participate in e-verify'));
+});

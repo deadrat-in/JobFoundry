@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import { Agent, setGlobalDispatcher } from 'undici';
 import {
   existsSync,
   readFileSync,
@@ -9,11 +10,22 @@ import {
 } from 'node:fs';
 import { resolve, extname } from 'node:path';
 
+// Configure global undici dispatcher with 10-minute timeout for multi-stage LLM calls
+try {
+  setGlobalDispatcher(
+    new Agent({
+      headersTimeout: 600_000,
+      bodyTimeout: 600_000,
+      connectTimeout: 60_000,
+    })
+  );
+} catch {}
+
 import { randomUUID } from 'node:crypto';
 import { normalizeJob } from './jobs/normalize.mjs';
 import { fingerprintFor, insertIfNew } from './jobs/dedup.mjs';
 import { parseJobDescription } from './jobs/parse-jd.mjs';
-import { fetchAndDecantUrl } from './jobs/decant.mjs';
+import { fetchAndDecantUrl, cleanBoilerplate } from './jobs/decant.mjs';
 import { hashPassword, verifyPassword } from './auth/passwords.mjs';
 import { createToken, verifyToken, generateApiKey } from './auth/tokens.mjs';
 import {
@@ -416,18 +428,25 @@ export function buildApp({
         return reply.code(400).send({ error: `invalid job: ${err.message}` });
       }
 
-      // Universal Decanter safety net: fetch and populate if description is missing
-      if (
-        (!row.description || row.description.trim().length < 50) &&
-        row.url &&
-        /^https?:\/\//i.test(row.url)
-      ) {
+      // Universal Decanter safety net: fetch and populate if description is missing or truncated
+      const descTrimmed = (row.description || '').trim();
+      const isTruncated =
+        !descTrimmed ||
+        descTrimmed.length < 250 ||
+        /(\.\.\.|…)\s*(see more|read more|view more)?\s*$/i.test(descTrimmed) ||
+        /\b(see more|read more)\s*$/i.test(descTrimmed);
+
+      if (isTruncated && row.url && /^https?:\/\//i.test(row.url)) {
         try {
           const decanted = await fetchAndDecantUrl(row.url, { timeoutMs: 5000 });
-          if (decanted && decanted.length > 50) {
+          if (decanted && decanted.length > descTrimmed.length) {
             row.description = decanted;
           }
         } catch {}
+      }
+
+      if (row.description) {
+        row.description = cleanBoilerplate(row.description);
       }
 
       rows.push(row);

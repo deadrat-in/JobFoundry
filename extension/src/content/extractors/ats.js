@@ -12,14 +12,19 @@ import {
   extractJsonLd,
   jdHtmlToText,
   readSemanticDom,
+  expandTruncatedContent,
+  isDescriptionIncomplete,
+  cleanBoilerplate,
 } from './helpers.js';
 
 export function extractGreenhouse(doc) {
   if (!doc) return [];
 
+  expandTruncatedContent(doc);
+
   const jsonLd = extractJsonLd(doc);
-  if (jsonLd && jsonLd.description) {
-    return [{ ...jsonLd, source: 'greenhouse' }];
+  if (jsonLd && jsonLd.description && !isDescriptionIncomplete(jsonLd.description)) {
+    return [{ ...jsonLd, description: cleanBoilerplate(jsonLd.description), source: 'greenhouse' }];
   }
 
   const titleEl =
@@ -52,7 +57,19 @@ export function extractGreenhouse(doc) {
     doc.querySelector('.job-description') ||
     doc.querySelector('#job-description') ||
     doc.querySelector('article');
-  const description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
+  let description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
+
+  if (isDescriptionIncomplete(description) && jsonLd?.description) {
+    description = jsonLd.description;
+  }
+  if (isDescriptionIncomplete(description)) {
+    const semantic = readSemanticDom(doc);
+    if (semantic.description && semantic.description.length > description.length) {
+      description = semantic.description;
+    }
+  }
+
+  description = cleanBoilerplate(description);
 
   const url = getCanonicalUrl(doc) || doc.location?.href || '';
 
@@ -72,9 +89,11 @@ export function extractGreenhouse(doc) {
 export function extractLever(doc) {
   if (!doc) return [];
 
+  expandTruncatedContent(doc);
+
   const jsonLd = extractJsonLd(doc);
-  if (jsonLd && jsonLd.description) {
-    return [{ ...jsonLd, source: 'lever' }];
+  if (jsonLd && jsonLd.description && !isDescriptionIncomplete(jsonLd.description)) {
+    return [{ ...jsonLd, description: cleanBoilerplate(jsonLd.description), source: 'lever' }];
   }
 
   const titleEl =
@@ -98,7 +117,19 @@ export function extractLever(doc) {
     doc.querySelector('.section-wrapper') ||
     doc.querySelector('.posting-sections') ||
     doc.querySelector('article');
-  const description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
+  let description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
+
+  if (isDescriptionIncomplete(description) && jsonLd?.description) {
+    description = jsonLd.description;
+  }
+  if (isDescriptionIncomplete(description)) {
+    const semantic = readSemanticDom(doc);
+    if (semantic.description && semantic.description.length > description.length) {
+      description = semantic.description;
+    }
+  }
+
+  description = cleanBoilerplate(description);
 
   const url = getCanonicalUrl(doc) || doc.location?.href || '';
 
@@ -118,9 +149,11 @@ export function extractLever(doc) {
 export function extractAshby(doc) {
   if (!doc) return [];
 
+  expandTruncatedContent(doc);
+
   const jsonLd = extractJsonLd(doc);
-  if (jsonLd && jsonLd.description) {
-    return [{ ...jsonLd, source: 'ashby' }];
+  if (jsonLd && jsonLd.description && !isDescriptionIncomplete(jsonLd.description)) {
+    return [{ ...jsonLd, description: cleanBoilerplate(jsonLd.description), source: 'ashby' }];
   }
 
   const titleEl = doc.querySelector('h1') || doc.querySelector('h2');
@@ -140,7 +173,19 @@ export function extractAshby(doc) {
     doc.querySelector('main') ||
     doc.querySelector('.ashby-job-posting-description') ||
     doc.querySelector('#job-description');
-  const description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
+  let description = descEl ? jdHtmlToText(descEl.innerHTML || descEl.textContent || '') : '';
+
+  if (isDescriptionIncomplete(description) && jsonLd?.description) {
+    description = jsonLd.description;
+  }
+  if (isDescriptionIncomplete(description)) {
+    const semantic = readSemanticDom(doc);
+    if (semantic.description && semantic.description.length > description.length) {
+      description = semantic.description;
+    }
+  }
+
+  description = cleanBoilerplate(description);
 
   const url = getCanonicalUrl(doc) || doc.location?.href || '';
 
@@ -160,10 +205,12 @@ export function extractAshby(doc) {
 export function extractGenericJob(doc) {
   if (!doc) return [];
 
+  expandTruncatedContent(doc);
+
   // Tier 1: JSON-LD Schema.org
   const jsonLd = extractJsonLd(doc);
-  if (jsonLd && jsonLd.description && jsonLd.description.length >= 50) {
-    return [{ ...jsonLd, source: 'web' }];
+  if (jsonLd && jsonLd.description && !isDescriptionIncomplete(jsonLd.description)) {
+    return [{ ...jsonLd, description: cleanBoilerplate(jsonLd.description), source: 'web' }];
   }
 
   // Tier 2: Semantic DOM Extraction (career-ops readDom)
@@ -175,7 +222,7 @@ export function extractGenericJob(doc) {
       title,
       company: company || 'Company',
       location: null,
-      description,
+      description: cleanBoilerplate(description),
       url: getCanonicalUrl(doc) || doc.location?.href || '',
       source: 'web',
       postedAt: null,
