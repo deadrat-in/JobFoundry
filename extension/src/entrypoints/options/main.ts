@@ -99,7 +99,7 @@ function renderCompaniesTable() {
 
   if (!list || !empty) return;
 
-  list.innerHTML = '';
+  list.textContent = '';
   if (companies.length === 0) {
     empty.style.display = 'block';
     return;
@@ -108,16 +108,43 @@ function renderCompaniesTable() {
   empty.style.display = 'none';
   companies.forEach((co, idx) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>
-        <input type="checkbox" ${co.enabled !== false ? 'checked' : ''} data-co-idx="${idx}" class="co-toggle" />
-      </td>
-      <td><strong>${escapeHtml(co.name)}</strong></td>
-      <td><a href="${escapeHtml(co.careers_url)}" target="_blank" style="color: var(--accent); text-decoration: none;">${escapeHtml(co.careers_url)}</a></td>
-      <td>
-        <button type="button" data-del-idx="${idx}" class="btn btn-danger btn-sm del-co-btn">Remove</button>
-      </td>
-    `;
+
+    const tdCheck = document.createElement('td');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = co.enabled !== false;
+    checkbox.setAttribute('data-co-idx', String(idx));
+    checkbox.className = 'co-toggle';
+    tdCheck.appendChild(checkbox);
+
+    const tdName = document.createElement('td');
+    const strongName = document.createElement('strong');
+    strongName.textContent = co.name || '';
+    tdName.appendChild(strongName);
+
+    const tdUrl = document.createElement('td');
+    const link = document.createElement('a');
+    link.href = co.careers_url || '';
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.style.color = 'var(--accent)';
+    link.style.textDecoration = 'none';
+    link.textContent = co.careers_url || '';
+    tdUrl.appendChild(link);
+
+    const tdAction = document.createElement('td');
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.setAttribute('data-del-idx', String(idx));
+    delBtn.className = 'btn btn-danger btn-sm del-co-btn';
+    delBtn.textContent = 'Remove';
+    tdAction.appendChild(delBtn);
+
+    tr.appendChild(tdCheck);
+    tr.appendChild(tdName);
+    tr.appendChild(tdUrl);
+    tr.appendChild(tdAction);
+
     list.appendChild(tr);
   });
 
@@ -140,12 +167,6 @@ function renderCompaniesTable() {
       }
     });
   });
-}
-
-function escapeHtml(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text || '';
-  return div.innerHTML;
 }
 
 function collectFormData(): Partial<Config> {
@@ -221,7 +242,7 @@ async function loadScanHistory() {
   const empty = $('#no-history');
 
   if (!list || !empty) return;
-  list.innerHTML = '';
+  list.textContent = '';
 
   if (history.length === 0) {
     empty.style.display = 'block';
@@ -233,12 +254,34 @@ async function loadScanHistory() {
     const tr = document.createElement('tr');
     const d = new Date(run.timestamp);
     const timeStr = `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
-    tr.innerHTML = `
-      <td>${timeStr}</td>
-      <td><strong>${run.totalFetched ?? 0}</strong> raw jobs</td>
-      <td><span style="color: var(--green);">✓ ${run.passedFilters ?? 0}</span> matched</td>
-      <td><strong>${run.ingested ?? 0}</strong> sent to queue</td>
-    `;
+
+    const tdTime = document.createElement('td');
+    tdTime.textContent = timeStr;
+
+    const tdRaw = document.createElement('td');
+    const strongRaw = document.createElement('strong');
+    strongRaw.textContent = String(run.totalFetched ?? 0);
+    tdRaw.appendChild(strongRaw);
+    tdRaw.appendChild(document.createTextNode(' raw jobs'));
+
+    const tdMatched = document.createElement('td');
+    const spanMatched = document.createElement('span');
+    spanMatched.style.color = 'var(--green)';
+    spanMatched.textContent = `✓ ${run.passedFilters ?? 0}`;
+    tdMatched.appendChild(spanMatched);
+    tdMatched.appendChild(document.createTextNode(' matched'));
+
+    const tdSent = document.createElement('td');
+    const strongSent = document.createElement('strong');
+    strongSent.textContent = String(run.ingested ?? 0);
+    tdSent.appendChild(strongSent);
+    tdSent.appendChild(document.createTextNode(' sent to queue'));
+
+    tr.appendChild(tdTime);
+    tr.appendChild(tdRaw);
+    tr.appendChild(tdMatched);
+    tr.appendChild(tdSent);
+
     list.appendChild(tr);
   });
 }
