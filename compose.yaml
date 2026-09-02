@@ -1,21 +1,19 @@
 name: jobfoundry
 
 services:
-  # Phase 01/08 — server/ingest (Node/ESM ingest API + SQLite + dedup)
-  ingest:
-    image: ghcr.io/rat-s/jobfoundry-ingest:latest
+  # JobFoundry All-in-One (Web Dashboard + Ingest API + Fit Scorer + Resume Tailor)
+  jobfoundry:
+    image: ghcr.io/rat-s/jobfoundry:latest
     build:
       context: .
-      dockerfile: server/ingest/Dockerfile
+      dockerfile: Dockerfile
     ports:
       - '8080:8080'
-    environment:
-      PORT: '8080'
-      DB_PATH: /data/jobfoundry.db
-      ARTIFACTS_DIR: /data/artifacts
-      API_KEYS: ${API_KEYS:-}
+    env_file:
+      - .env
     volumes:
       - jobfoundry-data:/data
+    restart: unless-stopped
     healthcheck:
       test:
         [
@@ -27,102 +25,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 5s
-
-  # Phase 05/08/12 — server/scorer (Python fit screener + background worker daemon)
-  # Internal service: runs single-process worker daemon polling SQLite queue
-  scorer:
-    image: ghcr.io/rat-s/jobfoundry-scorer:latest
-    build:
-      context: .
-      dockerfile: server/scorer/Dockerfile
-    ports:
-      - '127.0.0.1:8001:8001'
-    environment:
-      PORT: '8001'
-      WORKER_ENABLED: 'true'
-      WORKER_POLL_INTERVAL_SECONDS: '10'
-      DB_PATH: /data/jobfoundry.db
-      ARTIFACTS_DIR: /data/artifacts
-      SCORER_MODEL: ${SCORER_MODEL:-openrouter/openrouter/free}
-      SCORER_PROVIDER: ${SCORER_PROVIDER:-openrouter}
-
-      SCORER_THRESHOLD: ${SCORER_THRESHOLD:-75}
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      OPENROUTER_API_BASE: ${OPENROUTER_API_BASE:-https://openrouter.ai/api/v1}
-      SCORER_API_KEY: ${SCORER_API_KEY:-}
-      SCORER_API_BASE: ${SCORER_API_BASE:-}
-      RESUME_OPS_URL: ${RESUME_OPS_URL:-http://resume-ops:8081}
-    volumes:
-      - jobfoundry-data:/data
-    depends_on:
-      ingest:
-        condition: service_healthy
-      resume-ops:
-        condition: service_healthy
-    healthcheck:
-      test:
-        [
-          'CMD',
-          'python',
-          '-c',
-          "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 5s
-
-  # Phase 06/08 — tailoring engine (resume-ops)
-  resume-ops:
-    image: ghcr.io/rat-s/jobfoundry-tailor:latest
-    build:
-      context: server/tailor
-      dockerfile: Dockerfile
-    ports:
-      - '8081:8081'
-    environment:
-      PORT: '8081'
-      DATA_DIR: /data
-      MASTER_RESUME_PATH: /data/master-resume.json
-      DEFAULT_MODEL: ${TAILOR_MODEL:-${SCORER_MODEL:-openrouter/google/gemini-2.0-flash-exp:free}}
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      OPENROUTER_API_BASE: ${OPENROUTER_API_BASE:-https://openrouter.ai/api/v1}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      ALLOWED_THEMES: ${ALLOWED_THEMES:-jsonresume-theme-folio jsonresume-theme-stackoverflow}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-    volumes:
-      - jobfoundry-data:/data
-    healthcheck:
-      test:
-        [
-          'CMD',
-          'python',
-          '-c',
-          "import urllib.request; urllib.request.urlopen('http://localhost:8081/healthz')",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-
-  # Phase 07/08 — server/web (Vite + React dashboard)
-  web:
-    image: ghcr.io/rat-s/jobfoundry-web:latest
-    build:
-      context: .
-      dockerfile: server/web/Dockerfile
-    ports:
-      - '5173:5173'
-    environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
-
-    depends_on:
-      - ingest
-      - scorer
-      - resume-ops
-
+      start_period: 15s
 
 volumes:
   jobfoundry-data:

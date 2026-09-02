@@ -8,9 +8,15 @@ const SETTINGS_KEY = 'jobfoundry_settings';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   apiKey: '',
-  apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:8080',
+  apiUrl:
+    import.meta.env.VITE_API_URL !== undefined
+      ? import.meta.env.VITE_API_URL
+      : typeof window !== 'undefined'
+        ? window.location.origin
+        : 'http://localhost:8080',
   threshold: 75,
 };
+
 
 export function loadSettings(): AppSettings {
   try {

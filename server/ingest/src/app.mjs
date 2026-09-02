@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
-import { existsSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readFileSync, mkdirSync, writeFileSync, statSync, createReadStream } from 'node:fs';
+import { resolve, extname } from 'node:path';
+
 import { randomUUID } from 'node:crypto';
 import { normalizeJob } from './jobs/normalize.mjs';
 import { fingerprintFor, insertIfNew } from './jobs/dedup.mjs';
@@ -27,8 +28,10 @@ export function buildApp({
   jwtSecret = 'jobfoundry-default-jwt-secret',
   artifactsDir = './data/artifacts',
   serverUrl = '',
+  staticDir = null,
   logger = process.env.NODE_ENV === 'test' ? false : true,
 }) {
+
   const legacyKeys = new Set(apiKeys ?? []);
   const app = Fastify({
     logger,
@@ -931,5 +934,55 @@ export function buildApp({
     return { ok: true, jobs: rows };
   });
 
+  if (staticDir && existsSync(staticDir)) {
+    const mimeTypes = {
+      '.html': 'text/html; charset=utf-8',
+      '.js': 'text/javascript; charset=utf-8',
+      '.mjs': 'text/javascript; charset=utf-8',
+      '.css': 'text/css; charset=utf-8',
+      '.json': 'application/json; charset=utf-8',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.svg': 'image/svg+xml',
+      '.ico': 'image/x-icon',
+      '.woff2': 'font/woff2',
+      '.woff': 'font/woff',
+      '.ttf': 'font/ttf',
+    };
+
+    const resolvedStatic = resolve(staticDir);
+
+    app.setNotFoundHandler(async (request, reply) => {
+      // If it's an API request or healthcheck, return 404 JSON
+      if (request.url.startsWith('/api/') || request.url.startsWith('/health')) {
+        return reply.status(404).send({ error: 'not_found', message: 'Route not found' });
+      }
+
+      const cleanUrl = request.url.split('?')[0];
+      const targetPath = resolve(resolvedStatic, cleanUrl === '/' ? 'index.html' : '.' + cleanUrl);
+
+      // Security check: ensure targetPath is within resolvedStatic
+      if (targetPath.startsWith(resolvedStatic)) {
+        if (existsSync(targetPath) && statSync(targetPath).isFile()) {
+          const ext = extname(targetPath).toLowerCase();
+          const contentType = mimeTypes[ext] || 'application/octet-stream';
+          reply.header('Content-Type', contentType);
+          return reply.send(createReadStream(targetPath));
+        }
+      }
+
+      // SPA fallback: return index.html for client-side routing
+      const indexPath = resolve(resolvedStatic, 'index.html');
+      if (existsSync(indexPath)) {
+        reply.header('Content-Type', 'text/html; charset=utf-8');
+        return reply.send(createReadStream(indexPath));
+      }
+
+      return reply.status(404).send({ error: 'not_found', message: 'Page not found' });
+    });
+  }
+
   return app;
 }
+

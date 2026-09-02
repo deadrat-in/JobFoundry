@@ -63,13 +63,16 @@ export class ApiClient {
   private apiKey: string | null;
 
   constructor(config?: ApiClientConfig) {
-    this.baseUrl = (
-      config?.baseUrl ||
-      import.meta.env.VITE_API_URL ||
-      'http://localhost:8080'
-    ).replace(/\/$/, '');
+    const defaultUrl =
+      import.meta.env.VITE_API_URL !== undefined
+        ? import.meta.env.VITE_API_URL
+        : typeof window !== 'undefined'
+          ? window.location.origin
+          : 'http://localhost:8080';
+    this.baseUrl = (config?.baseUrl ?? defaultUrl).replace(/\/$/, '');
     this.apiKey = config?.apiKey || null;
   }
+
 
   setApiKey(key: string | null) {
     this.apiKey = key;

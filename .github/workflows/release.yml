@@ -1,0 +1,38 @@
+name: Release Extension Bundles
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release-extension:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and Package Browser Extensions
+        run: |
+          npm --workspace=extension run zip
+          npm --workspace=extension run zip:firefox
+
+      - name: Attach Extension Zips to Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            extension/.output/*-chrome.zip
+            extension/.output/*-firefox.zip

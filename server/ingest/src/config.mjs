@@ -7,5 +7,7 @@ export function loadConfig(env = process.env) {
   const dbPath = env.DB_PATH ?? './data/jobfoundry.db';
   const artifactsDir = env.ARTIFACTS_DIR ?? './data/artifacts';
   const serverUrl = env.SERVER_URL ?? `http://localhost:${port}`;
-  return { port, apiKeys, dbPath, artifactsDir, serverUrl };
+  const staticDir = env.STATIC_DIR ?? null;
+  return { port, apiKeys, dbPath, artifactsDir, serverUrl, staticDir };
 }
+

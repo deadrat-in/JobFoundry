@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <script defer src="https://covai.org/analytics.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Download and install the JobFoundry companion browser extension for Chrome, Brave, Edge, and Firefox."
+    />
+    <title>Browser Extension Guide &amp; Downloads - JobFoundry</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-base: #0b111e;
+        --bg-surface: rgba(19, 30, 49, 0.6);
+        --bg-surface-hover: rgba(30, 48, 77, 0.85);
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+        --color-primary: #38bdf8;
+        --color-primary-glow: rgba(56, 189, 248, 0.2);
+        --color-accent: #8b5cf6;
+        --color-success: #10b981;
+        --color-warning: #f59e0b;
+        --border-color: rgba(148, 163, 184, 0.12);
+        --border-hover: rgba(148, 163, 184, 0.3);
+        --font-sans: 'Outfit', system-ui, -apple-system, sans-serif;
+        --font-mono: 'JetBrains Mono', monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--font-sans);
+        background-color: var(--bg-base);
+        color: var(--text-primary);
+        line-height: 1.6;
+        min-height: 100vh;
+        overflow-x: hidden;
+        position: relative;
+      }
+
+      body::before {
+        content: '';
+        position: absolute;
+        top: -10%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100vw;
+        height: 60vh;
+        background: radial-gradient(
+          circle,
+          rgba(56, 189, 248, 0.12) 0%,
+          rgba(139, 92, 246, 0.05) 50%,
+          transparent 80%
+        );
+        pointer-events: none;
+        z-index: -1;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 24px 32px;
+        max-width: 1200px;
+        margin: 0 auto;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        color: var(--text-primary);
+      }
+
+      .logo-img {
+        width: 32px;
+        height: 32px;
+      }
+
+      .logo-text {
+        font-size: 1.25rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .header-nav {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+
+      .nav-link {
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.95rem;
+        font-weight: 500;
+        transition: color 0.2s;
+      }
+
+      .nav-link:hover,
+      .nav-link.active {
+        color: var(--color-primary);
+      }
+
+      .btn-gh {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        color: var(--text-primary);
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+
+      .btn-gh:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: var(--border-hover);
+      }
+
+      main {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 60px 24px 100px;
+      }
+
+      .hero {
+        text-align: center;
+        margin-bottom: 48px;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 14px;
+        border-radius: 9999px;
+        background: rgba(56, 189, 248, 0.12);
+        border: 1px solid rgba(56, 189, 248, 0.3);
+        color: var(--color-primary);
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+      }
+
+      h1 {
+        font-size: 2.8rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.2;
+        margin-bottom: 16px;
+        background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .hero-sub {
+        font-size: 1.15rem;
+        color: var(--text-secondary);
+        max-width: 720px;
+        margin: 0 auto;
+      }
+
+      /* Store Notice Banner */
+      .store-notice {
+        background: rgba(56, 189, 248, 0.08);
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        border-radius: 14px;
+        padding: 20px 24px;
+        margin-bottom: 40px;
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+      }
+
+      .notice-icon {
+        font-size: 1.5rem;
+        flex-shrink: 0;
+      }
+
+      .notice-text h3 {
+        font-size: 1.05rem;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+      }
+
+      .notice-text p {
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+      }
+
+      /* Platform Grid */
+      .platform-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 48px;
+      }
+
+      @media (max-width: 768px) {
+        .platform-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .platform-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 18px;
+        padding: 32px;
+        backdrop-filter: blur(14px);
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .platform-card:hover {
+        border-color: var(--border-hover);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      .platform-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .platform-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.06);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+      }
+
+      .platform-name {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #ffffff;
+      }
+
+      .platform-badge {
+        font-size: 0.75rem;
+        padding: 3px 8px;
+        border-radius: 6px;
+        background: rgba(56, 189, 248, 0.15);
+        color: var(--color-primary);
+        display: inline-block;
+        margin-top: 4px;
+      }
+
+      .platform-desc {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        margin-bottom: 24px;
+        flex-grow: 1;
+      }
+
+      .btn-download {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        padding: 14px 20px;
+        border-radius: 10px;
+        background: var(--color-primary);
+        color: #0b111e;
+        font-weight: 700;
+        font-size: 0.95rem;
+        text-decoration: none;
+        transition: all 0.2s;
+        margin-bottom: 12px;
+      }
+
+      .btn-download:hover {
+        background: #7dd3fc;
+        transform: translateY(-1px);
+      }
+
+      .btn-store-pending {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        padding: 10px 16px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px dashed rgba(148, 163, 184, 0.25);
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        text-decoration: none;
+        cursor: default;
+      }
+
+      /* Step By Step Instructions */
+      .guide-section {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 18px;
+        padding: 32px;
+        margin-bottom: 32px;
+      }
+
+      .guide-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .step-list {
+        list-style: none;
+        counter-reset: steps;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .step-item {
+        counter-increment: steps;
+        position: relative;
+        padding-left: 44px;
+        color: var(--text-secondary);
+        font-size: 0.98rem;
+      }
+
+      .step-item::before {
+        content: counter(steps);
+        position: absolute;
+        left: 0;
+        top: -2px;
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: rgba(56, 189, 248, 0.15);
+        color: var(--color-primary);
+        font-weight: 700;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .step-item strong {
+        color: #ffffff;
+      }
+
+      .step-item code {
+        background: #060a12;
+        padding: 2px 8px;
+        border-radius: 4px;
+        color: var(--color-primary);
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+      }
+
+      /* Auto Connect Box */
+      .autoconnect-card {
+        background: linear-gradient(180deg, rgba(19, 30, 49, 0.8) 0%, rgba(11, 17, 30, 0.9) 100%);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 18px;
+        padding: 32px;
+        text-align: center;
+      }
+
+      .autoconnect-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        background: rgba(139, 92, 246, 0.15);
+        color: #c084fc;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-bottom: 12px;
+      }
+
+      .autoconnect-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 10px;
+      }
+
+      .autoconnect-desc {
+        color: var(--text-secondary);
+        max-width: 640px;
+        margin: 0 auto 20px;
+      }
+
+      footer {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 30px 20px;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+      }
+
+      footer a {
+        color: var(--color-primary);
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a href="index.html" class="logo-container">
+        <img src="icons/logo.svg" alt="JobFoundry Logo" class="logo-img" />
+        <span class="logo-text">JobFoundry</span>
+      </a>
+      <nav class="header-nav">
+        <a href="index.html" class="nav-link">Overview</a>
+        <a href="welcome.html" class="nav-link">Quickstart</a>
+        <a href="extension.html" class="nav-link active">Extension</a>
+        <a href="privacy.html" class="nav-link">Privacy</a>
+        <a
+          href="https://github.com/deadrat-in/JobFoundry"
+          target="_blank"
+          rel="noopener"
+          class="btn-gh"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path
+              d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"
+            />
+          </svg>
+          GitHub
+        </a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="badge">Companion Extension</div>
+        <h1>Get the Browser Extension</h1>
+        <p class="hero-sub">
+          Passively capture job postings as you browse, or run automated background scans across 84+
+          direct ATS portals using your browser's residential IP and session.
+        </p>
+      </section>
+
+      <!-- Store Notice -->
+      <div class="store-notice">
+        <div class="notice-icon">📢</div>
+        <div class="notice-text">
+          <h3>Web Store Listing Status</h3>
+          <p>
+            Official store listings for Chrome Web Store and Firefox Add-ons (AMO) are currently
+            under review. In the meantime, grab the pre-built packages directly from
+            <strong>GitHub Releases</strong> below. This page will update automatically with direct
+            store installation buttons once approved.
+          </p>
+        </div>
+      </div>
+
+      <!-- Platform Cards -->
+      <div class="platform-grid">
+        <!-- Chromium Card -->
+        <div class="platform-card">
+          <div class="platform-header">
+            <div class="platform-icon">🌐</div>
+            <div>
+              <div class="platform-name">Chromium Browsers</div>
+              <span class="platform-badge">Chrome &bull; Brave &bull; Edge &bull; Arc &bull; Opera</span>
+            </div>
+          </div>
+          <p class="platform-desc">
+            Manifest V3 bundle with passive DOM extraction, sidepanel kanban review, and scheduled ATS polling.
+          </p>
+          <a
+            href="https://github.com/deadrat-in/JobFoundry/releases/latest"
+            target="_blank"
+            rel="noopener"
+            class="btn-download"
+          >
+            <span>Download Chrome Extension (.zip)</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            </svg>
+          </a>
+          <div class="btn-store-pending">
+            <span>Chrome Web Store &bull; Review Pending</span>
+          </div>
+        </div>
+
+        <!-- Firefox Card -->
+        <div class="platform-card">
+          <div class="platform-header">
+            <div class="platform-icon">🦊</div>
+            <div>
+              <div class="platform-name">Mozilla Firefox</div>
+              <span class="platform-badge">Firefox Desktop &bull; Firefox Android</span>
+            </div>
+          </div>
+          <p class="platform-desc">
+            Cross-platform WebExtension bundle compatible with Firefox Desktop and Firefox for Android.
+          </p>
+          <a
+            href="https://github.com/deadrat-in/JobFoundry/releases/latest"
+            target="_blank"
+            rel="noopener"
+            class="btn-download"
+          >
+            <span>Download Firefox Add-on (.zip)</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            </svg>
+          </a>
+          <div class="btn-store-pending">
+            <span>Firefox AMO &bull; Review Pending</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Installation Guide: Chrome -->
+      <div class="guide-section">
+        <h2 class="guide-title">
+          <span>Installing on Chrome, Brave, Edge &amp; Arc</span>
+        </h2>
+        <ol class="step-list">
+          <li class="step-item">
+            Download <strong>jobfoundry-extension-*-chrome.zip</strong> from
+            <a
+              href="https://github.com/deadrat-in/JobFoundry/releases/latest"
+              target="_blank"
+              rel="noopener"
+              style="color: var(--color-primary)"
+              >GitHub Releases</a
+            >
+            and extract it to a local directory.
+          </li>
+          <li class="step-item">
+            Open <code>chrome://extensions</code> (or <code>brave://extensions</code> /
+            <code>edge://extensions</code>) in your browser.
+          </li>
+          <li class="step-item">
+            Enable the <strong>Developer mode</strong> toggle located in the top-right corner.
+          </li>
+          <li class="step-item">
+            Click the <strong>Load unpacked</strong> button in the top-left corner and select the
+            extracted extension directory.
+          </li>
+        </ol>
+      </div>
+
+      <!-- Installation Guide: Firefox -->
+      <div class="guide-section">
+        <h2 class="guide-title">
+          <span>Installing on Mozilla Firefox</span>
+        </h2>
+        <ol class="step-list">
+          <li class="step-item">
+            Download <strong>jobfoundry-extension-*-firefox.zip</strong> from
+            <a
+              href="https://github.com/deadrat-in/JobFoundry/releases/latest"
+              target="_blank"
+              rel="noopener"
+              style="color: var(--color-primary)"
+              >GitHub Releases</a
+            >.
+          </li>
+          <li class="step-item">
+            Open a new tab and navigate to <code>about:debugging#/runtime/this-firefox</code>.
+          </li>
+          <li class="step-item">
+            Click <strong>Load Temporary Add-on...</strong> and select the downloaded
+            <code>.zip</code> file (or extract and select <code>manifest.json</code>).
+          </li>
+        </ol>
+      </div>
+
+      <!-- 1-Click Auto Connect -->
+      <div class="autoconnect-card">
+        <span class="autoconnect-badge">Zero-Configuration Setup</span>
+        <h2 class="autoconnect-title">⚡ 1-Click Dashboard Auto-Connect</h2>
+        <p class="autoconnect-desc">
+          No need to copy and paste API keys manually. Once your JobFoundry dashboard is open
+          (e.g., <code>http://localhost:5173</code>), simply open the extension popup and click
+          <strong>Auto-Connect</strong>. The extension automatically detects your session, pairs
+          with your ingest server, and synchronizes your title filters.
+        </p>
+      </div>
+    </main>
+
+    <footer>
+      <div>JobFoundry &bull; AGPL-3.0 Open Source</div>
+      <div>
+        <a href="index.html">Overview</a> &bull; <a href="welcome.html">Quickstart</a> &bull;
+        <a href="privacy.html">Privacy</a> &bull; <a href="license.html">License</a>
+      </div>
+    </footer>
+  </body>
+</html>

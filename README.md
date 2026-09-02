@@ -59,7 +59,9 @@ server/
   scorer/         Python fit screener & worker daemon polling SQLite queue
   tailor/         Python resume-ops engine (LangGraph + resumed / Puppeteer PDF & ATS)
   web/            Vite + React 19 web dashboard (Kanban board, feed, resume manager)
-compose.yaml      Docker Compose stack configuration (all 4 services)
+Dockerfile        Multi-stage All-in-One container build
+compose.yaml      Docker Compose single-service configuration
+supervisord.conf  Process supervisor configuration
 install.sh        Single-command curl installer script
 scripts/          Healthcheck and repository verification utilities
 test/             End-to-end multi-service test suite
@@ -79,7 +81,7 @@ This script:
 1. Validates Docker & Docker Compose prerequisites.
 2. Clones or updates the JobFoundry stack.
 3. Automatically creates `.env` with a secure generated API key.
-4. Builds and starts all 4 services (`ingest`, `scorer`, `tailor`, `web`) in the background.
+4. Pulls or builds the **All-in-One container** and launches it in the background.
 5. Verifies service health via `./scripts/healthcheck.sh`.
 
 ---
@@ -89,7 +91,7 @@ This script:
 ### 1. Prerequisites
 
 - **Docker & Docker Compose** (recommended for containerized run)
-- Or for bare-metal:
+- Or for bare-metal development:
   - **Node.js**: v22+
   - **Python**: 3.12+ (or [uv](https://docs.astral.sh/uv/))
 
@@ -101,10 +103,18 @@ cp .env.example .env
 
 Review `.env` to configure your preferred LLM provider (OpenRouter, OpenAI, Anthropic, or local Ollama) and secret keys.
 
-### 3. Running with Docker Compose
+### 3. Running with Docker / Docker Compose
+
+Run with Docker Compose:
 
 ```bash
-docker compose up --build -d
+docker compose up -d
+```
+
+Or run directly with Docker (no Compose needed):
+
+```bash
+docker run -d -p 8080:8080 -v jobfoundry-data:/data --env-file .env ghcr.io/rat-s/jobfoundry:latest
 ```
 
 Verify service health:
@@ -113,10 +123,9 @@ Verify service health:
 ./scripts/healthcheck.sh
 ```
 
-- **Web Dashboard**: [http://localhost:5173](http://localhost:5173)
-- **Ingest API**: [http://localhost:8080](http://localhost:8080)
-- **Fit Scorer**: [http://localhost:8001](http://localhost:8001)
-- **Resume Tailor (resume-ops)**: [http://localhost:8081](http://localhost:8081)
+- **Web Dashboard & Ingest API**: [http://localhost:8080](http://localhost:8080)
+- **Browser Extension Guide**: [https://deadrat-in.github.io/JobFoundry/extension.html](https://deadrat-in.github.io/JobFoundry/extension.html)
+
 
 ### 4. Running Locally for Development
 

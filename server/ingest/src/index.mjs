@@ -10,5 +10,7 @@ const { url } = await startServer({
   apiKeys: config.apiKeys,
   artifactsDir: config.artifactsDir,
   serverUrl: config.serverUrl,
+  staticDir: config.staticDir,
 });
 console.log(`ingest listening on ${url}`);
+
