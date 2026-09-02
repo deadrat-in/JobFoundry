@@ -92,16 +92,17 @@ export default {
   },
 };
 
+import { htmlToText } from './_html-to-text.mjs';
+
 /**
  * Parse Himalayas' public jobs API response. Exported for unit tests.
  *
  * Shape: `{ jobs: [...] }`, where each job currently carries `title`,
  * `companyName`, `locationRestrictions`, `applicationLink`, `guid`,
- * `pubDate`, and `companySlug`. `applicationLink` is preferred over `guid`
- * and used as the dedup key after HTTPS + host validation.
+ * `pubDate`, `description`, `excerpt`, and `companySlug`.
  *
  * @param {unknown} json - raw parsed API response
- * @returns {Array<{title: string, url: string, company: string, location: string, postedAt?: number}>}
+ * @returns {Array<{title: string, url: string, company: string, location: string, description?: string, postedAt?: number}>}
  */
 export function parseHimalayasResponse(json) {
   if (!json || typeof json !== 'object' || !Array.isArray(json.jobs)) return [];
@@ -116,13 +117,18 @@ export function parseHimalayasResponse(json) {
     const url = cleanHimalayasUrl(item.applicationLink) || cleanHimalayasUrl(item.guid);
     if (!url) continue;
 
-    jobs.push({
+    const desc = htmlToText(item.description || item.excerpt || '');
+    /** @type {{title: string, url: string, company: string, location: string, description?: string, postedAt?: number}} */
+    const job = {
       title,
       url,
       company: cleanText(item.companyName),
       location: locationText(item.locationRestrictions),
       postedAt: toEpochMs(item.pubDate),
-    });
+    };
+    if (desc) job.description = desc;
+
+    jobs.push(job);
   }
 
   return jobs;

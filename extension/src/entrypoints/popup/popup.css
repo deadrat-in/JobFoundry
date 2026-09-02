@@ -136,10 +136,38 @@ body {
 
 .user-email {
   font-weight: 600;
-  max-width: 180px;
+  max-width: 170px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.btn-icon {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.15s ease;
+}
+
+.btn-icon:hover {
+  color: var(--fg);
+  border-color: var(--accent);
+  background: rgba(99, 102, 241, 0.12);
+}
+
+.user-subrow {
+  margin-top: 0.25rem;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
 }
 
 .scrapers-count {

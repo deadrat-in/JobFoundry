@@ -13,6 +13,7 @@ export default defineConfig({
       'alarms',
       'activeTab',
       'scripting',
+      'tabs',
       ...(env.browser === 'firefox' ? [] : ['sidePanel']),
     ],
     commands: {

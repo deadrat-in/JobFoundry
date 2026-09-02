@@ -32,6 +32,7 @@ export function getCanonicalUrl(doc) {
 }
 
 const BLOCK_END_RE = /<\/(p|div|ul|ol|h[1-6]|tr|section|article|blockquote)\s*>/gi;
+const NON_CONTENT_RE = /<(script|style|nav|header|footer|noscript|svg|button|form|iframe|select|option)\b[^>]*>[\s\S]*?<\/\1\s*>/gi;
 
 /**
  * Description markup -> plain text, keeping block structure as newlines.
@@ -50,6 +51,16 @@ export function jdHtmlToText(html) {
     .replace(/ *\n */g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+/**
+ * Universal HTML decanter: strips navigation, chrome, headers, footers, forms,
+ * and decodes clean readable body text for job postings.
+ */
+export function decantHtml(html) {
+  if (typeof html !== 'string' || !html) return '';
+  const clean = html.replace(NON_CONTENT_RE, ' ');
+  return jdHtmlToText(clean);
 }
 
 /**

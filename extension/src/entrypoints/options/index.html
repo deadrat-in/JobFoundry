@@ -117,61 +117,523 @@
         <!-- Tab 2: Scrapers & Portals -->
         <section id="tab-scrapers" class="tab-panel">
           <div class="card">
-            <h2>Public Job Board Aggregators (Zero-Token Feeds)</h2>
+            <h2>📡 Provider Catalog</h2>
             <p class="desc">
-              These public feeds are scraped directly without requiring company URLs.
+              JobFoundry ships with 81 provider adapters. Toggle public feeds below, or add company
+              ATS URLs further down. Feeds marked with ✦ charge fees to employers — browsing is
+              free, but some may require accounts to apply.
             </p>
-            <div class="boards-grid">
-              <label class="board-toggle">
-                <input type="checkbox" id="portal-remoteok" data-portal="remoteok" />
-                <div>
-                  <strong>RemoteOK</strong>
-                  <span>Global remote developer jobs</span>
+
+            <!-- ── Group 1: Global Remote Job Boards ──────────────────── -->
+            <details class="provider-category" open>
+              <summary>
+                🌍 Global Remote Job Boards <span class="cat-count">18 providers</span>
+              </summary>
+              <p class="cat-desc">
+                Public feeds with worldwide remote-friendly listings. No company URL needed.
+              </p>
+              <div class="boards-grid">
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="remoteok" />
+                  <div>
+                    <strong>RemoteOK ✦</strong>
+                    <span>Global remote developer jobs</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="weworkremotely" />
+                  <div>
+                    <strong>We Work Remotely ✦</strong>
+                    <span>Top remote tech postings & RSS</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="himalayas" />
+                  <div>
+                    <strong>Himalayas</strong>
+                    <span>Curated remote engineering roles</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="arbeitnow" />
+                  <div>
+                    <strong>Arbeitnow</strong>
+                    <span>European & remote tech roles</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="jobspresso" />
+                  <div>
+                    <strong>Jobspresso</strong>
+                    <span>Expertly reviewed tech & dev jobs</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="4dayweek" />
+                  <div>
+                    <strong>4 Day Week</strong>
+                    <span>4-day workweek software roles</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="remotive" />
+                  <div>
+                    <strong>Remotive</strong>
+                    <span>Remote jobs in tech, marketing & more</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="workingnomads" />
+                  <div>
+                    <strong>Working Nomads</strong>
+                    <span>Curated remote jobs for digital nomads</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="hackernews" />
+                  <div>
+                    <strong>Hacker News (Who's Hiring)</strong>
+                    <span>Monthly HN hiring threads</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="cryptocurrencyjobs" />
+                  <div>
+                    <strong>CryptocurrencyJobs</strong>
+                    <span>Web3 & crypto remote jobs</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="nodesk" />
+                  <div>
+                    <strong>Nodesk</strong>
+                    <span>Remote-first job listings & RSS</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="larajobs" />
+                  <div>
+                    <strong>LaraJobs</strong>
+                    <span>Laravel & PHP remote jobs</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="torre" />
+                  <div>
+                    <strong>Torre</strong>
+                    <span>AI-matched global job listings</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="themuse" />
+                  <div>
+                    <strong>The Muse</strong>
+                    <span>Company profiles & job discovery</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="landingjobs" />
+                  <div>
+                    <strong>Landing.jobs</strong>
+                    <span>European tech careers</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="flowxtra" />
+                  <div>
+                    <strong>FlowXtra</strong>
+                    <span>Developer & tech jobs</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="thehub" />
+                  <div>
+                    <strong>The Hub</strong>
+                    <span>European startup jobs</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="agentic-jobs" />
+                  <div>
+                    <strong>Agentic Jobs</strong>
+                    <span>AI & agent engineering roles</span>
+                  </div>
+                </label>
+              </div>
+            </details>
+
+            <!-- ── Group 2: Regional & Niche Job Boards ───────────────── -->
+            <details class="provider-category">
+              <summary>
+                🌏 Regional & Niche Job Boards <span class="cat-count">19 providers</span>
+              </summary>
+              <p class="cat-desc">
+                Region-specific public feeds and niche boards. Toggle any that match your target job
+                market.
+              </p>
+              <div class="boards-grid">
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="jobicy" />
+                  <div>
+                    <strong>Jobicy</strong>
+                    <span>Remote jobs with salary data</span>
+                    <span class="region-tag">Global</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="remotli" />
+                  <div>
+                    <strong>Remotli</strong>
+                    <span>Remote jobs aggregator</span>
+                    <span class="region-tag">Global</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="getonbrd" />
+                  <div>
+                    <strong>Get on Board</strong>
+                    <span>Tech jobs in Latin America</span>
+                    <span class="region-tag">LATAM</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="manfred" />
+                  <div>
+                    <strong>Manfred</strong>
+                    <span>Spanish tech community jobs</span>
+                    <span class="region-tag">Spain</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="wttj" />
+                  <div>
+                    <strong>Welcome to the Jungle</strong>
+                    <span>European tech & startup jobs</span>
+                    <span class="region-tag">Europe</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="nofluffjobs" />
+                  <div>
+                    <strong>No Fluff Jobs</strong>
+                    <span>Transparent IT jobs in Poland & Europe</span>
+                    <span class="region-tag">Poland / EU</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="justjoin" />
+                  <div>
+                    <strong>JustJoin.it</strong>
+                    <span>Polish tech job board</span>
+                    <span class="region-tag">Poland</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="solidjobs" />
+                  <div>
+                    <strong>SolidJobs</strong>
+                    <span>European IT job marketplace</span>
+                    <span class="region-tag">EU</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="senjob" />
+                  <div>
+                    <strong>SenJob</strong>
+                    <span>West African job marketplace</span>
+                    <span class="region-tag">Africa</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="jobbankca" />
+                  <div>
+                    <strong>Job Bank Canada</strong>
+                    <span>Canadian government job portal</span>
+                    <span class="region-tag">Canada</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="arbeitsagentur" />
+                  <div>
+                    <strong>Arbeitsagentur</strong>
+                    <span>German federal employment agency</span>
+                    <span class="region-tag">Germany</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="vdab" />
+                  <div>
+                    <strong>VDAB</strong>
+                    <span>Belgian public employment (Flanders)</span>
+                    <span class="region-tag">Belgium</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="higheredjobs" />
+                  <div>
+                    <strong>HigherEdJobs</strong>
+                    <span>Academic & university positions</span>
+                    <span class="region-tag">US</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="glints" />
+                  <div>
+                    <strong>Glints</strong>
+                    <span>Southeast Asian tech jobs</span>
+                    <span class="region-tag">SEA</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="jobstreet" />
+                  <div>
+                    <strong>JobStreet</strong>
+                    <span>SE Asian job marketplace</span>
+                    <span class="region-tag">SEA</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="mycareersfuture" />
+                  <div>
+                    <strong>MyCareersFuture</strong>
+                    <span>Singapore government jobs portal</span>
+                    <span class="region-tag">Singapore</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="careerviet" />
+                  <div>
+                    <strong>CareerViet</strong>
+                    <span>Vietnamese tech careers</span>
+                    <span class="region-tag">Vietnam</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="itviec" />
+                  <div>
+                    <strong>ITviec</strong>
+                    <span>Vietnamese IT job board</span>
+                    <span class="region-tag">Vietnam</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="yourator" />
+                  <div>
+                    <strong>Yourator</strong>
+                    <span>Taiwanese startup & tech jobs</span>
+                    <span class="region-tag">Taiwan</span>
+                  </div>
+                </label>
+              </div>
+            </details>
+
+            <!-- ── Group 3: Company-Specific Feeds ────────────────────── -->
+            <details class="provider-category">
+              <summary>
+                🏢 Company-Specific Feeds <span class="cat-count">3 providers</span>
+              </summary>
+              <p class="cat-desc">
+                Direct career feeds from major tech companies. No ATS URL needed.
+              </p>
+              <div class="boards-grid">
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="ibm" />
+                  <div>
+                    <strong>IBM Careers</strong>
+                    <span>IBM global job listings</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="amazon" />
+                  <div>
+                    <strong>Amazon Jobs</strong>
+                    <span>Amazon & AWS openings</span>
+                  </div>
+                </label>
+                <label class="board-toggle">
+                  <input type="checkbox" data-portal="a16z-speedrun-talent" />
+                  <div>
+                    <strong>a16z Speedrun Talent</strong>
+                    <span>Andreessen Horowitz portfolio jobs</span>
+                  </div>
+                </label>
+              </div>
+            </details>
+
+            <!-- ── Group 4: Supported ATS Platforms (Reference) ───────── -->
+            <details class="provider-category">
+              <summary>
+                🔗 Supported ATS Platforms <span class="cat-count">31+ platforms</span>
+              </summary>
+              <p class="cat-desc">
+                These activate automatically when you add a company's careers URL in "Custom Tracked
+                Company ATS Portals" below. No toggles needed — just add the URL.
+              </p>
+              <div class="ats-grid">
+                <div class="ats-item">
+                  <strong>Greenhouse</strong>
+                  <code>job-boards.greenhouse.io/{company}</code>
                 </div>
-              </label>
-              <label class="board-toggle">
-                <input type="checkbox" id="portal-weworkremotely" data-portal="weworkremotely" />
-                <div>
-                  <strong>We Work Remotely</strong>
-                  <span>Top remote tech postings & RSS</span>
+                <div class="ats-item">
+                  <strong>Lever</strong>
+                  <code>jobs.lever.co/{company}</code>
                 </div>
-              </label>
-              <label class="board-toggle">
-                <input type="checkbox" id="portal-himalayas" data-portal="himalayas" />
-                <div>
-                  <strong>Himalayas</strong>
-                  <span>Curated remote engineering roles</span>
+                <div class="ats-item">
+                  <strong>Ashby</strong>
+                  <code>jobs.ashbyhq.com/{company}</code>
                 </div>
-              </label>
-              <label class="board-toggle">
-                <input type="checkbox" id="portal-arbeitnow" data-portal="arbeitnow" />
-                <div>
-                  <strong>Arbeitnow</strong>
-                  <span>European & remote tech roles</span>
+                <div class="ats-item">
+                  <strong>Workday</strong>
+                  <code>{company}.wd5.myworkdayjobs.com/</code>
                 </div>
-              </label>
-              <label class="board-toggle">
-                <input type="checkbox" id="portal-jobspresso" data-portal="jobspresso" />
-                <div>
-                  <strong>Jobspresso</strong>
-                  <span>Expertly reviewed tech & dev jobs</span>
+                <div class="ats-item">
+                  <strong>Workable</strong>
+                  <code>apply.workable.com/{company}</code>
                 </div>
-              </label>
-              <label class="board-toggle">
-                <input type="checkbox" id="portal-4dayweek" data-portal="4dayweek" />
-                <div>
-                  <strong>4 Day Week</strong>
-                  <span>4-day workweek software engineering roles</span>
+                <div class="ats-item">
+                  <strong>SmartRecruiters</strong>
+                  <code>careers.smartrecruiters.com/{company}</code>
                 </div>
-              </label>
-            </div>
+                <div class="ats-item">
+                  <strong>Jobvite</strong>
+                  <code>jobs.jobvite.com/{company}</code>
+                </div>
+                <div class="ats-item">
+                  <strong>BambooHR</strong>
+                  <code>{company}.bamboohr.com/careers</code>
+                </div>
+                <div class="ats-item">
+                  <strong>Breezy HR</strong>
+                  <code>{company}.breezy.hr</code>
+                </div>
+                <div class="ats-item">
+                  <strong>Recruitee</strong>
+                  <code>{company}.recruitee.com</code>
+                </div>
+                <div class="ats-item">
+                  <strong>Teamtailor</strong>
+                  <code>{company}.teamtailor.com</code>
+                </div>
+                <div class="ats-item">
+                  <strong>Pinpoint</strong>
+                  <code>{company}.pinpointhq.com</code>
+                </div>
+                <div class="ats-item">
+                  <strong>Personio</strong>
+                  <code>{company}.jobs.personio.de</code>
+                </div>
+                <div class="ats-item">
+                  <strong>iCIMS</strong>
+                  <code>careers-{company}.icims.com</code>
+                </div>
+                <div class="ats-item">
+                  <strong>Phenom</strong>
+                  <code>{company}.phenom.com/jobs</code>
+                </div>
+                <div class="ats-item">
+                  <strong>Radancy</strong>
+                  <code>jobs.{company}.com (various)</code>
+                </div>
+                <div class="ats-item">
+                  <strong>Avature</strong>
+                  <code>{company}.avature.net/careers</code>
+                </div>
+                <div class="ats-item">
+                  <strong>Cornerstone (CSOD)</strong>
+                  <code>{company}.csod.com/ats/careersite</code>
+                </div>
+                <div class="ats-item">
+                  <strong>SuccessFactors</strong>
+                  <code>*.successfactors.com/career</code>
+                </div>
+                <div class="ats-item">
+                  <strong>Oracle Cloud</strong>
+                  <code>*.oraclecloud.com/hcmUI/</code>
+                </div>
+                <div class="ats-item">
+                  <strong>Eightfold</strong>
+                  <code>*.eightfold.ai/</code>
+                </div>
+                <div class="ats-item">
+                  <strong>Gem</strong>
+                  <code>*.gem.com/careers</code>
+                </div>
+                <div class="ats-item">
+                  <strong>Consider</strong>
+                  <code>*.consider.com/</code>
+                </div>
+                <div class="ats-item">
+                  <strong>GetRo</strong>
+                  <code>jobs.getro.com/… (portfolio boards)</code>
+                </div>
+                <div class="ats-item">
+                  <strong>JibeApply</strong>
+                  <code>*.jibeapply.com/</code>
+                </div>
+                <div class="ats-item">
+                  <strong>Rippling</strong>
+                  <code>*.rippling.com/careers</code>
+                </div>
+                <div class="ats-item">
+                  <strong>Join</strong>
+                  <code>join.com/{company}</code>
+                </div>
+                <div class="ats-item">
+                  <strong>Softgarden</strong>
+                  <code>*.softgarden.io/</code>
+                </div>
+                <div class="ats-item">
+                  <strong>Beesite</strong>
+                  <code>*.beesite.de/</code>
+                </div>
+                <div class="ats-item">
+                  <strong>Comeet</strong>
+                  <code>*.comeet.com/</code>
+                </div>
+                <div class="ats-item">
+                  <strong>No Fluff Jobs</strong>
+                  <code>nofluffjobs.com/{company}</code>
+                </div>
+                <div class="ats-item">
+                  <strong>JustJoin.it</strong>
+                  <code>justjoin.it/offers/{company}</code>
+                </div>
+                <div class="ats-item">
+                  <strong>SolidJobs</strong>
+                  <code>solid.jobs/public-api/offers/…</code>
+                </div>
+                <div class="ats-item">
+                  <strong>Remotli</strong>
+                  <code>remotli.com/company/{id}</code>
+                </div>
+                <div class="ats-item">
+                  <strong>JoinUp</strong>
+                  <code>*.joinup.com/</code>
+                </div>
+              </div>
+            </details>
+
+            <!-- ── Group 5: Retired Providers ─────────────────────────── -->
+            <details class="provider-category">
+              <summary>⚠️ Retired Providers <span class="cat-count">1 provider</span></summary>
+              <p class="cat-desc">No longer functional. Shown for transparency.</p>
+              <div class="boards-grid">
+                <label class="board-toggle retired">
+                  <input type="checkbox" disabled />
+                  <div>
+                    <strong>EchoJobs <span class="retired-badge">Retired</span></strong>
+                    <span>Feed blocked by bot protection (Aug 2026)</span>
+                  </div>
+                </label>
+              </div>
+            </details>
           </div>
 
           <div class="card">
             <h2>Custom Tracked Company ATS Portals</h2>
             <p class="desc">
-              Add direct career page URLs for target employers (supports Greenhouse, Lever, Ashby,
-              Workable, etc.).
+              Add direct career page URLs for target employers. JobFoundry auto-detects the ATS
+              platform (Greenhouse, Lever, Ashby, Workday, etc.) from the URL.
             </p>
 
             <form id="add-company-form" class="add-company-row">

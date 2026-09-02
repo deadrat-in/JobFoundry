@@ -246,6 +246,20 @@ export class ApiClient {
     return res.job;
   }
 
+  async updateJobDescription(id: string, description: string): Promise<Job> {
+    const res = await this.request<{ job: Job }>(`/api/v1/jobs/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ description }),
+    });
+    return res.job;
+  }
+
+  async decantJob(id: string): Promise<{ ok: boolean; job: Job; description: string }> {
+    return this.request<{ ok: boolean; job: Job; description: string }>(`/api/v1/jobs/${id}/decant`, {
+      method: 'POST',
+    });
+  }
+
   async deleteJob(id: string): Promise<{ ok: boolean }> {
     return this.request<{ ok: boolean }>(`/api/v1/jobs/${id}`, {
       method: 'DELETE',

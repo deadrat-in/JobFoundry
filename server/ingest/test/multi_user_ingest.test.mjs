@@ -115,4 +115,23 @@ test('multi-user job ingest and pipeline isolation', async () => {
     headers: { Authorization: `Bearer ${tokenB}` },
   });
   assert.equal(JSON.parse(checkB.body).job.status, 'new');
+
+  // Alice updates description of JOB_2
+  const updateDesc = await app.inject({
+    method: 'PATCH',
+    url: `/api/v1/jobs/${job2Id}`,
+    headers: { Authorization: `Bearer ${tokenA}` },
+    payload: { description: 'Updated rich full job description text with all requirements.' },
+  });
+  assert.equal(updateDesc.statusCode, 200);
+
+  const checkUpdated = await app.inject({
+    method: 'GET',
+    url: `/api/v1/jobs/${job2Id}`,
+    headers: { Authorization: `Bearer ${tokenA}` },
+  });
+  assert.equal(
+    JSON.parse(checkUpdated.body).job.description,
+    'Updated rich full job description text with all requirements.'
+  );
 });

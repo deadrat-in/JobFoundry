@@ -2,6 +2,8 @@ import { getConfig, setConfig, DEFAULT_CONFIG } from '../../shared/config.ts';
 import type { Config, TrackedCompany } from '../../shared/config.ts';
 import { sendMessage } from '../../shared/messaging.ts';
 import { extractKeywordsFromResume } from '../../background/filters/resume-keywords.js';
+import { runScanPipeline } from '../../background/scan.js';
+import { sendJobs } from '../../shared/ingest-client.js';
 
 function $(selector: string): any {
   return document.querySelector(selector);
@@ -333,7 +335,18 @@ async function triggerScan() {
   if (btn) btn.disabled = true;
 
   try {
-    const res = await sendMessage('popup:scanNow', undefined);
+    let res: any;
+    try {
+      res = await sendMessage('popup:scanNow', undefined);
+    } catch (msgErr: any) {
+      console.warn(
+        'Background message failed, falling back to direct scan in options context:',
+        msgErr
+      );
+      const jobs = await runScanPipeline({ getConfig, sendJobs });
+      res = { ok: true, scanned: Array.isArray(jobs) ? jobs.length : 0 };
+    }
+
     if (res?.ok) {
       if (banner) {
         banner.style.background = 'var(--green-bg)';

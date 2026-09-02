@@ -94,6 +94,8 @@ function resolveMaxPages(entry) {
   return DEFAULT_MAX_PAGES;
 }
 
+import { htmlToText } from './_html-to-text.mjs';
+
 /**
  * Normalize a single Get on Board job (JSON:API resource). Exported for tests.
  *
@@ -107,11 +109,12 @@ function resolveMaxPages(entry) {
  *   - location: "Remote" when `attributes.remote` is true, else the joined
  *               `attributes.countries` (an array of country names in the live
  *               API; a plain string is tolerated for older payloads).
+ *   - description: `attributes.description` + functions/projects/benefits.
  *   - postedAt: `attributes.published_at` (epoch SECONDS) → epoch ms (omitted when absent).
  *
  * @param {any} j
  * @param {string} [fallbackCompany]
- * @returns {{ title: string, url: string, company: string, location: string, postedAt?: number } | null}
+ * @returns {{ title: string, url: string, company: string, location: string, description?: string, postedAt?: number } | null}
  */
 export function normalizeGetonbrdJob(j, fallbackCompany) {
   if (!j || typeof j !== 'object' || !j.attributes || typeof j.attributes !== 'object') return null;
@@ -151,8 +154,19 @@ export function normalizeGetonbrdJob(j, fallbackCompany) {
     location = attr.countries.trim();
   }
 
-  /** @type {{ title: string, url: string, company: string, location: string, postedAt?: number }} */
+  /** @type {{ title: string, url: string, company: string, location: string, description?: string, postedAt?: number }} */
   const job = { title, url, company, location };
+
+  const rawDescParts = [
+    attr.description,
+    attr.functions ? `\nFunctions:\n${attr.functions}` : '',
+    attr.projects ? `\nProjects:\n${attr.projects}` : '',
+    attr.benefits ? `\nBenefits:\n${attr.benefits}` : '',
+    attr.desirable ? `\nDesirable:\n${attr.desirable}` : '',
+  ].filter(Boolean).join('\n');
+  const desc = htmlToText(rawDescParts);
+  if (desc) job.description = desc;
+
   // `attributes.published_at` is epoch SECONDS → convert to ms (omitted when absent).
   if (Number.isFinite(attr.published_at) && attr.published_at > 0) job.postedAt = attr.published_at * 1000;
   return job;

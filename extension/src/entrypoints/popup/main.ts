@@ -17,6 +17,7 @@ export const DOM = {
   openOptions: '#open-options',
   openSidebar: '#open-sidebar',
   openDashboard: '#open-dashboard',
+  reconnectBtn: '#reconnect-btn',
 };
 
 function $<T extends HTMLElement>(doc: Document, selector: string): T {
@@ -188,6 +189,10 @@ export function init(opts: { doc?: Document; [key: string]: any } = {}) {
   });
 
   $<HTMLButtonElement>(doc, DOM.autoConnect)?.addEventListener('click', () => {
+    autoConnect(opts).catch(() => {});
+  });
+
+  $<HTMLButtonElement>(doc, DOM.reconnectBtn)?.addEventListener('click', () => {
     autoConnect(opts).catch(() => {});
   });
 

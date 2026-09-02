@@ -110,7 +110,7 @@ export function parseHnComment(text, threadUrl = '') {
   const url = extractUrl(plain) || threadUrl;
   if (!url) return null;
 
-  return { title, url, company, location };
+  return { title, url, company, location, description: plain.trim() };
 }
 
 /**

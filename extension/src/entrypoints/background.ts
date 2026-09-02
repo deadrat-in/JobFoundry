@@ -60,7 +60,6 @@ export async function processDiscoveredJobs({
 
 export default defineBackground(() => {
   const api = globalThis.browser ?? globalThis.chrome;
-  if (!api?.runtime?.onInstalled) return;
 
   const syncAlarms = async () => {
     try {
@@ -73,7 +72,9 @@ export default defineBackground(() => {
     }
   };
 
-  api.runtime.onInstalled.addListener(syncAlarms);
+  if (api?.runtime?.onInstalled?.addListener) {
+    api.runtime.onInstalled.addListener(syncAlarms);
+  }
 
   api.alarms?.onAlarm?.addListener(async (alarm: any) => {
     if (alarm.name === SCAN_ALARM_NAME) {
@@ -105,88 +106,157 @@ export default defineBackground(() => {
   // Protocol Message Handlers
   onMessage('popup:autoConnect', async () => {
     try {
-      const tabs = await api.tabs?.query({ active: true, currentWindow: true });
-      const activeTab = tabs?.[0];
-      if (!activeTab?.id) {
-        return { ok: false, error: 'No active browser tab found.' };
-      }
-
       if (!api.scripting?.executeScript) {
         return { ok: false, error: 'Browser scripting permission not available.' };
       }
 
-      const results = await api.scripting.executeScript({
-        target: { tabId: activeTab.id },
-        func: () => {
-          // SECURITY GUARANTEE:
-          // Strictly verify this page is genuinely a JobFoundry web application instance
-          // before reading any session or credentials from localStorage.
-          const metaApp = document
-            .querySelector('meta[name="jobfoundry-app"]')
-            ?.getAttribute('content');
-          const metaAppName = document
-            .querySelector('meta[name="application-name"]')
-            ?.getAttribute('content');
-          const rootEl = document.querySelector('#root[data-jobfoundry-app="true"]');
-          const isJobFoundry = metaApp === 'true' || metaAppName === 'JobFoundry' || !!rootEl;
+      // Query tabs to find open JobFoundry dashboard instances
+      const allTabs: any[] = (await api.tabs?.query({})) || [];
+      const activeTabs: any[] =
+        (await api.tabs?.query({ active: true, currentWindow: true })) || [];
+      const activeTab = activeTabs[0];
 
-          if (!isJobFoundry) {
-            return {
-              ok: false,
-              code: 'NOT_JOBFOUNDRY',
-              error:
-                'Active tab is not a JobFoundry dashboard. Please switch to your JobFoundry dashboard tab first.',
-            };
-          }
+      // Helper: only web URLs (never extension or browser system URLs)
+      const isWebUrl = (url?: string) =>
+        typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://'));
 
-          try {
-            const userRaw = localStorage.getItem('jf_auth_user');
-            const token = localStorage.getItem('jf_auth_token');
-            const settingsRaw = localStorage.getItem('jf_settings');
+      const isLikelyJobFoundry = (t: any) => {
+        const u = (t.url || '').toLowerCase();
+        const title = (t.title || '').toLowerCase();
+        return (
+          u.includes('5173') ||
+          u.includes('8080') ||
+          u.includes('localhost') ||
+          u.includes('127.0.0.1') ||
+          u.includes('jobfoundry') ||
+          u.includes('covai.org') ||
+          title.includes('jobfoundry')
+        );
+      };
 
-            const user = userRaw ? JSON.parse(userRaw) : null;
-            const settings = settingsRaw ? JSON.parse(settingsRaw) : null;
-
-            const apiKey = user?.apiKey || (token ? token : null);
-            let serverUrl = settings?.apiUrl;
-
-            if (!serverUrl || serverUrl === 'http://localhost:8080') {
-              serverUrl = 'http://localhost:8080';
-            }
-
-            if (!apiKey) {
-              return {
-                ok: false,
-                code: 'NOT_LOGGED_IN',
-                error:
-                  'Found JobFoundry dashboard, but you are not logged in yet. Please log in to your dashboard first.',
-              };
-            }
-
-            return {
-              ok: true,
-              serverUrl,
-              apiKey,
-              email: user?.email || 'Logged In User',
-              name: user?.name || '',
-            };
-          } catch (err: any) {
-            return {
-              ok: false,
-              code: 'STORAGE_ERROR',
-              error: `Failed to read JobFoundry session: ${err?.message || err}`,
-            };
-          }
-        },
-      });
-
-      const extracted = results?.[0]?.result;
-      if (!extracted) {
-        return { ok: false, error: 'Could not inspect active page.' };
+      // Ordered candidates:
+      // 1. Active tab (if it is a web tab and matches JobFoundry)
+      // 2. Any tab matching likely JobFoundry URLs or titles
+      // 3. Active tab (if it is a web tab)
+      const candidates: any[] = [];
+      if (activeTab?.id && isWebUrl(activeTab.url) && isLikelyJobFoundry(activeTab)) {
+        candidates.push(activeTab);
+      }
+      for (const t of allTabs) {
+        if (
+          t.id &&
+          isWebUrl(t.url) &&
+          isLikelyJobFoundry(t) &&
+          !candidates.some((c) => c.id === t.id)
+        ) {
+          candidates.push(t);
+        }
+      }
+      if (
+        activeTab?.id &&
+        isWebUrl(activeTab.url) &&
+        !candidates.some((c) => c.id === activeTab.id)
+      ) {
+        candidates.push(activeTab);
       }
 
-      if (!extracted.ok) {
-        return { ok: false, error: extracted.error };
+      if (candidates.length === 0) {
+        return {
+          ok: false,
+          code: 'NO_DASHBOARD_TAB',
+          error:
+            'No open JobFoundry dashboard tab found. Please open your dashboard (e.g. http://localhost:5173) in a tab first, or configure your Server URL and API Key manually.',
+        };
+      }
+
+      let extracted: any = null;
+      let lastError: string = '';
+
+      for (const targetTab of candidates) {
+        try {
+          const results = await api.scripting.executeScript({
+            target: { tabId: targetTab.id },
+            func: () => {
+              // SECURITY GUARANTEE:
+              // Strictly verify this page is genuinely a JobFoundry web application instance
+              // before reading any session or credentials from localStorage.
+              const metaApp = document
+                .querySelector('meta[name="jobfoundry-app"]')
+                ?.getAttribute('content');
+              const metaAppName = document
+                .querySelector('meta[name="application-name"]')
+                ?.getAttribute('content');
+              const rootEl = document.querySelector('#root[data-jobfoundry-app="true"]');
+              const isJobFoundry = metaApp === 'true' || metaAppName === 'JobFoundry' || !!rootEl;
+
+              if (!isJobFoundry) {
+                return {
+                  ok: false,
+                  code: 'NOT_JOBFOUNDRY',
+                  error: 'Tab is not a JobFoundry dashboard.',
+                };
+              }
+
+              try {
+                const userRaw = localStorage.getItem('jf_auth_user');
+                const token = localStorage.getItem('jf_auth_token');
+                const settingsRaw = localStorage.getItem('jf_settings');
+
+                const user = userRaw ? JSON.parse(userRaw) : null;
+                const settings = settingsRaw ? JSON.parse(settingsRaw) : null;
+
+                const apiKey = user?.apiKey || (token ? token : null);
+                let serverUrl = settings?.apiUrl;
+
+                if (!serverUrl || serverUrl === 'http://localhost:8080') {
+                  serverUrl = 'http://localhost:8080';
+                }
+
+                if (!apiKey) {
+                  return {
+                    ok: false,
+                    code: 'NOT_LOGGED_IN',
+                    error:
+                      'Found JobFoundry dashboard, but you are not logged in yet. Please log in to your dashboard first.',
+                  };
+                }
+
+                return {
+                  ok: true,
+                  serverUrl,
+                  apiKey,
+                  email: user?.email || 'Logged In User',
+                  name: user?.name || '',
+                };
+              } catch (err: any) {
+                return {
+                  ok: false,
+                  code: 'STORAGE_ERROR',
+                  error: `Failed to read JobFoundry session: ${err?.message || err}`,
+                };
+              }
+            },
+          });
+
+          const res = results?.[0]?.result;
+          if (res?.ok) {
+            extracted = res;
+            break;
+          } else if (res?.error && res.code !== 'NOT_JOBFOUNDRY') {
+            lastError = res.error;
+          }
+        } catch (err: any) {
+          lastError = err?.message ?? String(err);
+        }
+      }
+
+      if (!extracted) {
+        return {
+          ok: false,
+          error:
+            lastError ||
+            'Found candidate tab(s), but none had an active JobFoundry session. Please log in to your dashboard first.',
+        };
       }
 
       // Persist to extension sync config
@@ -582,16 +652,35 @@ export default defineBackground(() => {
     }
   });
 
-  // Watch for scan interval changes
-  storage.watch<Config>('sync:jobfoundry-config', async (newConfig) => {
-    if (newConfig?.scanIntervalHours) {
-      try {
-        await api.alarms?.create(SCAN_ALARM_NAME, {
-          periodInMinutes: Math.max(1, newConfig.scanIntervalHours * 60),
-        });
-      } catch {
-        // ignore
+  // Watch for scan interval changes safely across browsers
+  try {
+    storage.watch<Config>('sync:jobfoundry-config', async (newConfig) => {
+      if (newConfig?.scanIntervalHours) {
+        try {
+          await api.alarms?.create(SCAN_ALARM_NAME, {
+            periodInMinutes: Math.max(1, newConfig.scanIntervalHours * 60),
+          });
+        } catch {
+          // ignore
+        }
       }
-    }
-  });
+    });
+  } catch {
+    // Fallback for environments where storage.watch is not supported
+  }
+
+  try {
+    api?.storage?.onChanged?.addListener((changes: any) => {
+      const cfg = changes['jobfoundry-config'] || changes['sync:jobfoundry-config'];
+      if (cfg?.newValue?.scanIntervalHours) {
+        api.alarms
+          ?.create?.(SCAN_ALARM_NAME, {
+            periodInMinutes: Math.max(1, cfg.newValue.scanIntervalHours * 60),
+          })
+          .catch?.(() => {});
+      }
+    });
+  } catch {
+    // ignore
+  }
 });

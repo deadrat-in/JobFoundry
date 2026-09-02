@@ -32,7 +32,7 @@ import { dedupJobs, createSessionCache } from './dedup.js';
 import { buildTitleFilter } from './filters/title-keywords.js';
 import { buildLocationFilter } from './filters/location-filter.js';
 import { buildDateFilter } from './filters/date-filter.js';
-import { jdHtmlToText } from '../content/extractors/helpers.js';
+import { jdHtmlToText, decantHtml } from '../content/extractors/helpers.js';
 
 export async function runScanPipeline({
   getConfig,
@@ -124,16 +124,13 @@ export async function runScanPipeline({
     return true;
   });
 
-  // Phase 2.5 — Auto-Enrich Missing Job Descriptions (bounded per sweep)
-  let detailBudget = 25;
+  // Phase 2.5 — Auto-Enrich Missing Job Descriptions (Universal Decanter)
   for (const raw of filtered) {
-    if (detailBudget <= 0) break;
     if (
       (!raw.description || raw.description.length < 50) &&
       raw.url &&
       /^https?:\/\//i.test(raw.url)
     ) {
-      detailBudget--;
       try {
         let html = '';
         try {
@@ -153,6 +150,7 @@ export async function runScanPipeline({
         }
 
         if (html) {
+          // Tier 1: Schema.org JobPosting JSON-LD
           const jsonLdMatch = html.match(
             /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
           );
@@ -178,6 +176,7 @@ export async function runScanPipeline({
             }
           }
 
+          // Tier 2: Semantic job description containers
           if (!foundDesc) {
             const articleMatch =
               html.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i) ||
@@ -187,6 +186,16 @@ export async function runScanPipeline({
               );
             if (articleMatch) {
               foundDesc = jdHtmlToText(articleMatch[1]);
+            }
+          }
+
+          // Tier 3: Universal DOM Decanter fallback (strip chrome, nav, footer, scripts, etc.)
+          if (!foundDesc) {
+            const bodyMatch = html.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
+            const contentHtml = bodyMatch ? bodyMatch[1] : html;
+            const decanted = decantHtml(contentHtml);
+            if (decanted && decanted.length > 50) {
+              foundDesc = decanted;
             }
           }
 

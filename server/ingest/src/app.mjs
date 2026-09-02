@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { normalizeJob } from './jobs/normalize.mjs';
 import { fingerprintFor, insertIfNew } from './jobs/dedup.mjs';
 import { parseJobDescription } from './jobs/parse-jd.mjs';
+import { fetchAndDecantUrl } from './jobs/decant.mjs';
 import { hashPassword, verifyPassword } from './auth/passwords.mjs';
 import { createToken, verifyToken, generateApiKey } from './auth/tokens.mjs';
 import {
@@ -405,6 +406,17 @@ export function buildApp({
       } catch (err) {
         return reply.code(400).send({ error: `invalid job: ${err.message}` });
       }
+
+      // Universal Decanter safety net: fetch and populate if description is missing
+      if ((!row.description || row.description.trim().length < 50) && row.url && /^https?:\/\//i.test(row.url)) {
+        try {
+          const decanted = await fetchAndDecantUrl(row.url, { timeoutMs: 5000 });
+          if (decanted && decanted.length > 50) {
+            row.description = decanted;
+          }
+        } catch {}
+      }
+
       rows.push(row);
     }
 
@@ -530,34 +542,79 @@ export function buildApp({
     return { job };
   });
 
-  // PATCH /api/v1/jobs/:id - Update job status
-  app.patch('/api/v1/jobs/:id', async (request, reply) => {
+  // POST /api/v1/jobs/:id/decant - Auto-fetch and decant job description from its URL
+  app.post('/api/v1/jobs/:id/decant', async (request, reply) => {
     if (!authenticate(request, reply)) return;
 
     const { id } = request.params;
-    const { status } = request.body || {};
-    if (!status) {
-      return reply.code(400).send({ error: 'status is required' });
+    const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+    if (!job) {
+      return reply.code(404).send({ error: 'job not found' });
+    }
+
+    if (!job.url || !/^https?:\/\//i.test(job.url)) {
+      return reply.code(400).send({ error: 'job has no valid URL to fetch' });
+    }
+
+    const decanted = await fetchAndDecantUrl(job.url, { timeoutMs: 8000 });
+    if (!decanted || decanted.length < 50) {
+      return reply.code(422).send({ error: 'Could not extract job description from URL' });
     }
 
     const now = Date.now();
     const userId = request.user.id;
 
+    db.prepare('UPDATE jobs SET description = ?, updated_at = ? WHERE id = ?').run(decanted, now, id);
+
     if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
-      const info = db
-        .prepare('UPDATE user_jobs SET status = ?, updated_at = ? WHERE job_id = ? AND user_id = ?')
-        .run(status, now, id, userId);
+      db.prepare(
+        'UPDATE user_jobs SET fit_score = NULL, fit_notes = NULL, status = \'new\', updated_at = ? WHERE job_id = ? AND user_id = ?'
+      ).run(now, id, userId);
+    }
 
-      if (info.changes === 0) {
-        return reply.code(404).send({ error: 'job not found' });
+    const updatedJob = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+    return { ok: true, job: updatedJob, description: decanted };
+  });
+
+  // PATCH /api/v1/jobs/:id - Update job status or description
+  app.patch('/api/v1/jobs/:id', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+
+    const { id } = request.params;
+    const { status, description } = request.body || {};
+    if (!status && description === undefined) {
+      return reply.code(400).send({ error: 'status or description is required' });
+    }
+
+    const now = Date.now();
+    const userId = request.user.id;
+
+    if (description !== undefined) {
+      db.prepare('UPDATE jobs SET description = ?, updated_at = ? WHERE id = ?').run(description, now, id);
+      if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+        db.prepare(
+          'UPDATE user_jobs SET fit_score = NULL, fit_notes = NULL, status = \'new\', updated_at = ? WHERE job_id = ? AND user_id = ?'
+        ).run(now, id, userId);
       }
-    } else {
-      const info = db
-        .prepare('UPDATE jobs SET status = ?, updated_at = ? WHERE id = ?')
-        .run(status, now, id);
+    }
 
-      if (info.changes === 0) {
-        return reply.code(404).send({ error: 'job not found' });
+    if (status) {
+      if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+        const info = db
+          .prepare('UPDATE user_jobs SET status = ?, updated_at = ? WHERE job_id = ? AND user_id = ?')
+          .run(status, now, id, userId);
+
+        if (info.changes === 0) {
+          return reply.code(404).send({ error: 'job not found' });
+        }
+      } else {
+        const info = db
+          .prepare('UPDATE jobs SET status = ?, updated_at = ? WHERE id = ?')
+          .run(status, now, id);
+
+        if (info.changes === 0) {
+          return reply.code(404).send({ error: 'job not found' });
+        }
       }
     }
 
@@ -787,6 +844,38 @@ export function buildApp({
   // GET /api/v1/pipeline/stats - Aggregate stats for the pipeline view
   app.get('/api/v1/pipeline/stats', async (request, reply) => {
     if (!authenticate(request, reply)) return;
+    const userId = request.user?.id;
+
+    if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+      const total = db
+        .prepare('SELECT COUNT(*) as n FROM user_jobs WHERE user_id = ?')
+        .get(userId).n;
+      const unscored = db
+        .prepare('SELECT COUNT(*) as n FROM user_jobs WHERE user_id = ? AND fit_score IS NULL')
+        .get(userId).n;
+      const scored = db
+        .prepare('SELECT COUNT(*) as n FROM user_jobs WHERE user_id = ? AND fit_score IS NOT NULL')
+        .get(userId).n;
+      const tailored = db
+        .prepare("SELECT COUNT(*) as n FROM user_jobs WHERE user_id = ? AND status = 'tailored'")
+        .get(userId).n;
+      const failed = db
+        .prepare(
+          "SELECT COUNT(*) as n FROM user_jobs WHERE user_id = ? AND status IN ('score_failed', 'tailor_failed', 'failed', 'error')"
+        )
+        .get(userId).n;
+
+      return {
+        ok: true,
+        stats: {
+          total,
+          unscored,
+          scored,
+          tailored,
+          failed,
+        },
+      };
+    }
 
     const total = db.prepare('SELECT COUNT(*) as n FROM jobs').get().n;
     const unscored = db.prepare('SELECT COUNT(*) as n FROM jobs WHERE fit_score IS NULL').get().n;
@@ -813,15 +902,31 @@ export function buildApp({
   // GET /api/v1/pipeline/jobs - Live job queue for pipeline inspection
   app.get('/api/v1/pipeline/jobs', async (request, reply) => {
     if (!authenticate(request, reply)) return;
+    const userId = request.user?.id;
 
-    const rows = db
-      .prepare(
-        `SELECT id, title, company, source, location, status, fit_score,
-                description IS NOT NULL AND LENGTH(description) > 10 as has_description,
-                created_at, updated_at
-         FROM jobs ORDER BY updated_at DESC LIMIT 100`
-      )
-      .all();
+    let rows;
+    if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+      rows = db
+        .prepare(
+          `SELECT uj.id, j.title, j.company, j.source, j.location, uj.status, uj.fit_score,
+                  j.description IS NOT NULL AND LENGTH(j.description) > 10 as has_description,
+                  uj.created_at, uj.updated_at
+           FROM user_jobs uj
+           JOIN jobs j ON uj.job_id = j.id
+           WHERE uj.user_id = ?
+           ORDER BY uj.updated_at DESC LIMIT 100`
+        )
+        .all(userId);
+    } else {
+      rows = db
+        .prepare(
+          `SELECT id, title, company, source, location, status, fit_score,
+                  description IS NOT NULL AND LENGTH(description) > 10 as has_description,
+                  created_at, updated_at
+           FROM jobs ORDER BY updated_at DESC LIMIT 100`
+        )
+        .all();
+    }
 
     return { ok: true, jobs: rows };
   });
