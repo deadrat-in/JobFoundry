@@ -125,7 +125,11 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
       {/* Navigation */}
       <header className="navbar">
         <div className="nav-brand">
-          <span style={{ fontSize: '1.5rem' }}>⚡</span>
+          <img
+            src="/icons/logo.webp"
+            alt="JobFoundry Logo"
+            style={{ width: 26, height: 26, borderRadius: 6, objectFit: 'contain' }}
+          />
           <span>
             Job<span className="brand-gradient">Foundry</span>
           </span>

@@ -12,6 +12,21 @@ export default defineConfig({
     name: 'JobFoundry',
     description: 'Capture job postings in your browser and push them to your JobFoundry server.',
     version: '0.1.0',
+    icons: {
+      16: 'icons/favicon-16x16.png',
+      32: 'icons/favicon-32x32.png',
+      48: 'icons/logo.webp',
+      128: 'icons/logo.webp',
+    },
+    action: {
+      default_title: 'JobFoundry',
+      default_icon: {
+        16: 'icons/favicon-16x16.png',
+        32: 'icons/favicon-32x32.png',
+        48: 'icons/logo.webp',
+        128: 'icons/logo.webp',
+      },
+    },
     permissions: [
       'storage',
       'alarms',

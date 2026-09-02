@@ -49,7 +49,11 @@ export const LoginView: React.FC<LoginViewProps> = ({ onSwitchToRegister }) => {
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>⚡</div>
+          <img
+            src="/icons/logo.webp"
+            alt="JobFoundry Logo"
+            style={{ width: 56, height: 56, borderRadius: 12, marginBottom: '0.75rem', objectFit: 'contain' }}
+          />
           <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
             Job<span className="brand-gradient">Foundry</span>
           </h1>

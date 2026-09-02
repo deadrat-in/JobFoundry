@@ -85,6 +85,15 @@ body {
   font-size: 1.2rem;
 }
 
+img.brand-icon,
+.brand-logo {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .badge {
   font-size: 0.7rem;
   font-weight: 600;

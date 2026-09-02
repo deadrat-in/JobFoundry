@@ -76,6 +76,15 @@ body {
   font-size: 2rem;
 }
 
+.brand img.logo,
+.brand .brand-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .brand h1 {
   font-size: 1.4rem;
   font-weight: 700;
