@@ -2,21 +2,21 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field, model_validator, ValidationInfo
+from pydantic import BaseModel, Field, field_validator, model_validator, ValidationInfo
 
 
 class StrategyOutput(BaseModel):
     target_narrative: str
-    priority_keywords: list[str] = Field(default_factory=list)
-    section_rules: list[str] = Field(default_factory=list)
-    red_lines: list[str] = Field(default_factory=list)
+    priority_keywords: list[str] | dict[str, Any] | str = Field(default_factory=list)
+    section_rules: list[str] | dict[str, Any] | str = Field(default_factory=list)
+    red_lines: list[str] | dict[str, Any] | str = Field(default_factory=list)
 
 
 class StrategyAndBasicsOutput(BaseModel):
     target_narrative: str
-    priority_keywords: list[str] = Field(default_factory=list)
-    section_rules: list[str] = Field(default_factory=list)
-    red_lines: list[str] = Field(default_factory=list)
+    priority_keywords: list[str] | dict[str, Any] | str = Field(default_factory=list)
+    section_rules: list[str] | dict[str, Any] | str = Field(default_factory=list)
+    red_lines: list[str] | dict[str, Any] | str = Field(default_factory=list)
     label: str | None = Field(default=None, description="Tailored professional title / headline matching the strategy.")
     summary: str | None = Field(
         default=None,
@@ -99,6 +99,19 @@ class QualificationsTailoringOutput(BaseModel):
         default_factory=list,
         description="Tailored education courses aligned 1:1 with education entries in the master resume."
     )
+
+    @field_validator("skills", mode="before")
+    @classmethod
+    def cap_skills(cls, v: Any) -> list[Any]:
+        if isinstance(v, list):
+            capped = []
+            for item in v[:6]:
+                if isinstance(item, dict) and "keywords" in item and isinstance(item["keywords"], list):
+                    item = dict(item)
+                    item["keywords"] = item["keywords"][:8]
+                capped.append(item)
+            return capped
+        return v
 
     @model_validator(mode="after")
     def validate_qualifications(self, info: ValidationInfo) -> "QualificationsTailoringOutput":

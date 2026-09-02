@@ -773,7 +773,7 @@ export function buildApp({
     writeFileSync(resolve(jobDir, 'resume-text.txt'), plainText, 'utf-8');
 
     // Attempt external resume-ops call for PDF rendering if available
-    const resumeOpsUrl = process.env.RESUME_OPS_URL;
+    const resumeOpsUrl = process.env.RESUME_OPS_URL || 'http://127.0.0.1:8081';
     if (resumeOpsUrl) {
       try {
         const resp = await fetch(`${resumeOpsUrl.replace(/\/$/, '')}/api/v1/tailor`, {

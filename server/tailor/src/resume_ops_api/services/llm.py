@@ -164,6 +164,28 @@ class StructuredLLMClient:
         if "json" not in system_prompt.lower() and "json" not in user_prompt.lower():
             system_prompt = system_prompt + "\n\nNote: The output must be valid JSON."
 
+        # For OpenRouter models, try MD_JSON first to avoid tool-calling schema rejections
+        if "openrouter" in model.lower():
+            try:
+                client = cast(Any, instructor.from_litellm(self.completion_fn, mode=instructor.Mode.MD_JSON, max_retries=2))
+                response = await client.chat.completions.create(
+                    model=model,
+                    response_model=response_model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    temperature=0.2,
+                    drop_params=True,
+                    extra_headers=extra_headers or None,
+                    validation_context=validation_context,
+                )
+                if isinstance(response, response_model):
+                    return response
+            except Exception as e:
+                import logging
+                logging.debug(f"MD_JSON mode failed for model '{model}': {e}. Falling back to standard modes.")
+
         # 1. First, try strict JSON Schema mode (OpenAI Structured Outputs)
         try:
             client = cast(Any, instructor.from_litellm(self.completion_fn, mode=instructor.Mode.JSON_OAI, max_retries=2))
@@ -205,6 +227,27 @@ class StructuredLLMClient:
         except Exception as e:
             import logging
             logging.debug(f"Tool calling mode failed for model '{model}': {e}. Falling back to raw JSON object mode.")
+
+        # 2b. Try MD_JSON fallback before raw parsing
+        try:
+            client = cast(Any, instructor.from_litellm(self.completion_fn, mode=instructor.Mode.MD_JSON, max_retries=1))
+            response = await client.chat.completions.create(
+                model=model,
+                response_model=response_model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.2,
+                drop_params=True,
+                extra_headers=extra_headers or None,
+                validation_context=validation_context,
+            )
+            if isinstance(response, response_model):
+                return response
+        except Exception as e:
+            import logging
+            logging.debug(f"Fallback MD_JSON mode failed for model '{model}': {e}.")
 
         # 3. Final fallback to raw acompletion with json_object
         try:
