@@ -113,14 +113,25 @@ body {
   display: flex;
   flex-direction: column;
   background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Anchored Fixed Background Grid (Does not move with content) */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background-image: 
     linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
     linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
   background-size: 40px 40px;
   background-position: center top;
-  color: var(--text-primary);
-  overflow-x: hidden;
-  position: relative;
+  mask-image: radial-gradient(ellipse 90% 85% at 50% 50%, black 50%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 90% 85% at 50% 50%, black 50%, transparent 100%);
 }
 
 h1, h2, h3, h4, h5, h6 {

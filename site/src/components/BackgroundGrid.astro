@@ -1,0 +1,20 @@
+---
+---
+
+<div class="fixed-bg-grid" aria-hidden="true"></div>
+
+<style>
+  .fixed-bg-grid {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-position: center top;
+  }
+</style>
