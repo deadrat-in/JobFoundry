@@ -1,20 +1,125 @@
 ---
 ---
 
-<div class="fixed-bg-grid" aria-hidden="true"></div>
+<div class="fixed-bg-layer" aria-hidden="true">
+  <div class="fixed-bg-grid"></div>
+  <div class="fixed-bg-wave">
+    <canvas id="bg-telemetry-canvas" class="bg-telemetry-canvas"></canvas>
+  </div>
+</div>
 
 <style>
-  .fixed-bg-grid {
+  .fixed-bg-layer {
     position: fixed;
     inset: 0;
     width: 100vw;
     height: 100vh;
     z-index: 0;
     pointer-events: none;
+    overflow: hidden;
+  }
+
+  .fixed-bg-grid {
+    position: absolute;
+    inset: 0;
     background-image:
       linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
       linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
     background-size: 40px 40px;
     background-position: center top;
   }
+
+  .fixed-bg-wave {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 100px;
+    transform: translateY(-50%);
+    opacity: 0.7;
+  }
+
+  .bg-telemetry-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
 </style>
+
+<script>
+  function setupBgTelemetry() {
+    const canvas = document.getElementById('bg-telemetry-canvas') as HTMLCanvasElement | null;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let width = 0;
+    let height = 0;
+    let time = 0;
+    let animId = 0;
+
+    function resize() {
+      if (!canvas) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      width = canvas.offsetWidth;
+      height = canvas.offsetHeight;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      ctx?.scale(dpr, dpr);
+    }
+
+    function animate() {
+      if (!ctx) return;
+
+      ctx.clearRect(0, 0, width, height);
+
+      const isDark = document.documentElement.classList.contains('dark');
+
+      // Center reference baseline
+      ctx.strokeStyle = isDark ? 'rgba(148, 163, 184, 0.09)' : 'rgba(15, 23, 42, 0.07)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, height / 2);
+      ctx.lineTo(width, height / 2);
+      ctx.stroke();
+
+      // Secondary Wave (Violet counter-harmonic)
+      ctx.strokeStyle = isDark ? 'rgba(167, 139, 250, 0.35)' : 'rgba(124, 58, 237, 0.28)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      for (let x = 0; x <= width; x += 3) {
+        const y = height / 2 +
+          Math.sin(x * 0.005 - time * 0.8) * 22 +
+          Math.cos(x * 0.012 + time * 1.2) * 10;
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Primary Wave (Sky-blue dynamic dual-frequency wave)
+      ctx.strokeStyle = isDark ? 'rgba(56, 189, 248, 0.65)' : 'rgba(2, 132, 199, 0.55)';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      for (let x = 0; x <= width; x += 2) {
+        const y = height / 2 +
+          Math.sin(x * 0.007 + time) * 26 +
+          Math.sin(x * 0.018 + time * 1.5) * 12;
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      time += 0.035;
+      animId = requestAnimationFrame(animate);
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+    if (animId) cancelAnimationFrame(animId);
+    animate();
+  }
+
+  setupBgTelemetry();
+  document.addEventListener('astro:page-load', setupBgTelemetry);
+</script>

@@ -34,9 +34,9 @@
   --code-border: #334155;
 
   /* Technical Grid & Activity Telemetry */
-  --grid-line: rgba(15, 23, 42, 0.04);
-  --activity-pulse: rgba(2, 132, 199, 0.4);
-  --activity-bg: rgba(2, 132, 199, 0.03);
+  --grid-line: rgba(15, 23, 42, 0.065);
+  --activity-pulse: rgba(2, 132, 199, 0.45);
+  --activity-bg: rgba(2, 132, 199, 0.04);
 
   /* Typography */
   --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -84,9 +84,9 @@ html.dark {
   --code-text: #f1f5f9;
   --code-border: #1e293b;
 
-  --grid-line: rgba(148, 163, 184, 0.04);
-  --activity-pulse: rgba(56, 189, 248, 0.45);
-  --activity-bg: rgba(56, 189, 248, 0.03);
+  --grid-line: rgba(148, 163, 184, 0.075);
+  --activity-pulse: rgba(56, 189, 248, 0.5);
+  --activity-bg: rgba(56, 189, 248, 0.04);
 }
 
 /* Base Reset & Typography */
@@ -118,20 +118,9 @@ body {
   position: relative;
 }
 
-/* Anchored Fixed Background Grid (Does not move with content) */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image: 
-    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-  background-size: 40px 40px;
-  background-position: center top;
-  mask-image: radial-gradient(ellipse 90% 85% at 50% 50%, black 50%, transparent 100%);
-  -webkit-mask-image: radial-gradient(ellipse 90% 85% at 50% 50%, black 50%, transparent 100%);
+header, main, footer {
+  position: relative;
+  z-index: 1;
 }
 
 h1, h2, h3, h4, h5, h6 {

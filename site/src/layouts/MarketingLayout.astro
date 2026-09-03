@@ -2,6 +2,7 @@
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import ThemeScript from '../components/ThemeScript.astro';
+import BackgroundGrid from '../components/BackgroundGrid.astro';
 import '../styles/global.css';
 import { resolvePath } from '../utils/paths.js';
 
@@ -26,6 +27,11 @@ const {
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href={resolvePath('/favicon.svg')} />
+    <link rel="icon" type="image/png" sizes="32x32" href={resolvePath('/icons/favicon-32x32.png')} />
+    <link rel="icon" type="image/png" sizes="16x16" href={resolvePath('/icons/favicon-16x16.png')} />
+    <link rel="apple-touch-icon" sizes="180x180" href={resolvePath('/icons/apple-touch-icon.png')} />
+    <link rel="manifest" href={resolvePath('/icons/site.webmanifest')} />
+    <meta property="og:image" content={resolvePath('/icons/logo.png')} />
 
     <!-- Google Fonts: Outfit, Inter, JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -39,6 +45,7 @@ const {
     <ThemeScript />
   </head>
   <body>
+    <BackgroundGrid />
     <Header currentPath={currentPath} />
     <main class="main-content">
       <slot />

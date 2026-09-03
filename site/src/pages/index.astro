@@ -3,7 +3,6 @@ import MarketingLayout from '../layouts/MarketingLayout.astro';
 import BentoTile from '../components/BentoTile.astro';
 import TerminalSnippet from '../components/TerminalSnippet.astro';
 import PipelineInspector from '../components/PipelineInspector.astro';
-import ActivityLine from '../components/ActivityLine.astro';
 import { resolvePath } from '../utils/paths.js';
 ---
 
@@ -142,11 +141,6 @@ import { resolvePath } from '../utils/paths.js';
       </div>
     </div>
   </section>
-
-  <!-- Full-Width Middle Telemetry Activity Divider -->
-  <div class="middle-activity-divider" aria-hidden="true">
-    <ActivityLine />
-  </div>
 
   <!-- Interactive 5-Stage Pipeline Section -->
   <section class="pipeline-section">
@@ -383,23 +377,6 @@ import { resolvePath } from '../utils/paths.js';
     font-size: 0.9rem;
     color: var(--text-secondary);
     margin-bottom: 0;
-  }
-
-  .middle-activity-divider {
-    width: 100%;
-    max-width: 100vw;
-    overflow: hidden;
-    background-color: var(--activity-bg);
-    background-image: 
-      linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-    background-size: 20px 20px;
-    border-top: 1px solid var(--border-subtle);
-    border-bottom: 1px solid var(--border-subtle);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem 0;
   }
 
   .pipeline-section, .principles-section {
