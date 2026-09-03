@@ -8,5 +8,5 @@ data/
 .agents/ 
 .env
 master-resume.json
-career-ops/ 
 .env*
+!.env.example

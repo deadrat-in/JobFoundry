@@ -3,39 +3,63 @@ node_modules/
 
 # Env & secrets
 .env
-.env.local
+.env.*
+.env*.local
 *.local
+!.env.example
+!.env.*.example
 
-# Build output
+# Databases & Runtime data
+server/data/
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Build output & caches
 dist/
 dist-extension/
 build/
 .output/
 .wxt/
+.astro/
 coverage/
+htmlcov/
+.coverage
+.coverage.*
 *.tsbuildinfo
+*.pdf
 
 # Python
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .venv/
 .uv/
 *.egg-info/
 
-# OS / editor
+# OS / editor / AI agents
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
 *.swp
-
-# Runtime data
-server/data/
-data/
+*.swo
+*~
+.agents/
+.gemini/
+.claude/
 
 # Logs
 *.log
 npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
+# Scratch workspace
 Scratch/
