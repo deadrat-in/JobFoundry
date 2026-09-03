@@ -7,51 +7,56 @@ const { class: className = '' } = Astro.props;
 ---
 
 <div class:list={['activity-line-wrapper', className]} aria-hidden="true">
-  <svg class="activity-svg" preserveAspectRatio="none" viewBox="0 0 1200 40">
+  <svg class="activity-svg" preserveAspectRatio="none" viewBox="0 0 1600 40">
     <path
       class="activity-path-base"
-      d="M0,20 L280,20 L300,10 L315,32 L330,12 L345,26 L360,20 L720,20 L740,6 L755,34 L770,14 L785,26 L800,20 L1200,20"
+      d="M0,20 L380,20 L400,10 L415,32 L430,12 L445,26 L460,20 L960,20 L980,6 L995,34 L1010,14 L1025,26 L1040,20 L1600,20"
       fill="none"
       stroke="currentColor"
-      stroke-width="1.2"
+      stroke-width="1.4"
     ></path>
-    <circle class="pulse-node" cx="315" cy="32" r="2.5" />
-    <circle class="pulse-node" cx="755" cy="34" r="2.5" />
+    <circle class="pulse-node" cx="415" cy="32" r="3" />
+    <circle class="pulse-node" cx="995" cy="34" r="3" />
   </svg>
 </div>
 
 <style>
   .activity-line-wrapper {
     width: 100%;
-    height: 24px;
+    width: 100vw;
+    max-width: 100vw;
+    height: 32px;
     overflow: hidden;
     position: relative;
     pointer-events: none;
     color: var(--activity-pulse);
-    opacity: 0.6;
-    margin: -8px 0 12px;
+    opacity: 0.75;
+    margin: 0;
+    display: flex;
+    align-items: center;
   }
 
   .activity-svg {
     width: 100%;
     height: 100%;
     display: block;
+    min-width: 100%;
   }
 
   .activity-path-base {
-    stroke-dasharray: 1200;
+    stroke-dasharray: 1600;
     stroke-dashoffset: 0;
-    animation: signalSweep 16s linear infinite;
+    animation: signalSweep 14s linear infinite;
   }
 
   .pulse-node {
     fill: var(--accent-cyan);
-    animation: nodeBlink 3s ease-in-out infinite;
+    animation: nodeBlink 2.5s ease-in-out infinite;
   }
 
   @keyframes signalSweep {
     0% {
-      stroke-dashoffset: 1200;
+      stroke-dashoffset: 1600;
     }
     100% {
       stroke-dashoffset: 0;
@@ -59,7 +64,7 @@ const { class: className = '' } = Astro.props;
   }
 
   @keyframes nodeBlink {
-    0%, 100% { opacity: 0.3; }
+    0%, 100% { opacity: 0.25; }
     50% { opacity: 1; }
   }
 </style>

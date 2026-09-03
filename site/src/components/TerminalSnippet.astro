@@ -28,6 +28,9 @@ const { command, title = 'BASH' } = Astro.props;
     border-radius: var(--radius-xs);
     overflow: hidden;
     margin: 1.25rem 0;
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
   }
 
   .terminal-header {
@@ -81,6 +84,10 @@ const { command, title = 'BASH' } = Astro.props;
     font-size: 0.85rem;
     color: var(--code-text);
     overflow-x: auto;
+    max-width: 100%;
+    min-width: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
   }
 
   .terminal-prompt {

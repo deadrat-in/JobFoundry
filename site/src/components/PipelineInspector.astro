@@ -275,6 +275,8 @@ Response: 200 OK
     border: 1px solid var(--code-border);
     border-radius: var(--radius-xs);
     overflow: hidden;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .code-banner {
@@ -298,11 +300,35 @@ Response: 200 OK
     line-height: 1.55 !important;
     background: transparent !important;
     border: none !important;
+    overflow-x: auto;
+    max-width: 100%;
+    min-width: 0;
   }
 
   @media (max-width: 860px) {
     .stage-panel {
       grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .inspector-body {
+      padding: 1rem;
+    }
+
+    .stage-panel {
+      gap: 1.25rem;
+    }
+
+    .meta-title {
+      font-size: 1.15rem;
+      word-break: break-word;
+    }
+
+    .stage-tab-btn {
+      min-width: 120px;
+      padding: 0.65rem 0.75rem;
+      font-size: 0.8rem;
     }
   }
 </style>

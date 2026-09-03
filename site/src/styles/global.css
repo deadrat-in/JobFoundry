@@ -172,10 +172,13 @@ pre {
   padding: 1rem 1.25rem;
   overflow-x: auto;
   line-height: 1.5;
+  max-width: 100%;
+  min-width: 0;
 }
 
 button, input, select, textarea {
   font: inherit;
+  max-width: 100%;
 }
 
 /* Focus Outline */
@@ -190,6 +193,13 @@ button, input, select, textarea {
   max-width: var(--max-w-page);
   margin: 0 auto;
   padding: 0 1.5rem;
+  box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+  .site-container {
+    padding: 0 1rem;
+  }
 }
 
 .site-badge {
