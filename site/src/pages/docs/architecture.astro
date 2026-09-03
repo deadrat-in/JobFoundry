@@ -1,0 +1,86 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import PipelineInspector from '../../components/PipelineInspector.astro';
+import { resolvePath } from '../../utils/paths.js';
+---
+
+<DocsLayout
+  title="Pipeline Architecture"
+  description="System architecture, 64-bit SimHash deduplication, prompt engineering, and the 5-stage pipeline."
+  currentPath={resolvePath('/docs/architecture/')}
+  category="Architecture & Internals"
+>
+  <h1>JobFoundry Pipeline Architecture</h1>
+  <p>
+    JobFoundry is structured as a decoupled, multi-stage processing pipeline that converts unstructured web job listings into deduplicated, score-ranked opportunities with tailored ATS resumes.
+  </p>
+
+  <div class="doc-callout">
+    <div class="callout-title">
+      <span>◈</span>
+      <span>The Architectural Invariant</span>
+    </div>
+    <p>
+      <strong>The JobFoundry server never performs outbound job-board scraping. All scraping and job-board HTTP requests originate from the user's browser extension.</strong>
+    </p>
+    <p>
+      By delegating ingestion to the client extension, JobFoundry bypasses aggressive IP rate-limiting, Cloudflare bot challenges, and CAPTCHAs, while ensuring user credentials and session tokens never leave the browser.
+    </p>
+  </div>
+
+  <h2>Interactive Pipeline Visualizer</h2>
+  <p>
+    Click through each stage to view the architectural rationale and code implementation:
+  </p>
+
+  <PipelineInspector />
+
+  <h2>Stage 1: Browser Ingestion</h2>
+  <p>
+    The companion browser extension (<code>extension/</code>) injects lightweight content scripts when visiting supported job boards and ATS domains.
+  </p>
+  <ul>
+    <li><strong>Extraction Strategy:</strong> Prefers structured JSON-LD (<code>schema.org/JobPosting</code>) when present. Falls back to curated CSS selector trees for dynamic Single Page Applications (SPAs) like Workday or Ashby.</li>
+    <li><strong>Payload Delivery:</strong> Sends parsed data via <code>POST /api/jobs/ingest</code> to the local daemon, accompanied by an authentication token generated during initial pairing.</li>
+  </ul>
+
+  <h2>Stage 2: SimHash & Deduplication Engine</h2>
+  <p>
+    Job postings are frequently syndicated across multiple aggregators (e.g., posted on Greenhouse, scraped by LinkedIn, and mirrored on Indeed). JobFoundry avoids duplicate scoring through a 64-bit SimHash locality-sensitive hashing algorithm:
+  </p>
+  <ol>
+    <li><strong>Tokenization & Normalization:</strong> Strips boilerplate disclosures (EEOC, copyright), converts text to lowercase, and extracts weighted n-grams.</li>
+    <li><strong>64-bit Hash Fingerprint:</strong> Computes a compact bitvector where similar documents have small Hamming distances.</li>
+    <li><strong>Hamming Distance Clustering:</strong> If <code>distance(hashA, hashB) &lt;= 3</code>, the job is identified as a cross-posting. The canonical posting is maintained while appending the new source URL as an alternative link.</li>
+  </ol>
+
+  <h2>Stage 3: LLM Fit Scoring & Criteria Evaluation</h2>
+  <p>
+    The scoring engine (<code>server/scorer/</code>) compares your master candidate profile against the job description using local LLMs (such as Llama 3 via Ollama or vLLM) or remote OpenAI-compatible endpoints.
+  </p>
+  <ul>
+    <li><strong>Strict JSON Schema:</strong> Responses must satisfy an Ajv-validated schema ensuring valid integer scores (0–100), key matched qualifications, identified gaps, and actionable interview talking points.</li>
+    <li><strong>Zero Hallucination:</strong> The model evaluates fit against provided profile facts only. It does not invent or assume credentials not present in your profile.</li>
+  </ul>
+
+  <h2>Stage 4: Resume Tailoring & ATS Export</h2>
+  <p>
+    Rather than rewriting your entire career history, the tailoring engine (<code>server/tailor/</code>) re-ranks and highlights your genuine experiences that directly align with the job's stated requirements.
+  </p>
+  <ul>
+    <li><strong>Typst Compilation:</strong> Compiles clean, modern resumes using Typst, producing pixel-perfect PDF and plain-text ATS formats.</li>
+    <li><strong>Deterministic Output:</strong> Generates verifiable, professional documents ready for submission.</li>
+  </ul>
+
+  <h2>Stage 5: Local Kanban Dashboard</h2>
+  <p>
+    The web interface (<code>server/web/</code>) provides a real-time Kanban board organized by pipeline status:
+  </p>
+  <ul>
+    <li><code>DISCOVERED</code>: Newly ingested jobs awaiting automated processing.</li>
+    <li><code>SCORED</code>: Jobs evaluated with fit scores and match grades.</li>
+    <li><code>READY_TO_APPLY</code>: High-scoring jobs with generated tailored resumes.</li>
+    <li><code>APPLIED</code>: Active applications with date tracking.</li>
+    <li><code>INTERVIEWING</code>: In-progress interview stages and notes.</li>
+  </ul>
+</DocsLayout>

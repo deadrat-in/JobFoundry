@@ -1,0 +1,195 @@
+---
+import MarketingLayout from '../layouts/MarketingLayout.astro';
+import { resolvePath } from '../utils/paths.js';
+---
+
+<MarketingLayout
+  title="License — JobFoundry (AGPL-3.0)"
+  description="JobFoundry is open source software licensed under the GNU Affero General Public License v3."
+  currentPath={resolvePath('/license/')}
+>
+  <section class="license-section">
+    <div class="site-container">
+      <div class="license-header">
+        <span class="site-badge cyan">OPEN SOURCE SOFTWARE</span>
+        <h1 class="license-title">GNU Affero General Public License v3</h1>
+        <p class="license-subtitle">
+          JobFoundry is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation.
+        </p>
+      </div>
+
+      <div class="license-summary-grid">
+        <div class="summary-card permissions">
+          <h3 class="card-heading">Permissions</h3>
+          <ul class="summary-list">
+            <li>✓ Commercial use</li>
+            <li>✓ Modification</li>
+            <li>✓ Distribution</li>
+            <li>✓ Private use</li>
+          </ul>
+        </div>
+
+        <div class="summary-card conditions">
+          <h3 class="card-heading">Conditions</h3>
+          <ul class="summary-list">
+            <li>! Disclose source code</li>
+            <li>! License and copyright notice</li>
+            <li>! State changes made</li>
+            <li>! Network use is distribution (Affero)</li>
+          </ul>
+        </div>
+
+        <div class="summary-card limitations">
+          <h3 class="card-heading">Limitations</h3>
+          <ul class="summary-list">
+            <li>✕ No liability</li>
+            <li>✕ No warranty</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="license-text-box">
+        <div class="box-header">
+          <span>LICENSE (AGPL-3.0-only)</span>
+          <a
+            href="https://github.com/deadrat-in/JobFoundry/blob/main/LICENSE"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="view-raw-link"
+          >
+            View raw in repository →
+          </a>
+        </div>
+        <pre class="license-content"><code>                    GNU AFFERO GENERAL PUBLIC LICENSE
+                       Version 3, 19 November 2007
+
+ Copyright (C) 2007 Free Software Foundation, Inc. &lt;https://fsf.org/&gt;
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+                            Preamble
+
+  The GNU Affero General Public License is a free, copyleft license for
+software and other kinds of works, specifically designed to ensure
+cooperation with the community in the case of network server software.
+
+  The licenses for most software and other practical works are designed
+to take away your freedom to share and change the works.  By contrast,
+our General Public Licenses are intended to guarantee your freedom to
+share and change all versions of a program--to make sure it remains free
+software for all its users.
+
+  When we speak of free software, we are referring to freedom, not price.
+Our General Public Licenses are designed to make sure that you have the
+freedom to distribute copies of free software (and charge for them if
+you wish), that you receive source code or can get it if you want it,
+that you can change the software or use pieces of it in new free
+programs, and that you know you can do these things.</code></pre>
+      </div>
+    </div>
+  </section>
+</MarketingLayout>
+
+<style>
+  .license-section {
+    padding: 4rem 0 6rem;
+  }
+
+  .license-header {
+    max-width: 760px;
+    margin-bottom: 3rem;
+  }
+
+  .license-title {
+    font-size: 2.5rem;
+    margin: 1rem 0 0.75rem;
+    letter-spacing: -0.02em;
+  }
+
+  .license-subtitle {
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 0;
+  }
+
+  .license-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 3rem;
+  }
+
+  .summary-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xs);
+    padding: 1.5rem;
+  }
+
+  .permissions { border-top: 3px solid var(--accent-emerald); }
+  .conditions { border-top: 3px solid var(--accent-amber); }
+  .limitations { border-top: 3px solid #ef4444; }
+
+  .card-heading {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+  }
+
+  .summary-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .summary-list li {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+  }
+
+  .license-text-box {
+    border: 1px solid var(--code-border);
+    background-color: var(--code-bg);
+    border-radius: var(--radius-xs);
+    overflow: hidden;
+  }
+
+  .box-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1.25rem;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--code-border);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .view-raw-link {
+    color: var(--accent-cyan);
+    text-decoration: none;
+  }
+
+  .view-raw-link:hover {
+    text-decoration: underline;
+  }
+
+  .license-content {
+    margin: 0 !important;
+    padding: 1.5rem !important;
+    background: transparent !important;
+    border: none !important;
+    font-size: 0.82rem !important;
+    line-height: 1.55 !important;
+    color: var(--code-text);
+  }
+
+  @media (max-width: 768px) {
+    .license-summary-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,0 +1,57 @@
+---
+import MarketingLayout from '../layouts/MarketingLayout.astro';
+import { resolvePath } from '../utils/paths.js';
+---
+
+<MarketingLayout
+  title="Page Not Found (404) — JobFoundry"
+  description="The requested page could not be found."
+  currentPath={resolvePath('/404')}
+>
+  <section class="not-found-section">
+    <div class="site-container not-found-container">
+      <span class="site-badge amber">HTTP 404</span>
+      <h1 class="not-found-title">PAGE NOT FOUND</h1>
+      <p class="not-found-desc">
+        The documentation page or resource you are looking for has moved or does not exist.
+      </p>
+      <div class="cta-row">
+        <a href={resolvePath('/')} class="btn btn-primary">Return to Homepage</a>
+        <a href={resolvePath('/docs/')} class="btn btn-secondary">Documentation Hub</a>
+      </div>
+    </div>
+  </section>
+</MarketingLayout>
+
+<style>
+  .not-found-section {
+    padding: 6rem 0 8rem;
+    text-align: center;
+  }
+
+  .not-found-container {
+    max-width: 580px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .not-found-title {
+    font-size: 2.75rem;
+    margin: 1.25rem 0 0.75rem;
+    letter-spacing: -0.02em;
+  }
+
+  .not-found-desc {
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+  }
+
+  .cta-row {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+  }
+</style>

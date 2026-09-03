@@ -1,0 +1,331 @@
+---
+const stages = [
+  {
+    id: 'ingest',
+    number: '01',
+    name: 'Browser Ingestion',
+    tag: 'LOCAL EXTENSION',
+    badgeClass: 'cyan',
+    summary: 'Captures job postings directly within your browser session across 84+ supported ATS and job boards.',
+    code: `// extension/content-script.js
+const payload = {
+  url: window.location.href,
+  title: extractField('title'),
+  company: extractField('company'),
+  descriptionHtml: extractField('description'),
+  extractedAt: new Date().toISOString()
+};
+// Sent directly to local JobFoundry daemon`,
+    details: [
+      'Architectural Invariant: Zero server-side scraping.',
+      'Bypasses Cloudflare / anti-bot blocks using existing authenticated session.',
+      'Supports DOM scrapers and JSON-LD structured schemas.',
+    ],
+  },
+  {
+    id: 'dedup',
+    number: '02',
+    name: 'SimHash Deduplication',
+    tag: '64-BIT HAMMING',
+    badgeClass: 'violet',
+    summary: 'Eliminates cross-posted duplicate jobs from multiple aggregators using text fingerprinting.',
+    code: `// server/ingest/dedup.js
+const hashA = computeSimHash(jobA.description);
+const hashB = computeSimHash(jobB.description);
+const distance = hammingDistance(hashA, hashB);
+
+if (distance <= 3) {
+  // Mark as duplicate of canonical job
+  return deduplicate(jobB, jobA.id);
+}`,
+    details: [
+      'Normalizes company names, domains, and text whitespace.',
+      'Calculates 64-bit SimHash with configurable Hamming distance threshold.',
+      'Retains canonical master record with multi-source breadcrumbs.',
+    ],
+  },
+  {
+    id: 'score',
+    number: '03',
+    name: 'LLM Fit Scorer',
+    tag: 'STRUCTURED JSON',
+    badgeClass: 'emerald',
+    summary: 'Scores candidate fit (0–100) using local LLMs (Ollama, vLLM) against your master profile.',
+    code: `{
+  "fitScore": 88,
+  "matchGrade": "A",
+  "keyStrengths": ["Distributed Systems", "TypeScript", "PostgreSQL"],
+  "gapAnalysis": ["Limited Go experience mentioned in posting"],
+  "recommendation": "Strong apply"
+}`,
+    details: [
+      'Runs locally against Ollama or any OpenAI-compatible API.',
+      'Enforces strict JSON schema validation via Ajv.',
+      'Custom criteria weights: skills, experience level, remote policy.',
+    ],
+  },
+  {
+    id: 'tailor',
+    number: '04',
+    name: 'Resume Tailoring',
+    tag: 'TYPST / LATEX',
+    badgeClass: 'amber',
+    summary: 'Generates tailored, ATS-compliant PDF and plain-text resumes highlighting matched requirements.',
+    code: `// server/tailor/engine.js
+const tailoredResume = await generateTailoredProfile({
+  masterProfile,
+  targetJob,
+  template: 'ats-modern'
+});
+await compileTypst(tailoredResume, 'output.pdf');`,
+    details: [
+      'Deterministic output with zero LLM hallucination of false qualifications.',
+      'High-speed Typst compiler produces clean, pixel-perfect ATS PDFs.',
+      'Multi-theme templates suited for technical roles.',
+    ],
+  },
+  {
+    id: 'dashboard',
+    number: '05',
+    name: 'Kanban Dashboard',
+    tag: 'LOCAL-FIRST WEB',
+    badgeClass: 'cyan',
+    summary: 'Organizes job applications across a responsive, multi-user local dashboard with application tracking.',
+    code: `GET /api/jobs?status=scored&minScore=75
+Response: 200 OK
+[
+  { "id": "job_9412", "title": "Staff Engineer", "score": 94, "stage": "READY_TO_APPLY" },
+  { "id": "job_8204", "title": "Backend Lead", "score": 88, "stage": "APPLIED" }
+]`,
+    details: [
+      'Fast SQLite / Postgres storage with zero cloud lock-in.',
+      'Drag-and-drop status transitions from Discovered to Offer.',
+      'Direct link back to original job posting with paired tailored resume.',
+    ],
+  },
+];
+---
+
+<div class="pipeline-inspector">
+  <div class="inspector-nav" role="tablist" aria-label="Pipeline Stages">
+    {stages.map((stg, idx) => (
+      <button
+        type="button"
+        class:list={['stage-tab-btn', { active: idx === 0 }]}
+        data-stage-target={stg.id}
+        role="tab"
+        aria-selected={idx === 0 ? 'true' : 'false'}
+      >
+        <span class="tab-num">{stg.number}</span>
+        <span class="tab-name">{stg.name}</span>
+      </button>
+    ))}
+  </div>
+
+  <div class="inspector-body">
+    {stages.map((stg, idx) => (
+      <div
+        class:list={['stage-panel', { active: idx === 0 }]}
+        id={`stage-${stg.id}`}
+        role="tabpanel"
+      >
+        <div class="stage-meta">
+          <div class="meta-header">
+            <span class:list={['site-badge', stg.badgeClass]}>{stg.tag}</span>
+            <h3 class="meta-title">{stg.number}. {stg.name}</h3>
+          </div>
+          <p class="meta-summary">{stg.summary}</p>
+          <ul class="meta-details">
+            {stg.details.map((dt) => (
+              <li>{dt}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div class="stage-code-container">
+          <div class="code-banner">
+            <span class="code-label">TECHNICAL IMPLEMENTATION</span>
+          </div>
+          <pre class="stage-code"><code>{stg.code}</code></pre>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
+
+<style>
+  .pipeline-inspector {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xs);
+    background-color: var(--bg-surface);
+    overflow: hidden;
+    margin: 1.5rem 0;
+  }
+
+  .inspector-nav {
+    display: flex;
+    border-bottom: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface-elevated);
+    overflow-x: auto;
+  }
+
+  .stage-tab-btn {
+    flex: 1;
+    min-width: 140px;
+    padding: 0.85rem 1rem;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-right: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+  }
+
+  .stage-tab-btn:last-child {
+    border-right: none;
+  }
+
+  .stage-tab-btn:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-surface);
+  }
+
+  .stage-tab-btn.active {
+    color: var(--accent-cyan);
+    background-color: var(--bg-surface);
+    border-bottom-color: var(--accent-cyan);
+  }
+
+  .tab-num {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .stage-tab-btn.active .tab-num {
+    color: var(--accent-cyan);
+  }
+
+  .inspector-body {
+    padding: 1.75rem;
+  }
+
+  .stage-panel {
+    display: none;
+    grid-template-columns: 1.1fr 1.3fr;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  .stage-panel.active {
+    display: grid;
+  }
+
+  .meta-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .meta-title {
+    font-size: 1.35rem;
+  }
+
+  .meta-summary {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+  }
+
+  .meta-details {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding-left: 0;
+  }
+
+  .meta-details li {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .meta-details li::before {
+    content: '→';
+    color: var(--accent-cyan);
+    font-family: var(--font-mono);
+  }
+
+  .stage-code-container {
+    background-color: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: var(--radius-xs);
+    overflow: hidden;
+  }
+
+  .code-banner {
+    padding: 0.35rem 0.75rem;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--code-border);
+  }
+
+  .code-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+
+  .stage-code {
+    margin: 0 !important;
+    padding: 1rem !important;
+    font-size: 0.8rem !important;
+    line-height: 1.55 !important;
+    background: transparent !important;
+    border: none !important;
+  }
+
+  @media (max-width: 860px) {
+    .stage-panel {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  function setupPipelineTabs() {
+    const tabButtons = document.querySelectorAll<HTMLButtonElement>('.stage-tab-btn');
+    tabButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.dataset.stageTarget;
+        tabButtons.forEach((b) => {
+          const isActive = b === btn;
+          b.classList.toggle('active', isActive);
+          b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+
+        document.querySelectorAll<HTMLElement>('.stage-panel').forEach((panel) => {
+          panel.classList.toggle('active', panel.id === `stage-${targetId}`);
+        });
+      });
+    });
+  }
+
+  setupPipelineTabs();
+  document.addEventListener('astro:page-load', setupPipelineTabs);
+</script>

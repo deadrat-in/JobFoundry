@@ -1,0 +1,316 @@
+---
+import { resolvePath } from '../utils/paths.js';
+
+interface Props {
+  currentPath?: string;
+}
+
+const { currentPath = '/' } = Astro.props;
+
+const navItems = [
+  { label: 'Overview', href: resolvePath('/') },
+  { label: 'Docs', href: resolvePath('/docs/') },
+  { label: 'Extension', href: resolvePath('/docs/extension/') },
+  { label: 'Pipeline', href: resolvePath('/docs/architecture/') },
+  { label: 'Providers', href: resolvePath('/docs/providers/') },
+];
+---
+
+<header class="header">
+  <div class="site-container header-inner">
+    <div class="header-left">
+      <a href={resolvePath('/')} class="brand-link" aria-label="JobFoundry Home">
+        <span class="brand-logo">◈</span>
+        <span class="brand-title">JobFoundry</span>
+      </a>
+      <span class="brand-badge">AGPL-3.0</span>
+    </div>
+
+    <nav class="header-nav" id="main-nav" aria-label="Main Navigation">
+      {navItems.map((item) => {
+        const isActive = currentPath === item.href || (item.href !== resolvePath('/') && currentPath.startsWith(item.href));
+        return (
+          <a href={item.href} class:list={['nav-link', { active: isActive }]}>
+            {item.label}
+          </a>
+        );
+      })}
+    </nav>
+
+    <div class="header-right">
+      <!-- Theme Switcher -->
+      <div class="theme-switch-group" role="group" aria-label="Color theme selector">
+        <button type="button" class="theme-btn" data-theme-val="system" title="System Theme (default)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+          <span class="theme-text">Auto</span>
+        </button>
+        <button type="button" class="theme-btn" data-theme-val="dark" title="Dark Theme">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <span class="theme-text">Dark</span>
+        </button>
+        <button type="button" class="theme-btn" data-theme-val="light" title="Light Theme">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <span class="theme-text">Light</span>
+        </button>
+      </div>
+
+      <a
+        href="https://github.com/deadrat-in/JobFoundry"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="github-btn"
+        title="View source on GitHub"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"></path>
+        </svg>
+        <span class="github-text">GitHub</span>
+      </a>
+
+      <!-- Mobile Hamburger Button -->
+      <button type="button" class="mobile-menu-btn" id="mobile-toggle" aria-label="Toggle navigation menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<style>
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background-color: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    gap: 1.5rem;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .brand-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    text-decoration: none !important;
+    letter-spacing: -0.02em;
+  }
+
+  .brand-logo {
+    color: var(--accent-cyan);
+    font-size: 1.2rem;
+    line-height: 1;
+  }
+
+  .brand-badge {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: var(--radius-xs);
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  .header-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .nav-link {
+    padding: 0.4rem 0.75rem;
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-decoration: none !important;
+    border-radius: var(--radius-xs);
+    transition: all 0.15s ease;
+  }
+
+  .nav-link:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-surface-elevated);
+  }
+
+  .nav-link.active {
+    color: var(--accent-cyan);
+    background-color: var(--accent-cyan-bg);
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  /* Theme Switcher Segmented Control */
+  .theme-switch-group {
+    display: inline-flex;
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xs);
+    padding: 2px;
+  }
+
+  .theme-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .theme-btn:hover {
+    color: var(--text-primary);
+  }
+
+  .theme-btn.active {
+    background: var(--bg-surface);
+    color: var(--accent-cyan);
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  .github-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-xs);
+    background: var(--bg-surface-elevated);
+    text-decoration: none !important;
+    transition: all 0.15s ease;
+  }
+
+  .github-btn:hover {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    background: transparent;
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    padding: 6px;
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+  }
+
+  @media (max-width: 860px) {
+    .header-nav {
+      display: none;
+      position: absolute;
+      top: 56px;
+      left: 0;
+      right: 0;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      flex-direction: column;
+      padding: 1rem;
+      gap: 0.5rem;
+    }
+
+    .header-nav.is-open {
+      display: flex;
+    }
+
+    .theme-text {
+      display: none;
+    }
+
+    .mobile-menu-btn {
+      display: inline-flex;
+    }
+  }
+</style>
+
+<script>
+  // Theme switcher client script
+  function setupThemeControls() {
+    const storageKey = 'jf_theme_pref';
+    const buttons = document.querySelectorAll<HTMLButtonElement>('.theme-btn');
+    const stored = localStorage.getItem(storageKey) || 'system';
+
+    function updateActiveState(val: string) {
+      buttons.forEach((btn) => {
+        const matches = btn.dataset.themeVal === val;
+        btn.classList.toggle('active', matches);
+      });
+    }
+
+    updateActiveState(stored);
+
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const val = btn.dataset.themeVal || 'system';
+        localStorage.setItem(storageKey, val);
+        const isDark = val === 'dark' || (val !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.classList.toggle('dark', isDark);
+        document.documentElement.setAttribute('data-theme', val);
+        updateActiveState(val);
+      });
+    });
+
+    // Mobile nav toggle
+    const mobileBtn = document.getElementById('mobile-toggle');
+    const mainNav = document.getElementById('main-nav');
+    if (mobileBtn && mainNav) {
+      mobileBtn.addEventListener('click', () => {
+        mainNav.classList.toggle('is-open');
+      });
+    }
+  }
+
+  setupThemeControls();
+  document.addEventListener('astro:page-load', setupThemeControls);
+</script>

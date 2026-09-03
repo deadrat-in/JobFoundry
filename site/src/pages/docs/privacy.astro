@@ -1,0 +1,56 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import { resolvePath } from '../../utils/paths.js';
+---
+
+<DocsLayout
+  title="Privacy Policy & Local-First Guarantees"
+  description="Our privacy commitments: zero telemetry, zero cookies, local data storage, and complete ownership."
+  currentPath={resolvePath('/docs/privacy/')}
+  category="Trust & Governance"
+>
+  <h1>Privacy & Local-First Guarantees</h1>
+  <p>
+    JobFoundry is built on a foundational principle: <strong>your career history, job applications, fit evaluations, and resume variants belong exclusively to you.</strong>
+  </p>
+
+  <div class="doc-callout success">
+    <div class="callout-title">
+      <span>✓</span>
+      <span>Zero Cloud Telemetry</span>
+    </div>
+    <p>
+      The JobFoundry daemon, web dashboard, and browser extension collect <strong>zero tracking metrics, zero telemetry, and zero analytics</strong>. No data is ever phoning home.
+    </p>
+  </div>
+
+  <h2>1. Local Storage Guarantee</h2>
+  <p>
+    All your data—including ingested job listings, candidate profiles, fit scores, and generated PDF/Typst resumes—is stored in a local SQLite file (<code>data/jobfoundry.db</code>) or your private self-hosted PostgreSQL database. We do not host your database or offer cloud synchronization that compromises local ownership.
+  </p>
+
+  <h2>2. Browser-Originating Ingestion Invariant</h2>
+  <p>
+    The JobFoundry server never connects directly to job boards. Scraping actions occur exclusively within your own browser session via the companion extension, ensuring:
+  </p>
+  <ul>
+    <li>Your browser cookies and session headers never leave your machine.</li>
+    <li>No server IP ever risks being flagged or blocked.</li>
+    <li>You maintain full visibility and control over what pages are parsed.</li>
+  </ul>
+
+  <h2>3. Local LLM Execution</h2>
+  <p>
+    JobFoundry is engineered to integrate natively with local inference servers like <strong>Ollama</strong> or <strong>vLLM</strong>. When using local models, your resume and job postings never leave your machine. If you choose to configure a commercial cloud model (e.g. OpenAI), requests are sent directly from your daemon using your private API key without passing through any intermediate proxy.
+  </p>
+
+  <h2>4. Data Portability & Deletion</h2>
+  <p>
+    You can export your database at any time or delete it entirely by removing the <code>data/</code> folder. Because JobFoundry relies on standard SQLite and open file formats, you are never locked into any proprietary system.
+  </p>
+
+  <h2>5. Licensing & Source Code Transparency</h2>
+  <p>
+    All source code is publicly inspectable and licensed under the <strong>GNU Affero General Public License v3 (AGPL-3.0)</strong>. You can independently audit every line of code in the companion extension, ingestion engine, and dashboard.
+  </p>
+</DocsLayout>

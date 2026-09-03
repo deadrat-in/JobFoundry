@@ -1,0 +1,67 @@
+---
+interface Props {
+  colSpan?: 1 | 2 | 3 | 4;
+  rowSpan?: 1 | 2;
+  class?: string;
+  variant?: 'default' | 'elevated' | 'accent' | 'highlight';
+}
+
+const {
+  colSpan = 1,
+  rowSpan = 1,
+  class: className = '',
+  variant = 'default',
+} = Astro.props;
+---
+
+<div class:list={['bento-tile', `col-${colSpan}`, `row-${rowSpan}`, `variant-${variant}`, className]}>
+  <slot />
+</div>
+
+<style>
+  .bento-tile {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xs);
+    padding: 1.75rem;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: border-color 0.15s ease;
+  }
+
+  .bento-tile:hover {
+    border-color: var(--border-strong);
+  }
+
+  .variant-elevated {
+    background-color: var(--bg-surface-elevated);
+  }
+
+  .variant-accent {
+    border-top: 3px solid var(--accent-cyan);
+  }
+
+  .variant-highlight {
+    border-top: 3px solid var(--accent-violet);
+  }
+
+  /* Grid Spans */
+  .col-1 { grid-column: span 1; }
+  .col-2 { grid-column: span 2; }
+  .col-3 { grid-column: span 3; }
+  .col-4 { grid-column: span 4; }
+
+  .row-1 { grid-row: span 1; }
+  .row-2 { grid-row: span 2; }
+
+  @media (max-width: 900px) {
+    .col-2, .col-3, .col-4 {
+      grid-column: span 1;
+    }
+    .row-2 {
+      grid-row: span 1;
+    }
+  }
+</style>

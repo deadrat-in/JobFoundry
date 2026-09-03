@@ -1,0 +1,52 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import ProvidersDirectory from '../../components/ProvidersDirectory.astro';
+import { resolvePath } from '../../utils/paths.js';
+---
+
+<DocsLayout
+  title="Supported Providers Directory"
+  description="Catalog of 84+ supported ATS platforms, job boards, and aggregators with extraction modes."
+  currentPath={resolvePath('/docs/providers/')}
+  category="Ecosystem"
+>
+  <h1>Supported Job Boards & ATS Providers</h1>
+  <p>
+    JobFoundry supports over 84 job boards, Applicant Tracking Systems (ATS), and career portals. All extractions are executed locally within your browser using DOM scrapers and JSON-LD structured schemas.
+  </p>
+
+  <div class="doc-callout">
+    <div class="callout-title">
+      <span>◈</span>
+      <span>Request a New Provider</span>
+    </div>
+    <p>
+      Don't see a job board or enterprise ATS you frequent? Submit a provider request via our <a href={resolvePath('/feedback/')}>Feedback Portal</a> or file an issue on GitHub with a sample job posting URL.
+    </p>
+  </div>
+
+  <h2>Provider Directory (84+)</h2>
+  <p>
+    Use the search bar or category filters below to check coverage and extraction mechanics for any platform:
+  </p>
+
+  <ProvidersDirectory />
+
+  <h2>How Providers Work Under the Hood</h2>
+  <p>
+    Each provider extractor lives in <code>extension/src/extractors/</code> and exports a standard interface:
+  </p>
+  <pre><code>{`// Interface: ProviderExtractor
+interface ProviderExtractor {
+  matches(url: URL): boolean;
+  extract(document: Document): ExtractedJobPayload | null;
+}`}</code></pre>
+  <p>
+    When you open a job listing, the extension checks URL match patterns. If a known provider matches, it parses the document immediately. If an unrecognized site contains standard <code>schema.org/JobPosting</code> JSON-LD, the generic fallback extractor automatically captures it.
+  </p>
+
+  <h2>Contributing a New Extractor</h2>
+  <p>
+    Adding support for a new job board takes fewer than 30 lines of code. Read our <a href="https://github.com/deadrat-in/JobFoundry/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer">Contributing Guide</a> to submit a pull request!
+  </p>
+</DocsLayout>

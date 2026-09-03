@@ -1,0 +1,296 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import { resolvePath } from '../../utils/paths.js';
+---
+
+<DocsLayout
+  title="Browser Extension Guide"
+  description="Download, install, and configure the JobFoundry companion browser extension for Chrome, Brave, Edge, and Firefox."
+  currentPath={resolvePath('/docs/extension/')}
+  category="Companion Extension"
+>
+  <h1>Browser Extension Guide & Downloads</h1>
+  <p>
+    The JobFoundry companion extension extracts structured job postings directly from your authenticated browser session and securely transmits them to your local daemon.
+  </p>
+
+  <div class="download-banner">
+    <div class="banner-content">
+      <span class="site-badge emerald">STABLE RELEASE</span>
+      <h3 class="banner-title">Download Companion Extension</h3>
+      <p class="banner-text">
+        Universal zip bundle compatible with Chromium (Chrome, Brave, Edge, Arc) and Firefox.
+      </p>
+    </div>
+    <div class="banner-actions">
+      <a
+        href="https://github.com/deadrat-in/JobFoundry/releases/latest/download/jobfoundry-extension.zip"
+        class="btn btn-primary"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Download (.ZIP)
+      </a>
+      <a
+        href="https://github.com/deadrat-in/JobFoundry/tree/main/extension"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="btn btn-secondary"
+      >
+        Source Code
+      </a>
+    </div>
+  </div>
+
+  <h2>Installation by Browser</h2>
+
+  <div class="browser-tabs" role="tablist">
+    <button type="button" class="browser-tab active" data-target="chrome">Google Chrome</button>
+    <button type="button" class="browser-tab" data-target="brave">Brave Browser</button>
+    <button type="button" class="browser-tab" data-target="edge">Microsoft Edge</button>
+    <button type="button" class="browser-tab" data-target="firefox">Mozilla Firefox</button>
+  </div>
+
+  <div class="browser-panels">
+    <div class="browser-panel active" id="panel-chrome">
+      <ol class="steps-list">
+        <li>
+          <strong>Download & Extract:</strong> Download <code>jobfoundry-extension.zip</code> and extract the contents to a folder on your computer (e.g., <code>~/Extensions/jobfoundry</code>).
+        </li>
+        <li>
+          <strong>Open Extensions:</strong> Navigate to <code>chrome://extensions</code> in your Chrome address bar.
+        </li>
+        <li>
+          <strong>Enable Developer Mode:</strong> Toggle the <strong>Developer mode</strong> switch in the top-right corner.
+        </li>
+        <li>
+          <strong>Load Unpacked:</strong> Click the <strong>Load unpacked</strong> button in the top-left corner and select the extracted folder.
+        </li>
+        <li>
+          <strong>Pin Extension:</strong> Click the puzzle-piece icon in your browser toolbar and pin <strong>JobFoundry</strong> for 1-click job ingestion.
+        </li>
+      </ol>
+    </div>
+
+    <div class="browser-panel" id="panel-brave">
+      <ol class="steps-list">
+        <li>
+          <strong>Download & Extract:</strong> Download and unzip <code>jobfoundry-extension.zip</code>.
+        </li>
+        <li>
+          <strong>Open Extensions:</strong> Navigate to <code>brave://extensions</code>.
+        </li>
+        <li>
+          <strong>Enable Developer Mode:</strong> Turn on the <strong>Developer mode</strong> toggle in the top-right.
+        </li>
+        <li>
+          <strong>Load Unpacked:</strong> Click <strong>Load unpacked</strong> and select the directory containing <code>manifest.json</code>.
+        </li>
+        <li>
+          <strong>Brave Shields Compatibility:</strong> JobFoundry communicates exclusively with your local daemon (<code>http://localhost:8080</code>). No special Shields exceptions are required.
+        </li>
+      </ol>
+    </div>
+
+    <div class="browser-panel" id="panel-edge">
+      <ol class="steps-list">
+        <li>
+          <strong>Download & Extract:</strong> Extract <code>jobfoundry-extension.zip</code>.
+        </li>
+        <li>
+          <strong>Open Extensions:</strong> Navigate to <code>edge://extensions</code>.
+        </li>
+        <li>
+          <strong>Enable Developer Mode:</strong> In the left sidebar, switch on <strong>Developer mode</strong>.
+        </li>
+        <li>
+          <strong>Load Unpacked:</strong> Click <strong>Load unpacked</strong> and select the unzipped folder.
+        </li>
+      </ol>
+    </div>
+
+    <div class="browser-panel" id="panel-firefox">
+      <ol class="steps-list">
+        <li>
+          <strong>Download & Extract:</strong> Extract the extension package.
+        </li>
+        <li>
+          <strong>Open Debug Add-ons:</strong> Navigate to <code>about:debugging#/runtime/this-firefox</code> in your address bar.
+        </li>
+        <li>
+          <strong>Load Temporary Add-on:</strong> Click <strong>Load Temporary Add-on...</strong>.
+        </li>
+        <li>
+          <strong>Select Manifest:</strong> Select the <code>manifest.json</code> file in your extracted extension folder.
+        </li>
+      </ol>
+    </div>
+  </div>
+
+  <h2>Permissions & Privacy Transparency</h2>
+  <p>
+    JobFoundry values user privacy. The extension requests only the strictly necessary browser permissions:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Permission</th>
+        <th>Purpose</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>activeTab</code></td>
+        <td>Allows reading job description DOM elements on the current tab when you click "Save Job" or visit a supported job page.</td>
+      </tr>
+      <tr>
+        <td><code>storage</code></td>
+        <td>Stores your local daemon URL (defaults to <code>http://localhost:8080</code>) and user preference tokens.</td>
+      </tr>
+      <tr>
+        <td><code>http://localhost:8080/*</code></td>
+        <td>Direct communication channel to transmit parsed job payloads to your local JobFoundry server.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="doc-callout success">
+    <div class="callout-title">
+      <span>✓</span>
+      <span>No Remote Servers</span>
+    </div>
+    <p>
+      The companion extension never transmits job data, cookies, browsing history, or analytics to any external cloud service or third party. All network traffic is strictly between your browser and your local daemon.
+    </p>
+  </div>
+
+  <h2>Pairing & Connection Test</h2>
+  <p>
+    After loading the extension, click the JobFoundry icon in your browser toolbar to open the popup. The status indicator should display <span class="site-badge emerald">CONNECTED</span> to <code>http://localhost:8080</code>.
+  </p>
+  <p>
+    If the status reads <strong>Disconnected</strong>:
+  </p>
+  <ul>
+    <li>Verify that the daemon is running with <code>curl http://localhost:8080/health</code>.</li>
+    <li>If your daemon is running on a different port or host, click <strong>Settings</strong> in the extension popup and update the Daemon Endpoint URL.</li>
+  </ul>
+</DocsLayout>
+
+<style>
+  .download-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    padding: 1.75rem;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-top: 3px solid var(--accent-emerald);
+    border-radius: var(--radius-xs);
+    margin: 1.5rem 0 2.5rem;
+  }
+
+  .banner-title {
+    font-size: 1.35rem;
+    margin: 0.5rem 0 0.25rem;
+  }
+
+  .banner-text {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 0;
+  }
+
+  .banner-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .browser-tabs {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+  }
+
+  .browser-tab {
+    padding: 0.65rem 1rem;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .browser-tab:hover {
+    color: var(--text-primary);
+  }
+
+  .browser-tab.active {
+    color: var(--accent-cyan);
+    border-bottom-color: var(--accent-cyan);
+  }
+
+  .browser-panel {
+    display: none;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xs);
+    padding: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .browser-panel.active {
+    display: block;
+  }
+
+  .steps-list {
+    padding-left: 1.25rem;
+    margin-bottom: 0;
+  }
+
+  .steps-list li {
+    margin-bottom: 0.85rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+
+  .steps-list li:last-child {
+    margin-bottom: 0;
+  }
+
+  .steps-list strong {
+    color: var(--text-primary);
+  }
+</style>
+
+<script>
+  function setupBrowserTabs() {
+    const tabs = document.querySelectorAll<HTMLButtonElement>('.browser-tab');
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.target;
+        tabs.forEach((t) => t.classList.toggle('active', t === tab));
+        document.querySelectorAll<HTMLElement>('.browser-panel').forEach((panel) => {
+          panel.classList.toggle('active', panel.id === `panel-${target}`);
+        });
+      });
+    });
+  }
+
+  setupBrowserTabs();
+  document.addEventListener('astro:page-load', setupBrowserTabs);
+</script>

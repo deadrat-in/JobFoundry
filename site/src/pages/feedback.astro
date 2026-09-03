@@ -1,0 +1,207 @@
+---
+import MarketingLayout from '../layouts/MarketingLayout.astro';
+import { resolvePath } from '../utils/paths.js';
+
+const feedbackOptions = [
+  {
+    category: 'BUG REPORT',
+    title: 'Report a Defect',
+    desc: 'Found an issue with parsing, scoring, or the dashboard? Submit an issue with reproducible steps.',
+    url: 'https://github.com/deadrat-in/JobFoundry/issues/new?template=bug_report.md',
+    btnText: 'Open Bug Report →',
+    badge: 'cyan',
+  },
+  {
+    category: 'PROVIDER REQUEST',
+    title: 'Request a Job Board',
+    desc: 'Need support for an ATS or niche job portal? Share the domain and sample job postings.',
+    url: 'https://github.com/deadrat-in/JobFoundry/issues/new?template=provider_request.md',
+    btnText: 'Request Provider →',
+    badge: 'violet',
+  },
+  {
+    category: 'FEATURE PROPOSAL',
+    title: 'Propose New Features',
+    desc: 'Have ideas for new resume templates, scoring heuristics, or workflow improvements?',
+    url: 'https://github.com/deadrat-in/JobFoundry/discussions/new?category=ideas',
+    btnText: 'Share Feature Idea →',
+    badge: 'emerald',
+  },
+  {
+    category: 'CONTRIBUTE',
+    title: 'Contribute Code',
+    desc: 'JobFoundry is open source. Check out our contributing guidelines, issue backlog, and good first issues.',
+    url: 'https://github.com/deadrat-in/JobFoundry/blob/main/CONTRIBUTING.md',
+    btnText: 'Read Contributor Guide →',
+    badge: 'amber',
+  },
+];
+---
+
+<MarketingLayout
+  title="Community & Feedback — JobFoundry"
+  description="Submit bug reports, request job-board providers, and share feature ideas with the JobFoundry team."
+  currentPath={resolvePath('/feedback/')}
+>
+  <section class="feedback-hero">
+    <div class="site-container">
+      <div class="hero-header">
+        <span class="site-badge cyan">COMMUNITY & SUPPORT</span>
+        <h1 class="hero-title">Feedback & Issue Reporting</h1>
+        <p class="hero-subtitle">
+          JobFoundry is community-driven and open source. Choose a category below to submit feedback, report bugs, or collaborate.
+        </p>
+      </div>
+
+      <div class="feedback-grid">
+        {feedbackOptions.map((opt) => (
+          <div class="feedback-card">
+            <div class="card-top">
+              <span class:list={['site-badge', opt.badge]}>{opt.category}</span>
+              <h3 class="card-title">{opt.title}</h3>
+              <p class="card-desc">{opt.desc}</p>
+            </div>
+            <a
+              href={opt.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn btn-secondary card-link"
+            >
+              {opt.btnText}
+            </a>
+          </div>
+        ))}
+      </div>
+
+      <div class="direct-contact-box">
+        <div class="contact-meta">
+          <span class="contact-glyph">◈</span>
+          <div>
+            <h4>Join Discussions on GitHub</h4>
+            <p>Engage with fellow self-hosters and contributors in our GitHub Discussions forum.</p>
+          </div>
+        </div>
+        <a
+          href="https://github.com/deadrat-in/JobFoundry/discussions"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn-primary"
+        >
+          GitHub Discussions
+        </a>
+      </div>
+    </div>
+  </section>
+</MarketingLayout>
+
+<style>
+  .feedback-hero {
+    padding: 4rem 0 6rem;
+  }
+
+  .hero-header {
+    max-width: 720px;
+    margin-bottom: 3.5rem;
+  }
+
+  .hero-title {
+    font-size: 2.75rem;
+    margin: 1rem 0 0.75rem;
+    letter-spacing: -0.02em;
+  }
+
+  .hero-subtitle {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 0;
+  }
+
+  .feedback-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3.5rem;
+  }
+
+  .feedback-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xs);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: border-color 0.15s ease;
+  }
+
+  .feedback-card:hover {
+    border-color: var(--border-strong);
+  }
+
+  .card-title {
+    font-size: 1.35rem;
+    margin: 1rem 0 0.5rem;
+  }
+
+  .card-desc {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 1.75rem;
+  }
+
+  .card-link {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .direct-contact-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    padding: 2rem 2.5rem;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-left: 3px solid var(--accent-cyan);
+    border-radius: var(--radius-xs);
+  }
+
+  .contact-meta {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .contact-glyph {
+    font-size: 1.75rem;
+    color: var(--accent-cyan);
+  }
+
+  .contact-meta h4 {
+    font-size: 1.15rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .contact-meta p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 768px) {
+    .feedback-hero {
+      padding: 2.5rem 0 4rem;
+    }
+
+    .hero-title {
+      font-size: 2.1rem;
+    }
+
+    .direct-contact-box {
+      padding: 1.5rem;
+    }
+  }
+</style>

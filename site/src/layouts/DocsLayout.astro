@@ -1,0 +1,221 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import Sidebar from '../components/Sidebar.astro';
+import ThemeScript from '../components/ThemeScript.astro';
+import '../styles/global.css';
+import { resolvePath } from '../utils/paths.js';
+
+interface Props {
+  title: string;
+  description?: string;
+  currentPath?: string;
+  category?: string;
+}
+
+const {
+  title,
+  description = 'JobFoundry technical documentation, installation guides, and architectural invariants.',
+  currentPath = '/docs/',
+  category = 'Documentation',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title} — JobFoundry Docs</title>
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href={resolvePath('/favicon.svg')} />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Theme script -->
+    <ThemeScript />
+  </head>
+  <body>
+    <Header currentPath={currentPath} />
+    <div class="docs-wrapper">
+      <Sidebar currentPath={currentPath} />
+      <main class="docs-main">
+        <div class="docs-container">
+          <div class="docs-breadcrumbs">
+            <a href={resolvePath('/docs/')}>Docs</a>
+            <span class="crumb-separator">/</span>
+            <span class="crumb-category">{category}</span>
+          </div>
+
+          <article class="docs-prose">
+            <slot />
+          </article>
+        </div>
+      </main>
+    </div>
+    <Footer />
+  </body>
+</html>
+
+<style>
+  .docs-wrapper {
+    display: flex;
+    min-height: calc(100vh - 56px);
+    width: 100%;
+    max-width: var(--max-w-page);
+    margin: 0 auto;
+  }
+
+  .docs-main {
+    flex: 1;
+    min-width: 0;
+    padding: 2.5rem 2.5rem 4rem;
+    background-color: var(--bg-canvas);
+  }
+
+  .docs-container {
+    max-width: var(--max-w-content);
+    margin: 0 auto;
+  }
+
+  .docs-breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  .docs-breadcrumbs a {
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+
+  .docs-breadcrumbs a:hover {
+    color: var(--accent-cyan);
+  }
+
+  .crumb-separator {
+    color: var(--border-strong);
+  }
+
+  .crumb-category {
+    color: var(--text-secondary);
+  }
+
+  /* Documentation Prose Typography & Elements */
+  .docs-prose :global(h1) {
+    font-size: 2.25rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .docs-prose :global(h2) {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+    letter-spacing: -0.01em;
+  }
+
+  .docs-prose :global(h3) {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-top: 1.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .docs-prose :global(p) {
+    margin-bottom: 1.25rem;
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+
+  .docs-prose :global(ul), .docs-prose :global(ol) {
+    margin-bottom: 1.25rem;
+    padding-left: 1.5rem;
+    color: var(--text-secondary);
+  }
+
+  .docs-prose :global(li) {
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+  }
+
+  .docs-prose :global(pre) {
+    margin: 1.5rem 0;
+    font-size: 0.85rem;
+  }
+
+  .docs-prose :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2rem 0;
+    font-size: 0.875rem;
+  }
+
+  .docs-prose :global(th), .docs-prose :global(td) {
+    border: 1px solid var(--border-subtle);
+    padding: 0.75rem 1rem;
+    text-align: left;
+  }
+
+  .docs-prose :global(th) {
+    background-color: var(--bg-surface-elevated);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .docs-prose :global(td) {
+    background-color: var(--bg-surface);
+    color: var(--text-secondary);
+  }
+
+  /* Callout / Invariant blocks */
+  .docs-prose :global(.doc-callout) {
+    margin: 1.75rem 0;
+    padding: 1.25rem;
+    border-radius: var(--radius-xs);
+    border: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface);
+    border-left: 3px solid var(--accent-cyan);
+  }
+
+  .docs-prose :global(.doc-callout.warning) {
+    border-left-color: var(--accent-amber);
+  }
+
+  .docs-prose :global(.doc-callout.success) {
+    border-left-color: var(--accent-emerald);
+  }
+
+  .docs-prose :global(.callout-title) {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .docs-main {
+      padding: 1.5rem 1rem 3rem;
+    }
+  }
+</style>

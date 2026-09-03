@@ -1,0 +1,145 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import { resolvePath } from '../../utils/paths.js';
+---
+
+<DocsLayout
+  title="Documentation Hub"
+  description="Comprehensive documentation for JobFoundry local-first pipeline, companion extension, and LLM scoring."
+  currentPath={resolvePath('/docs/')}
+  category="Overview"
+>
+  <h1>JobFoundry Documentation</h1>
+  <p class="lead-text">
+    JobFoundry is a local-first, privacy-respecting pipeline designed to find jobs across 84+ platforms, deduplicate cross-postings, score candidate fit with local LLMs, and compile tailored ATS-compliant resumes.
+  </p>
+
+  <div class="doc-callout">
+    <div class="callout-title">
+      <span>◈</span>
+      <span>Architectural Invariant</span>
+    </div>
+    <p>
+      The JobFoundry server never performs outbound job-board scraping. All scraping and job-board HTTP requests originate from the user's browser extension using existing authenticated sessions.
+    </p>
+  </div>
+
+  <h2>Documentation Sections</h2>
+  <div class="docs-grid">
+    <a href={resolvePath('/docs/getting-started/')} class="doc-card">
+      <span class="card-num">01</span>
+      <h3 class="card-heading">Getting Started</h3>
+      <p class="card-desc">
+        Install the daemon via Podman, Docker Compose, or native CLI. Configure local LLMs (Ollama/vLLM) and verify server health.
+      </p>
+      <span class="card-cta">View Setup Guide →</span>
+    </a>
+
+    <a href={resolvePath('/docs/extension/')} class="doc-card">
+      <span class="card-num">02</span>
+      <h3 class="card-heading">Browser Extension</h3>
+      <p class="card-desc">
+        Companion browser extension for Chrome, Brave, Edge, and Firefox. Download releases and follow manual unpack instructions.
+      </p>
+      <span class="card-cta">View Extension Manual →</span>
+    </a>
+
+    <a href={resolvePath('/docs/architecture/')} class="doc-card">
+      <span class="card-num">03</span>
+      <h3 class="card-heading">Pipeline Architecture</h3>
+      <p class="card-desc">
+        Deep dive into the 5-stage pipeline: Ingestion, 64-bit SimHash deduplication, LLM fit scorer schema, and Typst tailoring.
+      </p>
+      <span class="card-cta">Explore Architecture →</span>
+    </a>
+
+    <a href={resolvePath('/docs/providers/')} class="doc-card">
+      <span class="card-num">04</span>
+      <h3 class="card-heading">Supported Providers</h3>
+      <p class="card-desc">
+        Explore 84+ supported ATS and job boards (Workday, Greenhouse, Lever, Ashby, LinkedIn, Indeed, Dice) with extraction modes.
+      </p>
+      <span class="card-cta">Browse Directory →</span>
+    </a>
+
+    <a href={resolvePath('/docs/privacy/')} class="doc-card">
+      <span class="card-num">05</span>
+      <h3 class="card-heading">Privacy & Invariants</h3>
+      <p class="card-desc">
+        Zero analytics, no third-party telemetry, local SQLite storage, and architectural principles guaranteeing full data ownership.
+      </p>
+      <span class="card-cta">Read Guarantees →</span>
+    </a>
+
+    <a href={resolvePath('/feedback/')} class="doc-card">
+      <span class="card-num">06</span>
+      <h3 class="card-heading">Feedback & Support</h3>
+      <p class="card-desc">
+        Submit bug reports, request new job-board providers, share feature proposals, or contribute to JobFoundry.
+      </p>
+      <span class="card-cta">Join Community →</span>
+    </a>
+  </div>
+</DocsLayout>
+
+<style>
+  .lead-text {
+    font-size: 1.15rem;
+    color: var(--text-primary);
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+  }
+
+  .docs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+    margin-top: 1.5rem;
+  }
+
+  .doc-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xs);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none !important;
+    transition: all 0.15s ease;
+  }
+
+  .doc-card:hover {
+    border-color: var(--accent-cyan);
+    background-color: var(--bg-surface-elevated);
+    transform: translateY(-2px);
+  }
+
+  .card-num {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    margin-bottom: 0.5rem;
+  }
+
+  .card-heading {
+    font-size: 1.15rem;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .card-desc {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    flex: 1;
+    margin-bottom: 1rem;
+  }
+
+  .card-cta {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--accent-cyan);
+  }
+</style>

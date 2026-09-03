@@ -1,0 +1,170 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import TerminalSnippet from '../../components/TerminalSnippet.astro';
+import { resolvePath } from '../../utils/paths.js';
+---
+
+<DocsLayout
+  title="Getting Started"
+  description="Step-by-step setup guide for JobFoundry with Docker, Podman, or standalone Node.js."
+  currentPath={resolvePath('/docs/getting-started/')}
+  category="Installation & Setup"
+>
+  <h1>Getting Started with JobFoundry</h1>
+  <p>
+    JobFoundry runs as a local daemon on your machine or private server. Follow this guide to initialize the server, configure your LLM endpoint, and verify service health.
+  </p>
+
+  <h2>Prerequisites</h2>
+  <ul>
+    <li><strong>Runtime:</strong> Linux, macOS, or Windows WSL2.</li>
+    <li><strong>Container Engine (Recommended):</strong> Docker or Podman with compose support.</li>
+    <li><strong>Manual Node.js:</strong> Node.js version 22 or higher with npm.</li>
+    <li><strong>LLM Backend (Optional for scoring):</strong> Local Ollama, vLLM, or any OpenAI-compatible API.</li>
+  </ul>
+
+  <h2>Method 1: One-Line Install Script</h2>
+  <p>
+    The fastest way to deploy JobFoundry locally on Linux and macOS:
+  </p>
+  <TerminalSnippet
+    command="curl -sSL https://raw.githubusercontent.com/deadrat-in/JobFoundry/main/install.sh | bash"
+    title="ONE-LINE INSTALL"
+  />
+  <p>
+    This script verifies container runtimes (Podman or Docker), clones or updates repository assets, initializes <code>.env</code>, and starts the container daemon.
+  </p>
+
+  <h2>Method 2: Docker Compose or Podman</h2>
+  <p>
+    If you prefer cloning the repository and managing services via compose:
+  </p>
+  <TerminalSnippet
+    command="git clone https://github.com/deadrat-in/JobFoundry.git && cd JobFoundry"
+    title="CLONE REPOSITORY"
+  />
+  <p>
+    Copy the sample configuration and configure your secrets:
+  </p>
+  <TerminalSnippet
+    command="cp .env.example .env"
+    title="CONFIGURE ENVIRONMENT"
+  />
+  <p>
+    Start the pipeline services in the background:
+  </p>
+  <TerminalSnippet
+    command="docker compose up -d"
+    title="START SERVICES (DOCKER)"
+  />
+  <p>Or with Podman:</p>
+  <TerminalSnippet
+    command="podman compose up -d"
+    title="START SERVICES (PODMAN)"
+  />
+
+  <h2>Method 3: Native Node.js Setup</h2>
+  <p>
+    For active development or running without containers:
+  </p>
+  <TerminalSnippet
+    command="npm install && npm test"
+    title="INSTALL DEPENDENCIES & RUN TESTS"
+  />
+  <p>Start the web server and ingestion workers:</p>
+  <TerminalSnippet
+    command="npm start"
+    title="START PIPELINE DAEMON"
+  />
+
+  <h2>Environment Configuration (.env)</h2>
+  <p>
+    JobFoundry stores settings in a local <code>.env</code> file. The key configuration parameters include:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Variable</th>
+        <th>Default</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>PORT</code></td>
+        <td><code>8080</code></td>
+        <td>Port for the web dashboard and extension ingestion API.</td>
+      </tr>
+      <tr>
+        <td><code>DATABASE_URL</code></td>
+        <td><code>sqlite://./data/jobfoundry.db</code></td>
+        <td>Local SQLite database or Postgres connection string.</td>
+      </tr>
+      <tr>
+        <td><code>LLM_BASE_URL</code></td>
+        <td><code>http://localhost:11434/v1</code></td>
+        <td>Base URL for your LLM endpoint (Ollama default).</td>
+      </tr>
+      <tr>
+        <td><code>LLM_MODEL</code></td>
+        <td><code>llama3:latest</code></td>
+        <td>Model name used for fit scoring and criteria evaluation.</td>
+      </tr>
+      <tr>
+        <td><code>SIMHASH_THRESHOLD</code></td>
+        <td><code>3</code></td>
+        <td>Hamming distance threshold for detecting duplicate jobs.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Verifying Installation</h2>
+  <p>
+    Confirm the daemon is listening and healthy by probing the health check endpoint:
+  </p>
+  <TerminalSnippet
+    command="curl -i http://localhost:8080/health"
+    title="VERIFY HEALTH"
+  />
+  <p>
+    Once healthy, open <a href="http://localhost:8080" target="_blank" rel="noopener noreferrer"><code>http://localhost:8080</code></a> in your browser to view the Kanban dashboard. Next, install the companion browser extension to begin ingesting job postings.
+  </p>
+
+  <div class="next-step-box">
+    <span class="next-label">NEXT STEP</span>
+    <a href={resolvePath('/docs/extension/')} class="next-link">
+      Install the Companion Browser Extension →
+    </a>
+  </div>
+</DocsLayout>
+
+<style>
+  .next-step-box {
+    margin-top: 3rem;
+    padding: 1.25rem 1.5rem;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-left: 3px solid var(--accent-cyan);
+    border-radius: var(--radius-xs);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .next-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+
+  .next-link {
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent-cyan);
+  }
+</style>

@@ -1,0 +1,173 @@
+---
+import { resolvePath } from '../utils/paths.js';
+
+interface Props {
+  currentPath?: string;
+}
+
+const { currentPath = '' } = Astro.props;
+
+const docSections = [
+  {
+    title: 'Overview',
+    items: [
+      { label: 'Documentation Hub', href: resolvePath('/docs/') },
+      { label: 'Getting Started', href: resolvePath('/docs/getting-started/') },
+    ],
+  },
+  {
+    title: 'Components',
+    items: [
+      { label: 'Browser Extension', href: resolvePath('/docs/extension/') },
+      { label: 'Pipeline Architecture', href: resolvePath('/docs/architecture/') },
+      { label: 'Supported Providers (84+)', href: resolvePath('/docs/providers/') },
+    ],
+  },
+  {
+    title: 'Trust & Governance',
+    items: [
+      { label: 'Privacy & Invariants', href: resolvePath('/docs/privacy/') },
+      { label: 'AGPL-3.0 License', href: resolvePath('/license/') },
+      { label: 'Community Feedback', href: resolvePath('/feedback/') },
+    ],
+  },
+];
+---
+
+<aside class="docs-sidebar" aria-label="Documentation Sidebar">
+  <div class="sidebar-header">
+    <span class="sidebar-tag">JOBFOUNDRY DOCS</span>
+  </div>
+
+  <nav class="sidebar-nav">
+    {docSections.map((section) => (
+      <div class="nav-section">
+        <h3 class="section-title">{section.title}</h3>
+        <ul class="section-list">
+          {section.items.map((item) => {
+            const isActive = currentPath === item.href || (item.href !== resolvePath('/docs/') && currentPath.startsWith(item.href));
+            return (
+              <li>
+                <a href={item.href} class:list={['nav-item-link', { active: isActive }]}>
+                  {item.label}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    ))}
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="invariant-box">
+      <span class="box-dot"></span>
+      <span class="box-text">Local-First Engine</span>
+    </div>
+  </div>
+</aside>
+
+<style>
+  .docs-sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 56px;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+    padding: 2rem 1.5rem;
+    border-right: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface);
+  }
+
+  .sidebar-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .sidebar-tag {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--accent-cyan);
+    background: var(--accent-cyan-bg);
+    border: 1px solid var(--border-subtle);
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-xs);
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+  }
+
+  .section-title {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 0.6rem;
+  }
+
+  .section-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .nav-item-link {
+    display: block;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none !important;
+    border-radius: var(--radius-xs);
+    border-left: 2px solid transparent;
+    transition: all 0.15s ease;
+  }
+
+  .nav-item-link:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-surface-elevated);
+  }
+
+  .nav-item-link.active {
+    color: var(--accent-cyan);
+    background-color: var(--accent-cyan-bg);
+    border-left-color: var(--accent-cyan);
+    font-weight: 600;
+  }
+
+  .sidebar-footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .invariant-box {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .box-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--accent-emerald);
+  }
+
+  @media (max-width: 768px) {
+    .docs-sidebar {
+      display: none;
+    }
+  }
+</style>

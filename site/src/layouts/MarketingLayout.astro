@@ -1,0 +1,55 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import ThemeScript from '../components/ThemeScript.astro';
+import '../styles/global.css';
+import { resolvePath } from '../utils/paths.js';
+
+interface Props {
+  title?: string;
+  description?: string;
+  currentPath?: string;
+}
+
+const {
+  title = 'JobFoundry — Local-First AI Job Search & Resume Tailoring Pipeline',
+  description = 'Open-source local-first pipeline for multi-board job search, SimHash deduplication, AI fit scoring, and ATS resume tailoring.',
+  currentPath = '/',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href={resolvePath('/favicon.svg')} />
+
+    <!-- Google Fonts: Outfit, Inter, JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Theme initialization script (prevents FOUT) -->
+    <ThemeScript />
+  </head>
+  <body>
+    <Header currentPath={currentPath} />
+    <main class="main-content">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>
+
+<style>
+  .main-content {
+    flex: 1;
+    width: 100%;
+  }
+</style>

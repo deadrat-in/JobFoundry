@@ -1,0 +1,292 @@
+/* ==========================================================================
+   JobFoundry Design System — Metro-Bento Developer Tool Aesthetics
+   Strictly Flat • Geometric • High Information Density • System Dark/Light
+   ========================================================================== */
+
+:root {
+  /* Default: Light theme tokens */
+  --bg-canvas: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #f1f5f9;
+  --bg-surface-hover: #e2e8f0;
+  --bg-surface-active: #cbd5e1;
+
+  --border-subtle: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --border-focus: #0284c7;
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --text-inverse: #f8fafc;
+
+  --accent-cyan: #0284c7;
+  --accent-cyan-bg: rgba(2, 132, 199, 0.08);
+  --accent-violet: #7c3aed;
+  --accent-violet-bg: rgba(124, 58, 237, 0.08);
+  --accent-emerald: #059669;
+  --accent-emerald-bg: rgba(5, 150, 105, 0.08);
+  --accent-amber: #d97706;
+  --accent-amber-bg: rgba(217, 119, 6, 0.08);
+
+  --code-bg: #0f172a;
+  --code-text: #e2e8f0;
+  --code-border: #334155;
+
+  /* Technical Grid & Activity Telemetry */
+  --grid-line: rgba(15, 23, 42, 0.04);
+  --activity-pulse: rgba(2, 132, 199, 0.4);
+  --activity-bg: rgba(2, 132, 199, 0.03);
+
+  /* Typography */
+  --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Strict Geometric Radius (No pill buttons, no bubbly cards) */
+  --radius-none: 0px;
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+
+  /* Layout Spacing */
+  --max-w-page: 1280px;
+  --max-w-content: 840px;
+}
+
+/* Dark theme tokens (applied via .dark class) */
+html.dark {
+  --bg-canvas: #070c18;
+  --bg-surface: #0e1626;
+  --bg-surface-elevated: #131e31;
+  --bg-surface-hover: #1c2b44;
+  --bg-surface-active: #243656;
+
+  --border-subtle: #1e293b;
+  --border-strong: #334155;
+  --border-focus: #38bdf8;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-inverse: #0f172a;
+
+  --accent-cyan: #38bdf8;
+  --accent-cyan-bg: rgba(56, 189, 248, 0.12);
+  --accent-violet: #a78bfa;
+  --accent-violet-bg: rgba(167, 139, 250, 0.12);
+  --accent-emerald: #10b981;
+  --accent-emerald-bg: rgba(16, 185, 129, 0.12);
+  --accent-amber: #fbbf24;
+  --accent-amber-bg: rgba(251, 191, 36, 0.12);
+
+  --code-bg: #0b111e;
+  --code-text: #f1f5f9;
+  --code-border: #1e293b;
+
+  --grid-line: rgba(148, 163, 184, 0.04);
+  --activity-pulse: rgba(56, 189, 248, 0.45);
+  --activity-bg: rgba(56, 189, 248, 0.03);
+}
+
+/* Base Reset & Typography */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background-color: var(--bg-canvas);
+  color-scheme: light dark;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-canvas);
+  background-image: 
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: center top;
+  color: var(--text-primary);
+  overflow-x: hidden;
+  position: relative;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+h1 { font-size: 2.25rem; font-weight: 800; }
+h2 { font-size: 1.75rem; }
+h3 { font-size: 1.25rem; }
+h4 { font-size: 1.05rem; }
+
+p {
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+a {
+  color: var(--accent-cyan);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+code, kbd, samp, pre {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+code:not(pre code) {
+  padding: 0.15em 0.4em;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  color: var(--text-primary);
+}
+
+pre {
+  background-color: var(--code-bg);
+  color: var(--code-text);
+  border: 1px solid var(--code-border);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+
+button, input, select, textarea {
+  font: inherit;
+}
+
+/* Focus Outline */
+:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* Metro-Bento Common Utilities */
+.site-container {
+  width: 100%;
+  max-width: var(--max-w-page);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.site-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-elevated);
+  color: var(--text-secondary);
+}
+
+.site-badge.cyan {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  background: var(--accent-cyan-bg);
+}
+
+.site-badge.emerald {
+  border-color: var(--accent-emerald);
+  color: var(--accent-emerald);
+  background: var(--accent-emerald-bg);
+}
+
+.site-badge.violet {
+  border-color: var(--accent-violet);
+  color: var(--accent-violet);
+  background: var(--accent-violet-bg);
+}
+
+.site-badge.amber {
+  border-color: var(--accent-amber);
+  color: var(--accent-amber);
+  background: var(--accent-amber-bg);
+}
+
+/* Primary and Secondary Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: var(--radius-xs);
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none !important;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background-color: var(--accent-cyan);
+  color: #070c18 !important;
+  border-color: var(--accent-cyan);
+}
+
+.btn-primary:hover {
+  background-color: #7dd3fc;
+  border-color: #7dd3fc;
+}
+
+.btn-secondary {
+  background-color: var(--bg-surface);
+  color: var(--text-primary) !important;
+  border-color: var(--border-strong);
+}
+
+.btn-secondary:hover {
+  background-color: var(--bg-surface-hover);
+  border-color: var(--border-focus);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary) !important;
+  border-color: transparent;
+}
+
+.btn-ghost:hover {
+  background: var(--bg-surface-elevated);
+  color: var(--text-primary) !important;
+}
+
+/* Hairline Divider */
+.hairline {
+  border: 0;
+  height: 1px;
+  background-color: var(--border-subtle);
+  margin: 1.5rem 0;
+}

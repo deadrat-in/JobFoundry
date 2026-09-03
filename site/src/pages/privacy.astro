@@ -1,0 +1,19 @@
+---
+import { resolvePath } from '../utils/paths.js';
+const target = resolvePath('/docs/privacy/');
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="refresh" content={`0;url=${target}`} />
+    <link rel="canonical" href={target} />
+    <title>Redirecting to Privacy Policy — JobFoundry</title>
+  </head>
+  <body>
+    <p>Redirecting to <a href={target}>JobFoundry Privacy Policy</a>...</p>
+    <script is:inline define:vars={{ target }}>
+      window.location.replace(target);
+    </script>
+  </body>
+</html>

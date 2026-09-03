@@ -8,9 +8,12 @@
   "workspaces": [
     "extension",
     "server/ingest",
-    "server/web"
+    "server/web",
+    "site"
   ],
   "scripts": {
+    "site:dev": "npm --workspace=site run dev",
+    "site:build": "npm --workspace=site run build",
     "test": "npm run check:meta && node --test test/*.test.mjs",
     "check:meta": "node scripts/check-meta.mjs",
     "eval:prompt": "npx promptfoo eval --config server/scorer/evals/promptfooconfig.yaml",

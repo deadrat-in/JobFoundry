@@ -1,0 +1,23 @@
+<script is:inline>
+  (function () {
+    const storageKey = 'jf_theme_pref';
+    const stored = localStorage.getItem(storageKey);
+    const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+    function applyTheme(pref) {
+      const isDark = pref === 'dark' || (pref !== 'light' && systemDark.matches);
+      document.documentElement.classList.toggle('dark', isDark);
+      document.documentElement.setAttribute('data-theme', pref || 'system');
+    }
+
+    applyTheme(stored || 'system');
+
+    // Listen for system changes when in system mode
+    systemDark.addEventListener('change', (e) => {
+      const current = localStorage.getItem(storageKey) || 'system';
+      if (current === 'system') {
+        document.documentElement.classList.toggle('dark', e.matches);
+      }
+    });
+  })();
+</script>

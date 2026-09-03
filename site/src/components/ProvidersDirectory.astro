@@ -1,0 +1,312 @@
+---
+const providersList = [
+  // Modern ATS
+  { name: 'Greenhouse', category: 'Modern ATS', type: 'ATS', extraction: 'JSON-LD + DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'Lever', category: 'Modern ATS', type: 'ATS', extraction: 'API / Schema', multipage: 'Yes', status: 'Verified' },
+  { name: 'Ashby', category: 'Modern ATS', type: 'ATS', extraction: 'JSON-LD + DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'Workable', category: 'Modern ATS', type: 'ATS', extraction: 'Structured DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'SmartRecruiters', category: 'Modern ATS', type: 'ATS', extraction: 'JSON-LD', multipage: 'Yes', status: 'Verified' },
+  { name: 'BambooHR', category: 'Modern ATS', type: 'ATS', extraction: 'DOM Table', multipage: 'Yes', status: 'Verified' },
+  { name: 'Teamtailor', category: 'Modern ATS', type: 'ATS', extraction: 'JSON-LD', multipage: 'Yes', status: 'Verified' },
+  { name: 'Breezy HR', category: 'Modern ATS', type: 'ATS', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'Pinpoint', category: 'Modern ATS', type: 'ATS', extraction: 'JSON-LD', multipage: 'Yes', status: 'Verified' },
+  { name: 'Recruitee', category: 'Modern ATS', type: 'ATS', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'Rippling ATS', category: 'Modern ATS', type: 'ATS', extraction: 'JSON-LD', multipage: 'Yes', status: 'Verified' },
+  { name: 'JazzHR', category: 'Modern ATS', type: 'ATS', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+
+  // Enterprise ATS
+  { name: 'Workday', category: 'Enterprise ATS', type: 'Enterprise', extraction: 'Browser Session / DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'SAP SuccessFactors', category: 'Enterprise ATS', type: 'Enterprise', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'Oracle Taleo', category: 'Enterprise ATS', type: 'Enterprise', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'iCIMS', category: 'Enterprise ATS', type: 'Enterprise', extraction: 'DOM / JSON-LD', multipage: 'Yes', status: 'Verified' },
+  { name: 'Jobvite', category: 'Enterprise ATS', type: 'Enterprise', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'Avature', category: 'Enterprise ATS', type: 'Enterprise', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'BrassRing / Kenexa', category: 'Enterprise ATS', type: 'Enterprise', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'Dayforce', category: 'Enterprise ATS', type: 'Enterprise', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'UKG Pro', category: 'Enterprise ATS', type: 'Enterprise', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'Phenom People', category: 'Enterprise ATS', type: 'Enterprise', extraction: 'JSON-LD', multipage: 'Yes', status: 'Verified' },
+  { name: 'Eightfold AI', category: 'Enterprise ATS', type: 'Enterprise', extraction: 'JSON-LD', multipage: 'Yes', status: 'Verified' },
+
+  // Major Job Boards
+  { name: 'LinkedIn Jobs', category: 'Job Boards', type: 'Job Board', extraction: 'Session DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'Indeed', category: 'Job Boards', type: 'Job Board', extraction: 'DOM / Schema', multipage: 'Yes', status: 'Verified' },
+  { name: 'Dice', category: 'Job Boards', type: 'Job Board', extraction: 'JSON-LD', multipage: 'Yes', status: 'Verified' },
+  { name: 'Glassdoor', category: 'Job Boards', type: 'Job Board', extraction: 'Session DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'ZipRecruiter', category: 'Job Boards', type: 'Job Board', extraction: 'JSON-LD', multipage: 'Yes', status: 'Verified' },
+  { name: 'Monster', category: 'Job Boards', type: 'Job Board', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'CareerBuilder', category: 'Job Boards', type: 'Job Board', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'SimplyHired', category: 'Job Boards', type: 'Job Board', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+
+  // Tech, Niche & Remote
+  { name: 'Wellfound (AngelList)', category: 'Niche & Remote', type: 'Startup', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'Y Combinator Jobs', category: 'Niche & Remote', type: 'Startup', extraction: 'DOM / JSON-LD', multipage: 'Yes', status: 'Verified' },
+  { name: 'BuiltIn', category: 'Niche & Remote', type: 'Tech', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'We Work Remotely', category: 'Niche & Remote', type: 'Remote', extraction: 'JSON-LD', multipage: 'Yes', status: 'Verified' },
+  { name: 'Remotive', category: 'Niche & Remote', type: 'Remote', extraction: 'JSON-LD', multipage: 'Yes', status: 'Verified' },
+  { name: 'RemoteOK', category: 'Niche & Remote', type: 'Remote', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'Hacker News (Who is Hiring)', category: 'Niche & Remote', type: 'Community', extraction: 'Text Parser', multipage: 'Single', status: 'Verified' },
+  { name: 'Otta / Welcome to the Jungle', category: 'Niche & Remote', type: 'Tech', extraction: 'Session DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'RubyNow', category: 'Niche & Remote', type: 'Specialized', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'CryptoJobsList', category: 'Niche & Remote', type: 'Specialized', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'eFinancialCareers', category: 'Niche & Remote', type: 'Specialized', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'BioSpace', category: 'Niche & Remote', type: 'Specialized', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'ClearanceJobs', category: 'Niche & Remote', type: 'Specialized', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'Idealist', category: 'Niche & Remote', type: 'Non-profit', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'HigherEdJobs', category: 'Niche & Remote', type: 'Specialized', extraction: 'DOM', multipage: 'Yes', status: 'Verified' },
+  { name: 'USAJobs (gov)', category: 'Niche & Remote', type: 'Government', extraction: 'JSON-LD', multipage: 'Yes', status: 'Verified' },
+];
+---
+
+<div class="providers-directory">
+  <div class="directory-controls">
+    <div class="search-box">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input
+        type="text"
+        id="provider-search-input"
+        class="search-input"
+        placeholder="Search 84+ supported ATS & job boards (e.g., Greenhouse, Workday, Lever)..."
+        aria-label="Filter providers"
+      />
+    </div>
+
+    <div class="filter-tabs" role="group" aria-label="Category Filters">
+      <button type="button" class="filter-btn active" data-category="ALL">All (84+)</button>
+      <button type="button" class="filter-btn" data-category="Modern ATS">Modern ATS</button>
+      <button type="button" class="filter-btn" data-category="Enterprise ATS">Enterprise ATS</button>
+      <button type="button" class="filter-btn" data-category="Job Boards">Job Boards</button>
+      <button type="button" class="filter-btn" data-category="Niche & Remote">Niche & Remote</button>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table class="providers-table" id="providers-table">
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>Category</th>
+          <th>Type</th>
+          <th>Extraction Mode</th>
+          <th>Multi-Page</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {providersList.map((item) => (
+          <tr data-name={item.name.toLowerCase()} data-cat={item.category}>
+            <td class="col-name">
+              <strong>{item.name}</strong>
+            </td>
+            <td>
+              <span class="category-pill">{item.category}</span>
+            </td>
+            <td class="col-mono">{item.type}</td>
+            <td class="col-mono text-muted">{item.extraction}</td>
+            <td class="col-mono">{item.multipage}</td>
+            <td>
+              <span class="site-badge emerald">
+                <span>✓</span> {item.status}
+              </span>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    <div id="no-results" class="no-results" style="display: none;">
+      <p>No providers matched your filter query.</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .providers-directory {
+    margin: 1.5rem 0;
+  }
+
+  .directory-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .search-box {
+    position: relative;
+    width: 100%;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xs);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    transition: border-color 0.15s ease;
+  }
+
+  .search-input:focus {
+    border-color: var(--border-focus);
+    outline: none;
+  }
+
+  .filter-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .filter-btn {
+    padding: 0.4rem 0.85rem;
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xs);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .filter-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--border-strong);
+  }
+
+  .filter-btn.active {
+    background-color: var(--accent-cyan);
+    color: #070c18;
+    border-color: var(--accent-cyan);
+  }
+
+  .table-container {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xs);
+    background-color: var(--bg-surface);
+    overflow-x: auto;
+  }
+
+  .providers-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  .providers-table th {
+    background-color: var(--bg-surface-elevated);
+    border-bottom: 1px solid var(--border-subtle);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    padding: 0.75rem 1rem;
+    text-align: left;
+  }
+
+  .providers-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+  }
+
+  .providers-table tbody tr:hover td {
+    background-color: var(--bg-surface-elevated);
+  }
+
+  .col-name strong {
+    color: var(--text-primary);
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+  }
+
+  .category-pill {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    padding: 0.15rem 0.45rem;
+    border-radius: var(--radius-xs);
+    color: var(--text-secondary);
+  }
+
+  .col-mono {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+  }
+
+  .no-results {
+    padding: 3rem 1rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+  }
+</style>
+
+<script>
+  function setupProviderSearch() {
+    const input = document.getElementById('provider-search-input') as HTMLInputElement | null;
+    const filterBtns = document.querySelectorAll<HTMLButtonElement>('.filter-btn');
+    const tableRows = document.querySelectorAll<HTMLTableRowElement>('#providers-table tbody tr');
+    const noResults = document.getElementById('no-results');
+
+    let activeCat = 'ALL';
+    let query = '';
+
+    function filterTable() {
+      let visibleCount = 0;
+      tableRows.forEach((row) => {
+        const name = row.dataset.name || '';
+        const cat = row.dataset.cat || '';
+        const matchesQuery = !query || name.includes(query);
+        const matchesCat = activeCat === 'ALL' || cat === activeCat;
+
+        if (matchesQuery && matchesCat) {
+          row.style.display = '';
+          visibleCount++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+
+      if (noResults) {
+        noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+      }
+    }
+
+    if (input) {
+      input.addEventListener('input', (e) => {
+        query = (e.target as HTMLInputElement).value.toLowerCase().trim();
+        filterTable();
+      });
+    }
+
+    filterBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeCat = btn.dataset.category || 'ALL';
+        filterTable();
+      });
+    });
+  }
+
+  setupProviderSearch();
+  document.addEventListener('astro:page-load', setupProviderSearch);
+</script>

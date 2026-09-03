@@ -1,0 +1,430 @@
+---
+import MarketingLayout from '../layouts/MarketingLayout.astro';
+import BentoTile from '../components/BentoTile.astro';
+import TerminalSnippet from '../components/TerminalSnippet.astro';
+import PipelineInspector from '../components/PipelineInspector.astro';
+import { resolvePath } from '../utils/paths.js';
+---
+
+<MarketingLayout
+  title="JobFoundry — Local-First Job Search & Resume Tailoring Infrastructure"
+  description="Local-first AI pipeline for 84+ job board ingestion, SimHash deduplication, local LLM fit scoring, and ATS resume tailoring."
+  currentPath={resolvePath('/')}
+>
+  <!-- Metro-Bento Hero Section -->
+  <section class="hero-section">
+    <div class="site-container">
+      <div class="bento-grid">
+        <!-- Main Typographic Hero Tile -->
+        <BentoTile colSpan={3} variant="accent" class="hero-main-tile">
+          <div class="tile-content">
+            <div class="tile-badge-row">
+              <span class="site-badge cyan">LOCAL-FIRST PIPELINE</span>
+              <span class="site-badge emerald">AGPL-3.0 FREE & OPEN SOURCE</span>
+            </div>
+            <h1 class="hero-headline">
+              LOCAL-FIRST JOB SEARCH &amp; RESUME TAILORING INFRASTRUCTURE
+            </h1>
+            <p class="hero-subtext">
+              Ingest job listings across 84+ platforms via your companion browser extension. Deduplicate cross-postings using 64-bit SimHash. Score candidate fit with local LLMs. Compile pixel-perfect, ATS-compliant Typst resumes without third-party telemetry.
+            </p>
+          </div>
+
+          <div class="hero-cta-group">
+            <a href={resolvePath('/docs/getting-started/')} class="btn btn-primary">
+              Quickstart Guide →
+            </a>
+            <a href={resolvePath('/docs/extension/')} class="btn btn-secondary">
+              Browser Extension (.ZIP)
+            </a>
+            <a href={resolvePath('/docs/architecture/')} class="btn btn-ghost">
+              Pipeline Architecture
+            </a>
+          </div>
+        </BentoTile>
+
+        <!-- Invariant Guarantee Tile -->
+        <BentoTile colSpan={1} variant="elevated" class="invariant-tile">
+          <div class="tile-top">
+            <span class="site-badge amber">STRICT INVARIANT</span>
+            <h3 class="tile-title">Zero Server Scraping</h3>
+            <p class="tile-desc">
+              The JobFoundry server <strong>never</strong> performs outbound job-board scraping. All scraping and job-board HTTP requests originate exclusively from your browser extension.
+            </p>
+          </div>
+          <div class="tile-footer">
+            <span class="tile-status-pill">
+              <span class="dot emerald"></span>
+              Client-Originating
+            </span>
+          </div>
+        </BentoTile>
+
+        <!-- Metric Tile: 84+ Providers -->
+        <BentoTile colSpan={1} class="metric-tile">
+          <div>
+            <span class="site-badge cyan">COVERAGE</span>
+            <div class="metric-number">84+</div>
+            <h4 class="metric-title">Supported Providers</h4>
+            <p class="metric-desc">
+              Workday, Greenhouse, Lever, Ashby, LinkedIn, Indeed, Dice, and 75+ niche platforms.
+            </p>
+          </div>
+          <a href={resolvePath('/docs/providers/')} class="tile-action-link">
+            Browse Directory →
+          </a>
+        </BentoTile>
+
+        <!-- Metric Tile: SimHash Dedup -->
+        <BentoTile colSpan={1} class="metric-tile">
+          <div>
+            <span class="site-badge violet">DEDUPLICATION</span>
+            <div class="metric-number">64-Bit</div>
+            <h4 class="metric-title">SimHash Fingerprints</h4>
+            <p class="metric-desc">
+              Locality-sensitive hashing eliminates cross-posted duplicates with Hamming distance analysis.
+            </p>
+          </div>
+          <a href={resolvePath('/docs/architecture/')} class="tile-action-link">
+            SimHash Mechanics →
+          </a>
+        </BentoTile>
+
+        <!-- Metric Tile: LLM Fit Scorer -->
+        <BentoTile colSpan={1} class="metric-tile">
+          <div>
+            <span class="site-badge emerald">SCORING ENGINE</span>
+            <div class="metric-number">0–100</div>
+            <h4 class="metric-title">Local LLM Fit Scoring</h4>
+            <p class="metric-desc">
+              Strict JSON schema evaluation with Ollama or vLLM. Computes match grades and gap analyses.
+            </p>
+          </div>
+          <a href={resolvePath('/docs/getting-started/')} class="tile-action-link">
+            Configure LLMs →
+          </a>
+        </BentoTile>
+
+        <!-- Metric Tile: ATS Tailoring -->
+        <BentoTile colSpan={1} class="metric-tile">
+          <div>
+            <span class="site-badge amber">OUTPUT</span>
+            <div class="metric-number">Typst</div>
+            <h4 class="metric-title">ATS Resume Export</h4>
+            <p class="metric-desc">
+              Deterministic PDF compiler highlighting authentic matched experience without hallucination.
+            </p>
+          </div>
+          <a href={resolvePath('/docs/architecture/')} class="tile-action-link">
+            Tailoring Details →
+          </a>
+        </BentoTile>
+
+        <!-- One-Line Quickstart Bar -->
+        <BentoTile colSpan={4} class="quickstart-bar-tile">
+          <div class="quickstart-inner">
+            <div class="quickstart-meta">
+              <span class="site-badge cyan">1-LINE DEPLOYMENT</span>
+              <h3 class="quickstart-title">Install JobFoundry Daemon</h3>
+              <p class="quickstart-text">
+                Run the official setup script to configure Podman or Docker Compose automatically:
+              </p>
+            </div>
+            <div class="quickstart-terminal">
+              <TerminalSnippet
+                command="curl -sSL https://raw.githubusercontent.com/deadrat-in/JobFoundry/main/install.sh | bash"
+                title="BASH INSTALL"
+              />
+            </div>
+          </div>
+        </BentoTile>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive 5-Stage Pipeline Section -->
+  <section class="pipeline-section">
+    <div class="site-container">
+      <div class="section-header">
+        <span class="site-badge cyan">SYSTEM ARCHITECTURE</span>
+        <h2 class="section-title">The 5-Stage Local-First Pipeline</h2>
+        <p class="section-desc">
+          How JobFoundry transforms unstructured job board web pages into prioritized, scored matches with tailored ATS resumes.
+        </p>
+      </div>
+
+      <PipelineInspector />
+    </div>
+  </section>
+
+  <!-- Architectural Principles Bento Section -->
+  <section class="principles-section">
+    <div class="site-container">
+      <div class="section-header">
+        <span class="site-badge violet">CORE FOUNDATIONS</span>
+        <h2 class="section-title">Designed for Engineers Who Value Privacy</h2>
+        <p class="section-desc">
+          JobFoundry removes cloud dependency and puts you in complete control of your career data.
+        </p>
+      </div>
+
+      <div class="bento-grid">
+        <BentoTile colSpan={2} variant="elevated">
+          <span class="site-badge emerald">NO CLOUD LOCK-IN</span>
+          <h3 class="principle-title">Local SQLite Storage</h3>
+          <p class="principle-desc">
+            Your applications, fit scores, and resume variants are stored locally in a standard SQLite database. Back it up, migrate to PostgreSQL, or delete it anytime with zero external cloud dependencies.
+          </p>
+        </BentoTile>
+
+        <BentoTile colSpan={2} variant="elevated">
+          <span class="site-badge cyan">AUTHENTIC SESSIONS</span>
+          <h3 class="principle-title">Bypasses Anti-Bot Barriers</h3>
+          <p class="principle-desc">
+            Server scrapers constantly fail against Cloudflare and CAPTCHAs. Because JobFoundry captures listings through your companion browser extension, ingestion operates within your authentic user session.
+          </p>
+        </BentoTile>
+
+        <BentoTile colSpan={2} variant="elevated">
+          <span class="site-badge violet">DETERMINISTIC TAILORING</span>
+          <h3 class="principle-title">Zero LLM Hallucination</h3>
+          <p class="principle-desc">
+            Generative AI tools frequently invent fictional employers and qualifications. JobFoundry enforces strict schema-constrained re-ranking of your genuine accomplishments, verified by structured tests.
+          </p>
+        </BentoTile>
+
+        <BentoTile colSpan={2} variant="elevated">
+          <span class="site-badge amber">OPEN SOURCE</span>
+          <h3 class="principle-title">AGPL-3.0 Copyleft Licensed</h3>
+          <p class="principle-desc">
+            Free software designed to remain free. Inspect every line of code across the companion extension, ingestion microservices, and web Kanban dashboard.
+          </p>
+        </BentoTile>
+      </div>
+    </div>
+  </section>
+</MarketingLayout>
+
+<style>
+  .hero-section {
+    padding: 3rem 0 4rem;
+  }
+
+  .bento-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+  }
+
+  .hero-main-tile {
+    min-height: 380px;
+  }
+
+  .tile-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .hero-headline {
+    font-size: 2.75rem;
+    font-weight: 900;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    margin-bottom: 1.25rem;
+    color: var(--text-primary);
+  }
+
+  .hero-subtext {
+    font-size: 1.1rem;
+    line-height: 1.65;
+    color: var(--text-secondary);
+    max-width: 90%;
+    margin-bottom: 2rem;
+  }
+
+  .hero-cta-group {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .invariant-tile {
+    min-height: 380px;
+    border-top: 3px solid var(--accent-amber);
+  }
+
+  .tile-title {
+    font-size: 1.35rem;
+    margin: 1rem 0 0.75rem;
+  }
+
+  .tile-desc {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 0;
+  }
+
+  .tile-footer {
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .tile-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--accent-emerald);
+    background: var(--accent-emerald-bg);
+    border: 1px solid var(--accent-emerald);
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-xs);
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .dot.emerald {
+    background-color: var(--accent-emerald);
+  }
+
+  .metric-tile {
+    min-height: 220px;
+  }
+
+  .metric-number {
+    font-family: var(--font-heading);
+    font-size: 2.75rem;
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--text-primary);
+    margin: 0.75rem 0 0.35rem;
+    letter-spacing: -0.03em;
+  }
+
+  .metric-title {
+    font-size: 1.05rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .metric-desc {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 1.25rem;
+  }
+
+  .tile-action-link {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--accent-cyan);
+    text-decoration: none;
+  }
+
+  .tile-action-link:hover {
+    text-decoration: underline;
+  }
+
+  .quickstart-bar-tile {
+    background-color: var(--bg-surface-elevated);
+  }
+
+  .quickstart-inner {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr;
+    gap: 2rem;
+    align-items: center;
+  }
+
+  .quickstart-title {
+    font-size: 1.5rem;
+    margin: 0.75rem 0 0.5rem;
+  }
+
+  .quickstart-text {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 0;
+  }
+
+  .pipeline-section, .principles-section {
+    padding: 4rem 0;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .section-header {
+    max-width: 720px;
+    margin-bottom: 2.5rem;
+  }
+
+  .section-title {
+    font-size: 2.25rem;
+    margin: 0.75rem 0 0.5rem;
+    letter-spacing: -0.02em;
+  }
+
+  .section-desc {
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    margin-bottom: 0;
+  }
+
+  .principle-title {
+    font-size: 1.25rem;
+    margin: 1rem 0 0.5rem;
+  }
+
+  .principle-desc {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 1024px) {
+    .bento-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .hero-main-tile {
+      grid-column: span 2;
+    }
+
+    .invariant-tile {
+      grid-column: span 2;
+      min-height: auto;
+    }
+
+    .quickstart-bar-tile {
+      grid-column: span 2;
+    }
+
+    .quickstart-inner {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .bento-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .hero-main-tile, .invariant-tile, .metric-tile, .quickstart-bar-tile {
+      grid-column: span 1;
+    }
+
+    .hero-headline {
+      font-size: 2rem;
+    }
+  }
+</style>

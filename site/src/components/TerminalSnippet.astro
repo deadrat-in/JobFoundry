@@ -1,0 +1,115 @@
+---
+interface Props {
+  command: string;
+  title?: string;
+}
+
+const { command, title = 'BASH' } = Astro.props;
+---
+
+<div class="terminal-box">
+  <div class="terminal-header">
+    <span class="terminal-title">{title}</span>
+    <button type="button" class="copy-btn" data-copy-content={command} aria-label="Copy command">
+      <svg class="copy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+      <span class="copy-label">Copy</span>
+    </button>
+  </div>
+  <pre class="terminal-code"><code><span class="terminal-prompt">$ </span>{command}</code></pre>
+</div>
+
+<style>
+  .terminal-box {
+    background-color: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: var(--radius-xs);
+    overflow: hidden;
+    margin: 1.25rem 0;
+  }
+
+  .terminal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.4rem 0.8rem;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--code-border);
+  }
+
+  .terminal-title {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+  }
+
+  .copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: transparent;
+    border: 1px solid var(--code-border);
+    border-radius: var(--radius-xs);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    padding: 0.2rem 0.5rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .copy-btn:hover {
+    color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+  }
+
+  .copy-btn.copied {
+    color: var(--accent-emerald);
+    border-color: var(--accent-emerald);
+  }
+
+  .terminal-code {
+    margin: 0 !important;
+    padding: 0.85rem 1rem !important;
+    background: transparent !important;
+    border: none !important;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--code-text);
+    overflow-x: auto;
+  }
+
+  .terminal-prompt {
+    color: var(--accent-cyan);
+    user-select: none;
+  }
+</style>
+
+<script>
+  function setupCopyButtons() {
+    document.querySelectorAll<HTMLButtonElement>('.copy-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const text = btn.dataset.copyContent || '';
+        try {
+          await navigator.clipboard.writeText(text);
+          const label = btn.querySelector('.copy-label');
+          if (label) label.textContent = 'Copied!';
+          btn.classList.add('copied');
+          setTimeout(() => {
+            if (label) label.textContent = 'Copy';
+            btn.classList.remove('copied');
+          }, 2000);
+        } catch {
+          // fallback
+        }
+      });
+    });
+  }
+
+  setupCopyButtons();
+  document.addEventListener('astro:page-load', setupCopyButtons);
+</script>
