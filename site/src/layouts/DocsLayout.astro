@@ -3,6 +3,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import Sidebar from '../components/Sidebar.astro';
 import ThemeScript from '../components/ThemeScript.astro';
+import ActivityLine from '../components/ActivityLine.astro';
 import '../styles/global.css';
 import { resolvePath } from '../utils/paths.js';
 
@@ -43,11 +44,18 @@ const {
   </head>
   <body>
     <Header currentPath={currentPath} />
+    <ActivityLine />
     <div class="docs-wrapper">
       <Sidebar currentPath={currentPath} />
       <main class="docs-main">
         <div class="docs-container">
           <div class="docs-breadcrumbs">
+            <span class="crumb-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+              </svg>
+            </span>
             <a href={resolvePath('/docs/')}>Docs</a>
             <span class="crumb-separator">/</span>
             <span class="crumb-category">{category}</span>
@@ -92,6 +100,12 @@ const {
     font-size: 0.75rem;
     color: var(--text-muted);
     margin-bottom: 1.5rem;
+  }
+
+  .crumb-icon {
+    display: inline-flex;
+    align-items: center;
+    color: var(--accent-cyan);
   }
 
   .docs-breadcrumbs a {

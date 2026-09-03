@@ -27,7 +27,15 @@ import { resolvePath } from '../../utils/paths.js';
   <h2>Documentation Sections</h2>
   <div class="docs-grid">
     <a href={resolvePath('/docs/getting-started/')} class="doc-card">
-      <span class="card-num">01</span>
+      <div class="card-header-row">
+        <span class="card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="4 17 10 11 4 5"></polyline>
+            <line x1="12" y1="19" x2="20" y2="19"></line>
+          </svg>
+        </span>
+        <span class="card-num">01</span>
+      </div>
       <h3 class="card-heading">Getting Started</h3>
       <p class="card-desc">
         Install the daemon via Podman, Docker Compose, or native CLI. Configure local LLMs (Ollama/vLLM) and verify server health.
@@ -36,7 +44,16 @@ import { resolvePath } from '../../utils/paths.js';
     </a>
 
     <a href={resolvePath('/docs/extension/')} class="doc-card">
-      <span class="card-num">02</span>
+      <div class="card-header-row">
+        <span class="card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path>
+            <line x1="16" y1="8" x2="2" y2="22"></line>
+            <line x1="17.5" y1="15" x2="9" y2="15"></line>
+          </svg>
+        </span>
+        <span class="card-num">02</span>
+      </div>
       <h3 class="card-heading">Browser Extension</h3>
       <p class="card-desc">
         Companion browser extension for Chrome, Brave, Edge, and Firefox. Download releases and follow manual unpack instructions.
@@ -45,7 +62,18 @@ import { resolvePath } from '../../utils/paths.js';
     </a>
 
     <a href={resolvePath('/docs/architecture/')} class="doc-card">
-      <span class="card-num">03</span>
+      <div class="card-header-row">
+        <span class="card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="2" width="6" height="6" rx="1"></rect>
+            <rect x="16" y="2" width="6" height="6" rx="1"></rect>
+            <rect x="9" y="16" width="6" height="6" rx="1"></rect>
+            <path d="M5 8v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"></path>
+            <line x1="12" y1="13" x2="12" y2="16"></line>
+          </svg>
+        </span>
+        <span class="card-num">03</span>
+      </div>
       <h3 class="card-heading">Pipeline Architecture</h3>
       <p class="card-desc">
         Deep dive into the 5-stage pipeline: Ingestion, 64-bit SimHash deduplication, LLM fit scorer schema, and Typst tailoring.
@@ -54,7 +82,16 @@ import { resolvePath } from '../../utils/paths.js';
     </a>
 
     <a href={resolvePath('/docs/providers/')} class="doc-card">
-      <span class="card-num">04</span>
+      <div class="card-header-row">
+        <span class="card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+        </span>
+        <span class="card-num">04</span>
+      </div>
       <h3 class="card-heading">Supported Providers</h3>
       <p class="card-desc">
         Explore 84+ supported ATS and job boards (Workday, Greenhouse, Lever, Ashby, LinkedIn, Indeed, Dice) with extraction modes.
@@ -63,7 +100,14 @@ import { resolvePath } from '../../utils/paths.js';
     </a>
 
     <a href={resolvePath('/docs/privacy/')} class="doc-card">
-      <span class="card-num">05</span>
+      <div class="card-header-row">
+        <span class="card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+        </span>
+        <span class="card-num">05</span>
+      </div>
       <h3 class="card-heading">Privacy & Invariants</h3>
       <p class="card-desc">
         Zero analytics, no third-party telemetry, local SQLite storage, and architectural principles guaranteeing full data ownership.
@@ -72,7 +116,14 @@ import { resolvePath } from '../../utils/paths.js';
     </a>
 
     <a href={resolvePath('/feedback/')} class="doc-card">
-      <span class="card-num">06</span>
+      <div class="card-header-row">
+        <span class="card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+          </svg>
+        </span>
+        <span class="card-num">06</span>
+      </div>
       <h3 class="card-heading">Feedback & Support</h3>
       <p class="card-desc">
         Submit bug reports, request new job-board providers, share feature proposals, or contribute to JobFoundry.
@@ -114,12 +165,29 @@ import { resolvePath } from '../../utils/paths.js';
     transform: translateY(-2px);
   }
 
+  .card-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+
+  .card-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-cyan);
+    background: var(--accent-cyan-bg);
+    border: 1px solid var(--border-subtle);
+    padding: 6px;
+    border-radius: var(--radius-xs);
+  }
+
   .card-num {
     font-family: var(--font-mono);
     font-size: 0.75rem;
     font-weight: 700;
-    color: var(--accent-cyan);
-    margin-bottom: 0.5rem;
+    color: var(--text-muted);
   }
 
   .card-heading {

@@ -29,6 +29,16 @@ const {
     flex-direction: column;
     justify-content: space-between;
     transition: border-color 0.15s ease;
+    min-width: 0;
+    max-width: 100%;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  @media (max-width: 640px) {
+    .bento-tile {
+      padding: 1.25rem 1rem;
+    }
   }
 
   .bento-tile:hover {

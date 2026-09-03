@@ -1,0 +1,65 @@
+---
+interface Props {
+  class?: string;
+}
+
+const { class: className = '' } = Astro.props;
+---
+
+<div class:list={['activity-line-wrapper', className]} aria-hidden="true">
+  <svg class="activity-svg" preserveAspectRatio="none" viewBox="0 0 1200 40">
+    <path
+      class="activity-path-base"
+      d="M0,20 L280,20 L300,10 L315,32 L330,12 L345,26 L360,20 L720,20 L740,6 L755,34 L770,14 L785,26 L800,20 L1200,20"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.2"
+    ></path>
+    <circle class="pulse-node" cx="315" cy="32" r="2.5" />
+    <circle class="pulse-node" cx="755" cy="34" r="2.5" />
+  </svg>
+</div>
+
+<style>
+  .activity-line-wrapper {
+    width: 100%;
+    height: 24px;
+    overflow: hidden;
+    position: relative;
+    pointer-events: none;
+    color: var(--activity-pulse);
+    opacity: 0.6;
+    margin: -8px 0 12px;
+  }
+
+  .activity-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .activity-path-base {
+    stroke-dasharray: 1200;
+    stroke-dashoffset: 0;
+    animation: signalSweep 16s linear infinite;
+  }
+
+  .pulse-node {
+    fill: var(--accent-cyan);
+    animation: nodeBlink 3s ease-in-out infinite;
+  }
+
+  @keyframes signalSweep {
+    0% {
+      stroke-dashoffset: 1200;
+    }
+    100% {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes nodeBlink {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+</style>
