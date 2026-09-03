@@ -54,6 +54,7 @@ class StructuredLLMClient:
         retry_min_wait: float = 3.0,
         retry_max_wait: float = 60.0,
         retry_multiplier: float = 3.0,
+        request_timeout: float = 600.0,
     ) -> None:
         self.completion_fn = completion_fn or acompletion
         self.enable_cache = enable_cache
@@ -62,6 +63,7 @@ class StructuredLLMClient:
         self.retry_min_wait = retry_min_wait
         self.retry_max_wait = retry_max_wait
         self.retry_multiplier = retry_multiplier
+        self.request_timeout = request_timeout
         self.rate_limiter = (
             AsyncRateLimiter(rate_limit_requests, rate_limit_period)
             if rate_limit_requests
@@ -193,7 +195,7 @@ class StructuredLLMClient:
                     ],
                     temperature=0.2,
                     drop_params=True,
-                    timeout=90,
+                    timeout=self.request_timeout,
                     extra_headers=extra_headers or None,
                 )
                 content = completion["choices"][0]["message"]["content"]
@@ -237,7 +239,7 @@ class StructuredLLMClient:
                 ],
                 temperature=0.2,
                 drop_params=True,
-                timeout=90,
+                timeout=self.request_timeout,
                 extra_headers=extra_headers or None,
                 validation_context=validation_context,
             )
@@ -259,7 +261,7 @@ class StructuredLLMClient:
                 ],
                 temperature=0.2,
                 drop_params=True,
-                timeout=90,
+                timeout=self.request_timeout,
                 extra_headers=extra_headers or None,
                 validation_context=validation_context,
             )
@@ -281,7 +283,7 @@ class StructuredLLMClient:
                 ],
                 temperature=0.2,
                 drop_params=True,
-                timeout=90,
+                timeout=self.request_timeout,
                 extra_headers=extra_headers or None,
                 validation_context=validation_context,
             )
@@ -302,7 +304,7 @@ class StructuredLLMClient:
                     ],
                     temperature=0.2,
                     drop_params=True,
-                    timeout=90,
+                    timeout=self.request_timeout,
                     response_format={"type": "json_object"},
                     extra_headers=extra_headers or None,
                 )
@@ -320,7 +322,7 @@ class StructuredLLMClient:
                     ],
                     temperature=0.2,
                     drop_params=True,
-                    timeout=90,
+                    timeout=self.request_timeout,
                     extra_headers=extra_headers or None,
                 )
             content = completion["choices"][0]["message"]["content"]

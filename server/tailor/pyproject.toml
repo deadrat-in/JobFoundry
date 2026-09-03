@@ -21,6 +21,7 @@ dependencies = [
   "pydantic-settings>=2.5.2",
   "sqlalchemy>=2.0.35",
   "tenacity>=9.0.0",
+  "toons>=0.7.0",
   "uvicorn>=0.32.0",
 ]
 

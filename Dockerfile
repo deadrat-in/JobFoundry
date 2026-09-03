@@ -47,6 +47,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     SCORER_THRESHOLD=75 \
     TAILOR_MODEL=openrouter/google/gemini-2.0-flash-exp:free \
     ALLOWED_THEMES="jsonresume-theme-folio jsonresume-theme-stackoverflow" \
+    TAILOR_TIMEOUT_SECONDS=900 \
+    TAILOR_TIMEOUT_MS=1800000 \
+    LLM_REQUEST_TIMEOUT=600 \
     API_KEYS=""
 
 # 1. Install system utilities, Node.js 22 (NodeSource), Chromium, and Supervisor

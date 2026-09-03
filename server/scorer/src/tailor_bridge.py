@@ -19,7 +19,7 @@ class TailorBridge:
     def __init__(
         self,
         base_url: str | None = None,
-        timeout: float = 60.0,
+        timeout: float = 900.0,
         client: httpx.AsyncClient | None = None,
     ):
         self.base_url = base_url.rstrip("/") if base_url else None
@@ -79,5 +79,5 @@ class TailorBridge:
                 )
                 return None
         except Exception as e:
-            logger.error("Exception during tailor bridge request to %s: %s", url, e)
+            logger.error("Exception during tailor bridge request to %s: %r", url, e)
             return None

@@ -10,12 +10,12 @@ import {
 } from 'node:fs';
 import { resolve, extname } from 'node:path';
 
-// Configure global undici dispatcher with 10-minute timeout for multi-stage LLM calls
+// Configure global undici dispatcher with 30-minute timeout for multi-stage LLM calls
 try {
   setGlobalDispatcher(
     new Agent({
-      headersTimeout: 600_000,
-      bodyTimeout: 600_000,
+      headersTimeout: 1_800_000,
+      bodyTimeout: 1_800_000,
       connectTimeout: 60_000,
     })
   );
@@ -887,7 +887,7 @@ export function buildApp({
         const resp = await fetch(`${resumeOpsUrl.replace(/\/$/, '')}/api/v1/tailor`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          signal: AbortSignal.timeout(600000), // 10 minute timeout
+          signal: AbortSignal.timeout(Number(process.env.TAILOR_TIMEOUT_MS) || 1_800_000), // 30 minute default timeout for slow models
           body: JSON.stringify({
             job_description: jobRecord.description,
             resume: tailoredResume,

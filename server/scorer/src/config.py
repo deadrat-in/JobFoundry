@@ -11,6 +11,7 @@ class ScorerConfig:
     scorer_threshold: int = 75
     db_path: str = "./jobs.db"
     resume_ops_url: str | None = None
+    tailor_timeout_seconds: float = 900.0
     artifacts_dir: str = "./data/artifacts"
     port: int = 8001
     host: str = "0.0.0.0"
@@ -72,6 +73,12 @@ def load_config() -> ScorerConfig:
     except ValueError:
         worker_poll_interval_seconds = 10.0
 
+    raw_tailor_timeout = os.getenv("TAILOR_TIMEOUT_SECONDS", "900.0")
+    try:
+        tailor_timeout_seconds = float(raw_tailor_timeout)
+    except ValueError:
+        tailor_timeout_seconds = 900.0
+
     return ScorerConfig(
         scorer_model=scorer_model,
         scorer_provider=scorer_provider,
@@ -80,6 +87,7 @@ def load_config() -> ScorerConfig:
         scorer_threshold=scorer_threshold,
         db_path=db_path,
         resume_ops_url=resume_ops_url,
+        tailor_timeout_seconds=tailor_timeout_seconds,
         artifacts_dir=artifacts_dir,
         port=port,
         host=host,

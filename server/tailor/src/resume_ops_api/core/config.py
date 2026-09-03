@@ -122,6 +122,7 @@ class Settings(BaseSettings):
     llm_retry_min_wait_seconds: float = 3.0
     llm_retry_max_wait_seconds: float = 60.0
     llm_retry_multiplier: float = 3.0
+    llm_request_timeout: float = 600.0
 
     # Tracing & Evaluation Configuration
     enable_tracing: bool = False

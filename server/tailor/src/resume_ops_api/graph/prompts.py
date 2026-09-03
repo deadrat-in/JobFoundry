@@ -2,10 +2,20 @@ from __future__ import annotations
 
 import json
 from typing import Any
+import toons
 
 
 def _json(data: Any) -> str:
     return json.dumps(data, ensure_ascii=True, separators=(",", ":"))
+
+
+def _toon(data: Any) -> str:
+    if not data:
+        return ""
+    try:
+        return toons.dumps(data)
+    except Exception:
+        return _json(data)
 
 
 def _apply_style(system: str, style: str | None) -> str:
@@ -52,7 +62,7 @@ def strategy_and_basics_prompt(
         f"{basics_rules}"
     )
     system = _apply_style(system, style)
-    user = f"Job description:\n{job_description}\n\nMaster resume:\n{_json(resume)}"
+    user = f"Job description:\n{job_description}\n\nMaster resume (TOON format):\n{_toon(resume)}"
     return system, user
 
 
@@ -68,7 +78,7 @@ def strategy_prompt(resume: dict[str, Any], job_description: str) -> tuple[str, 
         "}\n"
         "Use the full master resume for context to determine the tailoring strategy."
     )
-    user = f"Job description:\n{job_description}\n\nMaster resume:\n{_json(resume)}"
+    user = f"Job description:\n{job_description}\n\nMaster resume (TOON format):\n{_toon(resume)}"
     return system, user
 
 
@@ -131,7 +141,7 @@ def work_prompt(
     user = (
         f"Job description:\n{job_description}\n\n"
         f"Strategy:\n{_json(strategy)}\n\n"
-        f"Target work section:\n{_json(resume.get('work', []))}"
+        f"Target work section (TOON format):\n{_toon(resume.get('work', []))}"
     )
     return system, user
 
@@ -191,7 +201,7 @@ def qualifications_prompt(
     user = (
         f"Job description:\n{job_description}\n\n"
         f"Strategy:\n{_json(strategy)}\n\n"
-        f"Target qualifications:\n{_json(target_qualifications)}"
+        f"Target qualifications (TOON format):\n{_toon(target_qualifications)}"
     )
     return system, user
 
@@ -210,8 +220,8 @@ def education_prompt(resume: dict[str, Any], job_description: str, strategy: dic
     user = (
         f"Job description:\n{job_description}\n\n"
         f"Strategy:\n{_json(strategy)}\n\n"
-        f"Master resume for context:\n{_json(resume)}\n\n"
-        f"Target education section:\n{_json(resume.get('education', []))}"
+        f"Master resume for context (TOON format):\n{_toon(resume)}\n\n"
+        f"Target education section (TOON format):\n{_toon(resume.get('education', []))}"
     )
     return system, user
 
@@ -228,7 +238,7 @@ def skills_prompt(resume: dict[str, Any], job_description: str, strategy: dict[s
     user = (
         f"Job description:\n{job_description}\n\n"
         f"Strategy:\n{_json(strategy)}\n\n"
-        f"Master resume:\n{_json(resume)}"
+        f"Master resume (TOON format):\n{_toon(resume)}"
     )
     return system, user
 
@@ -252,7 +262,7 @@ def projects_prompt(
     user = (
         f"Job description:\n{job_description}\n\n"
         f"Strategy:\n{_json(strategy)}\n\n"
-        f"Projects section:\n{_json(resume.get('projects', []))}"
+        f"Projects section (TOON format):\n{_toon(resume.get('projects', []))}"
     )
     return system, user
 
@@ -267,7 +277,7 @@ def certificates_prompt(resume: dict[str, Any], job_description: str, strategy: 
     user = (
         f"Job description:\n{job_description}\n\n"
         f"Strategy:\n{_json(strategy)}\n\n"
-        f"Certificates:\n{_json(resume.get('certificates', []))}"
+        f"Certificates (TOON format):\n{_toon(resume.get('certificates', []))}"
     )
     return system, user
 
@@ -280,8 +290,8 @@ def optional_sections_prompt(resume: dict[str, Any], job_description: str, strat
     user = (
         f"Job description:\n{job_description}\n\n"
         f"Strategy:\n{_json(strategy)}\n\n"
-        f"Master resume:\n{_json(resume)}\n\n"
-        f"Optional sections:\n{_json({'interests': resume.get('interests', [])})}"
+        f"Master resume (TOON format):\n{_toon(resume)}\n\n"
+        f"Optional sections (TOON format):\n{_toon({'interests': resume.get('interests', [])})}"
     )
     return system, user
 
@@ -307,7 +317,7 @@ def basics_prompt(
     user = (
         f"Job description:\n{job_description}\n\n"
         f"Strategy:\n{_json(strategy)}\n\n"
-        f"Master resume for context:\n{_json(resume)}\n\n"
-        f"Target basics section:\n{_json(resume.get('basics', {}))}"
+        f"Master resume for context (TOON format):\n{_toon(resume)}\n\n"
+        f"Target basics section (TOON format):\n{_toon(resume.get('basics', {}))}"
     )
     return system, user

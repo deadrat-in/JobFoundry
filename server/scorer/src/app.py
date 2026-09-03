@@ -48,7 +48,8 @@ def create_app(
         )
         screener = Screener(llm_client=client)
         resume_ops_url = getattr(config, "resume_ops_url", None)
-        tailor_bridge = TailorBridge(base_url=resume_ops_url) if resume_ops_url else None
+        tailor_timeout = getattr(config, "tailor_timeout_seconds", 900.0)
+        tailor_bridge = TailorBridge(base_url=resume_ops_url, timeout=tailor_timeout) if resume_ops_url else None
         artifact_manager = ArtifactManager(
             base_dir=getattr(config, "artifacts_dir", "./data/artifacts")
         )
