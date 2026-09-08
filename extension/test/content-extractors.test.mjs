@@ -347,4 +347,3 @@ test('LinkedIn: rejects noise titles such as 0 notifications and notifications p
   const detail = extractLinkedInJobDetails(dom.window.document);
   assert.equal(detail, null);
 });
-

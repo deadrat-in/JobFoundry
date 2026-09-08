@@ -223,10 +223,30 @@ test('GET /api/v1/jobs supports sort_by and order query parameters', async () =>
   const now = Date.now();
   db.prepare(
     'INSERT INTO jobs (id, title, company, url, source, fit_score, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run('j1', 'Beta Engineer', 'Zeta Corp', 'https://example.com/1', 'test', 50, 'new', now - 2000, now - 2000);
+  ).run(
+    'j1',
+    'Beta Engineer',
+    'Zeta Corp',
+    'https://example.com/1',
+    'test',
+    50,
+    'new',
+    now - 2000,
+    now - 2000
+  );
   db.prepare(
     'INSERT INTO jobs (id, title, company, url, source, fit_score, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run('j2', 'Alpha Engineer', 'Acme Corp', 'https://example.com/2', 'test', 90, 'new', now - 1000, now - 1000);
+  ).run(
+    'j2',
+    'Alpha Engineer',
+    'Acme Corp',
+    'https://example.com/2',
+    'test',
+    90,
+    'new',
+    now - 1000,
+    now - 1000
+  );
 
   // Sort by fit_score desc
   const scoreRes = await app.inject({
@@ -281,4 +301,3 @@ test('POST /api/v1/jobs/:id/sanitize sanitizes title and description', async () 
 
   await app.close();
 });
-

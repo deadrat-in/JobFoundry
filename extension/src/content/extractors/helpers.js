@@ -263,10 +263,7 @@ export function cleanBoilerplate(text) {
       /(?:all qualified applicants will receive consideration[\s\S]*?)(?=\n\n|\n(?=[A-Z0-9#*-])|$)/gi,
       ''
     )
-    .replace(
-      /(?:we participate in e-verify[\s\S]*?)(?=\n\n|\n(?=[A-Z0-9#*-])|$)/gi,
-      ''
-    )
+    .replace(/(?:we participate in e-verify[\s\S]*?)(?=\n\n|\n(?=[A-Z0-9#*-])|$)/gi, '')
     .replace(
       /(?:affirmative action\s+(?:employer|policy)[\s\S]*?)(?=\n\n|\n(?=[A-Z0-9#*-])|$)/gi,
       ''

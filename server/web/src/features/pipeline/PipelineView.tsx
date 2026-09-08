@@ -36,9 +36,9 @@ export const PipelineView: React.FC<{
   });
   const [jobs, setJobs] = useState<PipelineJob[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'unscored' | 'scored' | 'tailored' | 'failed' | 'invalid'>(
-    'all'
-  );
+  const [filter, setFilter] = useState<
+    'all' | 'unscored' | 'scored' | 'tailored' | 'failed' | 'invalid'
+  >('all');
   const [activeResumeLoaded, setActiveResumeLoaded] = useState<boolean | null>(null);
 
   const [sortField, setSortField] = useState<
@@ -46,9 +46,11 @@ export const PipelineView: React.FC<{
   >('updated_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [sanitizingId, setSanitizingId] = useState<string | null>(null);
-  const [actionFeedback, setActionFeedback] = useState<{ id: string; text: string; isError?: boolean } | null>(
-    null
-  );
+  const [actionFeedback, setActionFeedback] = useState<{
+    id: string;
+    text: string;
+    isError?: boolean;
+  } | null>(null);
 
   const fetchPipelineData = async () => {
     setLoading(true);
@@ -75,7 +77,8 @@ export const PipelineView: React.FC<{
   }, []);
 
   const handleSortHeader = (
-    field: 'title' | 'company' | 'source' | 'has_description' | 'fit_score' | 'status' | 'updated_at'
+    field:
+      'title' | 'company' | 'source' | 'has_description' | 'fit_score' | 'status' | 'updated_at'
   ) => {
     if (sortField === field) {
       setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -108,7 +111,8 @@ export const PipelineView: React.FC<{
   };
 
   const filteredJobs = jobs.filter((j) => {
-    if (filter === 'unscored') return j.fit_score === null && j.status !== 'failed' && j.status !== 'invalid_job';
+    if (filter === 'unscored')
+      return j.fit_score === null && j.status !== 'failed' && j.status !== 'invalid_job';
     if (filter === 'scored') return j.fit_score !== null;
     if (filter === 'tailored') return j.status === 'tailored';
     if (filter === 'invalid') return j.status === 'invalid_job';
@@ -146,7 +150,8 @@ export const PipelineView: React.FC<{
   });
 
   const renderSortIndicator = (
-    field: 'title' | 'company' | 'source' | 'has_description' | 'fit_score' | 'status' | 'updated_at'
+    field:
+      'title' | 'company' | 'source' | 'has_description' | 'fit_score' | 'status' | 'updated_at'
   ) => {
     if (sortField !== field) {
       return <span style={{ opacity: 0.25, marginLeft: '0.35rem' }}>⇅</span>;
@@ -209,7 +214,9 @@ export const PipelineView: React.FC<{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              background: actionFeedback.isError ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+              background: actionFeedback.isError
+                ? 'rgba(239, 68, 68, 0.15)'
+                : 'rgba(16, 185, 129, 0.15)',
               border: `1px solid ${actionFeedback.isError ? 'rgba(239, 68, 68, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`,
               color: actionFeedback.isError ? '#fca5a5' : '#86efac',
             }}
@@ -421,35 +428,60 @@ export const PipelineView: React.FC<{
               >
                 <th
                   onClick={() => handleSortHeader('title')}
-                  style={{ padding: '0.85rem 1rem', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }}
+                  style={{
+                    padding: '0.85rem 1rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                  }}
                   title="Click to sort by Title"
                 >
                   Job Title & Company {renderSortIndicator('title')}
                 </th>
                 <th
                   onClick={() => handleSortHeader('source')}
-                  style={{ padding: '0.85rem 1rem', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }}
+                  style={{
+                    padding: '0.85rem 1rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                  }}
                   title="Click to sort by Source"
                 >
                   Portal Source {renderSortIndicator('source')}
                 </th>
                 <th
                   onClick={() => handleSortHeader('has_description')}
-                  style={{ padding: '0.85rem 1rem', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }}
+                  style={{
+                    padding: '0.85rem 1rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                  }}
                   title="Click to sort by JD Status"
                 >
                   JD Status {renderSortIndicator('has_description')}
                 </th>
                 <th
                   onClick={() => handleSortHeader('fit_score')}
-                  style={{ padding: '0.85rem 1rem', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }}
+                  style={{
+                    padding: '0.85rem 1rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                  }}
                   title="Click to sort by Fit Score"
                 >
                   Fit Score {renderSortIndicator('fit_score')}
                 </th>
                 <th
                   onClick={() => handleSortHeader('status')}
-                  style={{ padding: '0.85rem 1rem', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }}
+                  style={{
+                    padding: '0.85rem 1rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                  }}
                   title="Click to sort by Pipeline Stage"
                 >
                   Pipeline Stage {renderSortIndicator('status')}
@@ -485,7 +517,9 @@ export const PipelineView: React.FC<{
                       }}
                     >
                       <td style={{ padding: '0.85rem 1rem' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{j.title}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {j.title}
+                        </div>
                         <div style={{ fontSize: '0.775rem', color: 'var(--text-secondary)' }}>
                           {j.company} {j.location ? `• ${j.location}` : ''}
                         </div>
@@ -495,7 +529,9 @@ export const PipelineView: React.FC<{
                       </td>
                       <td style={{ padding: '0.85rem 1rem' }}>
                         {j.has_description ? (
-                          <span style={{ color: 'var(--color-green, #10b981)', fontSize: '0.8rem' }}>
+                          <span
+                            style={{ color: 'var(--color-green, #10b981)', fontSize: '0.8rem' }}
+                          >
                             ✓ Complete JD
                           </span>
                         ) : (
@@ -529,13 +565,24 @@ export const PipelineView: React.FC<{
                                   ? 'badge-blue'
                                   : 'badge-secondary'
                           }`}
-                          style={isInvalid ? { border: '1px solid rgba(239, 68, 68, 0.4)', color: '#fca5a5' } : undefined}
+                          style={
+                            isInvalid
+                              ? { border: '1px solid rgba(239, 68, 68, 0.4)', color: '#fca5a5' }
+                              : undefined
+                          }
                         >
                           {isInvalid ? '🚫 invalid_job' : j.status}
                         </span>
                       </td>
                       <td style={{ padding: '0.85rem 1rem', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            gap: '0.4rem',
+                            justifyContent: 'flex-end',
+                            alignItems: 'center',
+                          }}
+                        >
                           <button
                             onClick={() => handleSanitizeJob(j)}
                             disabled={isSanitizing}
