@@ -23,11 +23,17 @@ function getArg(name, fallback = null) {
 }
 
 const fromArg = getArg('--from');
-const serverUrl = (getArg('--server') || process.env.JOBFOUNDRY_SERVER_URL || 'http://localhost:8080').replace(/\/+$/, '');
+const serverUrl = (
+  getArg('--server') ||
+  process.env.JOBFOUNDRY_SERVER_URL ||
+  'http://localhost:8080'
+).replace(/\/+$/, '');
 const apiKey = getArg('--key') || process.env.JOBFOUNDRY_API_KEY || 'testkey';
 
 if (!fromArg) {
-  console.error('Usage: node scripts/import-career-ops.mjs --from <path-to-pipeline.md-or-career-ops-dir> [--server <url>] [--key <apiKey>]');
+  console.error(
+    'Usage: node scripts/import-career-ops.mjs --from <path-to-pipeline.md-or-career-ops-dir> [--server <url>] [--key <apiKey>]'
+  );
   process.exit(1);
 }
 
