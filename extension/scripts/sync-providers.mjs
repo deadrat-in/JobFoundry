@@ -54,6 +54,8 @@ const PORTED_PROVIDERS = new Set([
   'getonbrd.mjs',
   'hackernews.mjs',
   'himalayas.mjs',
+  'mokahr.mjs',
+  'radancy.mjs',
 ]);
 
 // Provider modules deliberately NOT vendored (Node-only fixtures).

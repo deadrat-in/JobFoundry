@@ -27,6 +27,7 @@ export interface ScanRunLog {
 export interface Config {
   serverUrl: string | null;
   apiKey: string | null;
+  userEmail?: string | null;
   scanIntervalHours: number;
   passiveMode: boolean;
   activeMode: boolean;

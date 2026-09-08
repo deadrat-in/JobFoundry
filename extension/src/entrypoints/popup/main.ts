@@ -40,6 +40,7 @@ export async function hydrate({
   const scrapersCount = $<HTMLElement>(doc, DOM.scrapersCount);
   const passiveMode = $<HTMLInputElement>(doc, DOM.passiveMode);
   const activeMode = $<HTMLInputElement>(doc, DOM.activeMode);
+  const userEmailEl = $<HTMLElement>(doc, DOM.userEmail);
 
   if (connBadge) {
     if (isConnected) {
@@ -53,6 +54,10 @@ export async function hydrate({
 
   if (unpairedBox) unpairedBox.style.display = isConnected ? 'none' : 'flex';
   if (pairedBox) pairedBox.style.display = isConnected ? 'block' : 'none';
+
+  if (userEmailEl && config.userEmail) {
+    userEmailEl.textContent = config.userEmail;
+  }
 
   if (scrapersCount) {
     const activePortals = Object.values(config.portals || {}).filter(Boolean).length;
@@ -181,19 +186,127 @@ export async function scanNow({
   }
 }
 
+export async function verifyConnection({
+  doc = document,
+  config,
+  fetchImpl = globalThis.fetch,
+}: {
+  doc?: Document;
+  config: Config;
+  fetchImpl?: typeof fetch;
+}) {
+  const connBadge = $<HTMLElement>(doc, DOM.connBadge);
+  const status = $<HTMLElement>(doc, DOM.status);
+  const userEmailEl = $<HTMLElement>(doc, DOM.userEmail);
+
+  if (!config.serverUrl || !config.apiKey) {
+    if (connBadge) {
+      connBadge.className = 'badge badge-disconnected';
+      connBadge.textContent = '🔴 Disconnected';
+    }
+    return { ok: false, error: 'Extension not configured' };
+  }
+
+  const cleanUrl = config.serverUrl.replace(/\/+$/, '');
+  const authUrl = `${cleanUrl}/api/v1/auth/me`;
+
+  try {
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeout = controller ? setTimeout(() => controller.abort(), 4000) : null;
+    const res = await fetchImpl(authUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${config.apiKey}`,
+        Accept: 'application/json',
+      },
+      signal: controller?.signal,
+    });
+    if (timeout) clearTimeout(timeout);
+
+    if (res.ok) {
+      const data = await res.json().catch(() => null);
+      if (connBadge) {
+        connBadge.className = 'badge badge-connected';
+        connBadge.textContent = '🟢 Connected';
+      }
+      if (data?.user?.email) {
+        if (userEmailEl) userEmailEl.textContent = data.user.email;
+        if (data.user.email !== config.userEmail) {
+          setConfig({ userEmail: data.user.email }).catch(() => {});
+        }
+      }
+      return { ok: true, user: data?.user };
+    }
+
+    if (res.status === 401 || res.status === 403) {
+      if (connBadge) {
+        connBadge.className = 'badge badge-disconnected';
+        connBadge.textContent = '🔴 Invalid API Key';
+      }
+      if (status) {
+        status.textContent = 'Stored API Key is invalid or expired. Reconnect or update Options.';
+        status.style.color = '#ef4444';
+      }
+      return { ok: false, error: 'Invalid API Key' };
+    }
+
+    if (connBadge) {
+      connBadge.className = 'badge badge-disconnected';
+      connBadge.textContent = `🔴 HTTP ${res.status}`;
+    }
+    return { ok: false, error: `HTTP ${res.status}` };
+  } catch (err: any) {
+    if (connBadge) {
+      connBadge.className = 'badge badge-disconnected';
+      connBadge.textContent = '🔴 Server Offline';
+    }
+    return { ok: false, error: err?.message || 'Server offline' };
+  }
+}
+
 export function init(opts: { doc?: Document; [key: string]: any } = {}) {
   const { doc = document } = opts;
-  const hydrated = hydrate(opts).catch((err) => {
-    const status = $<HTMLElement>(doc, DOM.status);
-    if (status) status.textContent = `Error loading config: ${err.message}`;
-  });
+  const hydrated = hydrate(opts)
+    .then((config) => {
+      if (config?.serverUrl && config?.apiKey) {
+        verifyConnection({ doc, config, fetchImpl: opts.fetchImpl }).catch(() => {});
+      }
+      return config;
+    })
+    .catch((err) => {
+      const status = $<HTMLElement>(doc, DOM.status);
+      if (status) status.textContent = `Error loading config: ${err.message}`;
+    });
 
   $<HTMLButtonElement>(doc, DOM.autoConnect)?.addEventListener('click', () => {
     autoConnect(opts).catch(() => {});
   });
 
-  $<HTMLButtonElement>(doc, DOM.reconnectBtn)?.addEventListener('click', () => {
-    autoConnect(opts).catch(() => {});
+  $<HTMLButtonElement>(doc, DOM.reconnectBtn)?.addEventListener('click', async () => {
+    const status = $<HTMLElement>(doc, DOM.status);
+    if (status) {
+      status.textContent = 'Reconnecting...';
+      status.style.color = '';
+    }
+    const autoRes = await autoConnect(opts).catch(() => null);
+    if (autoRes?.ok) return;
+
+    // If autoConnect didn't find an open dashboard tab, test existing server credentials
+    const currentConfig = await getConfig();
+    if (currentConfig.serverUrl && currentConfig.apiKey) {
+      const verifyRes = await verifyConnection({ doc, config: currentConfig, fetchImpl: opts.fetchImpl });
+      if (verifyRes.ok) {
+        if (status) {
+          status.textContent = `✅ Connection verified with ${currentConfig.serverUrl}!`;
+          status.style.color = '#10b981';
+        }
+      } else {
+        if (status) {
+          status.textContent = autoRes?.error || `Server offline: ${verifyRes.error}`;
+          status.style.color = '#ef4444';
+        }
+      }
+    }
   });
 
   $<HTMLButtonElement>(doc, DOM.captureTab)?.addEventListener('click', () => {

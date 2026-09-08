@@ -63,6 +63,8 @@ const PORTED_PROVIDERS = new Set([
   '_profile-keywords.mjs',
   'local-parser.mjs',
   'alibaba.mjs',
+  'mokahr.mjs',
+  'radancy.mjs',
 ]);
 
 // Lifted tests whose assertions depend on the Node-only parts of the ports.

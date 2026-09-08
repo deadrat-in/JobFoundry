@@ -16,6 +16,8 @@ deviations in-file. Current ports:
 | `_profile-keywords.mjs` | Upstream reads `config/profile.yml` from disk (fs + js-yaml). Port keeps pure `profileTargetKeywords()`, and `resolveProfileKeywords()` is a documented no-op returning `[]` (no filesystem in the browser). |
 | `local-parser.mjs` | Upstream spawns a configured local parser via `child_process`. A browser cannot exec local commands; the port keeps the `local-parser` id in the registry but `detect()` returns null and `fetch()` throws a clear error. |
 | `alibaba.mjs` | Upstream imports `randomUUID` from `node:crypto`. Port mints the CSRF token from WebCrypto (`globalThis.crypto.randomUUID`) with a Math.random fallback. |
+| `radancy.mjs` | Upstream imports `randomUUID` from `node:crypto`. Port replaces it with a browser-safe `makeNonce()` function backed by WebCrypto and Math.random fallback. |
+| `mokahr.mjs` | Upstream uses top-level `Buffer.from()` which crashes browser execution at evaluation time (`ReferenceError: Buffer is not defined`). Port removes top-level Buffer usage and guards AES decryption for browser contexts. |
 
 `tests/` mirrors the lifted provider tests that had to change:
 

@@ -272,6 +272,7 @@ export default defineBackground(() => {
       const patch = {
         serverUrl: extracted.serverUrl,
         apiKey: extracted.apiKey,
+        userEmail: extracted.email || null,
       };
 
       // Fetch active resume to populate positive keywords if user hasn't set any yet

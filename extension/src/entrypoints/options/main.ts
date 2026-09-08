@@ -79,16 +79,39 @@ async function hydrate() {
   loadScanHistory();
 }
 
-function updateConnectionBadge() {
+async function updateConnectionBadge() {
   const badge = $('#conn-badge');
   if (!badge) return;
 
-  if (currentConfig.serverUrl && currentConfig.apiKey) {
-    badge.className = 'badge badge-connected';
-    badge.textContent = `🟢 Connected (${currentConfig.serverUrl})`;
-  } else {
+  if (!currentConfig.serverUrl || !currentConfig.apiKey) {
     badge.className = 'badge badge-disconnected';
     badge.textContent = '🔴 Disconnected (Needs Server & Key)';
+    return;
+  }
+
+  badge.className = 'badge badge-disconnected';
+  badge.textContent = `🟡 Verifying (${currentConfig.serverUrl})...`;
+
+  try {
+    const cleanUrl = currentConfig.serverUrl.replace(/\/+$/, '');
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeout = controller ? setTimeout(() => controller.abort(), 4000) : null;
+    const res = await fetch(`${cleanUrl}/api/v1/auth/me`, {
+      headers: { Authorization: `Bearer ${currentConfig.apiKey}` },
+      signal: controller?.signal,
+    });
+    if (timeout) clearTimeout(timeout);
+
+    if (res.ok) {
+      badge.className = 'badge badge-connected';
+      badge.textContent = `🟢 Connected (${currentConfig.serverUrl})`;
+    } else {
+      badge.className = 'badge badge-disconnected';
+      badge.textContent = `🔴 Disconnected (${res.status === 401 ? 'Invalid API Key' : 'HTTP ' + res.status})`;
+    }
+  } catch {
+    badge.className = 'badge badge-disconnected';
+    badge.textContent = `🔴 Disconnected (Server Offline)`;
   }
 }
 
