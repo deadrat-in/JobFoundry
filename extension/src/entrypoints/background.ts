@@ -10,6 +10,7 @@ import { fingerprintText } from '../background/fingerprint.js';
 import { dedupJobs, createSessionCache } from '../background/dedup.js';
 import { makeHttpCtx } from '../background/providers/_http.mjs';
 import { extractKeywordsFromResume } from '../background/filters/resume-keywords.js';
+import { createRelayRunner } from '../background/relay.js';
 
 export const SCAN_ALARM_NAME = 'jobfoundry-periodic-scan';
 
@@ -60,6 +61,14 @@ export async function processDiscoveredJobs({
 
 export default defineBackground(() => {
   const api = globalThis.browser ?? globalThis.chrome;
+
+  // Start Companion Task Relay runner
+  try {
+    const relayRunner = createRelayRunner({ getConfig });
+    relayRunner.start();
+  } catch {
+    // ignore in environments without fetch/storage
+  }
 
   const syncAlarms = async () => {
     try {

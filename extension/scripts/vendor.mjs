@@ -37,6 +37,7 @@ const PROVIDERS_DST = join(EXT, 'src', 'background', 'providers');
 const TESTS_DST = join(PROVIDERS_DST, 'tests');
 const FIXTURES_DST = join(EXT, 'src', 'background', 'tests', 'fixtures');
 const PORTS = join(EXT, 'scripts', 'ports');
+const LIB_DST = join(EXT, 'src', 'background', 'lib');
 
 // _dns-cache.mjs patches node:dns at import time — impossible in a browser,
 // and pointless (the browser owns its own DNS). Not vendored.
@@ -65,7 +66,12 @@ const PORTED_PROVIDERS = new Set([
 ]);
 
 // Lifted tests whose assertions depend on the Node-only parts of the ports.
-const PORTED_TESTS = new Set(['workday.test.mjs', '_profile-keywords.test.mjs', 'vdab.test.mjs']);
+const PORTED_TESTS = new Set([
+  'workday.test.mjs',
+  '_profile-keywords.test.mjs',
+  'vdab.test.mjs',
+  'mokahr.test.mjs',
+]);
 
 function argValue(name) {
   const idx = process.argv.indexOf(name);
@@ -92,6 +98,7 @@ mkdirSync(PROVIDERS_DST, { recursive: true });
 rmSync(TESTS_DST, { recursive: true, force: true });
 mkdirSync(TESTS_DST, { recursive: true });
 mkdirSync(FIXTURES_DST, { recursive: true });
+mkdirSync(LIB_DST, { recursive: true });
 
 function copy(fromPath, toPath) {
   copyFileSync(fromPath, toPath);
@@ -127,6 +134,9 @@ copy(helpersSrc, helpersDst);
 
 const fixture = join(SRC, 'tests', 'fixtures', 'icims-search-page.html');
 if (existsSync(fixture)) copy(fixture, join(FIXTURES_DST, 'icims-search-page.html'));
+
+const mjsFilesSrc = join(SRC, 'lib', 'mjs-files.mjs');
+if (existsSync(mjsFilesSrc)) copy(mjsFilesSrc, join(LIB_DST, 'mjs-files.mjs'));
 
 for (const name of PORTED_PROVIDERS) {
   const port = join(PORTS, name);

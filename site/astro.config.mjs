@@ -6,6 +6,6 @@ export default defineConfig({
   outDir: '../docs',
   base: process.env.ASTRO_BASE || '/',
   build: {
-    format: 'directory'
-  }
+    format: 'directory',
+  },
 });

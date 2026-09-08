@@ -271,13 +271,10 @@ export class ApiClient {
     id: string,
     opts: { refetch?: boolean } = {}
   ): Promise<{ ok: boolean; job: Job; parsed?: any }> {
-    return this.request<{ ok: boolean; job: Job; parsed?: any }>(
-      `/api/v1/jobs/${id}/sanitize`,
-      {
-        method: 'POST',
-        body: JSON.stringify(opts),
-      }
-    );
+    return this.request<{ ok: boolean; job: Job; parsed?: any }>(`/api/v1/jobs/${id}/sanitize`, {
+      method: 'POST',
+      body: JSON.stringify(opts),
+    });
   }
 
   async deleteJob(id: string): Promise<{ ok: boolean }> {

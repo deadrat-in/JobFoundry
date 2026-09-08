@@ -90,7 +90,9 @@ html.dark {
 }
 
 /* Base Reset & Typography */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -118,12 +120,19 @@ body {
   position: relative;
 }
 
-header, main, footer {
+header,
+main,
+footer {
   position: relative;
   z-index: 1;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-heading);
   font-weight: 700;
   color: var(--text-primary);
@@ -131,10 +140,19 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.02em;
 }
 
-h1 { font-size: 2.25rem; font-weight: 800; }
-h2 { font-size: 1.75rem; }
-h3 { font-size: 1.25rem; }
-h4 { font-size: 1.05rem; }
+h1 {
+  font-size: 2.25rem;
+  font-weight: 800;
+}
+h2 {
+  font-size: 1.75rem;
+}
+h3 {
+  font-size: 1.25rem;
+}
+h4 {
+  font-size: 1.05rem;
+}
 
 p {
   color: var(--text-secondary);
@@ -151,7 +169,10 @@ a:hover {
   text-decoration: underline;
 }
 
-code, kbd, samp, pre {
+code,
+kbd,
+samp,
+pre {
   font-family: var(--font-mono);
   font-size: 0.875em;
 }
@@ -176,7 +197,10 @@ pre {
   min-width: 0;
 }
 
-button, input, select, textarea {
+button,
+input,
+select,
+textarea {
   font: inherit;
   max-width: 100%;
 }
