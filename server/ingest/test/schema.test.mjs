@@ -12,7 +12,19 @@ test('openDb migrates an in-memory DB to the full multi-tenant schema', () => {
       .all()
       .map((r) => r.name)
       .sort();
-    assert.deepEqual(tables, ['jobs', 'user_jobs', 'user_resumes', 'users'].sort());
+    assert.deepEqual(tables, ['jobs', 'relay_tasks', 'user_jobs', 'user_resumes', 'users'].sort());
+
+    // Verify relay_tasks table
+    const relayTaskCols = db.prepare('PRAGMA table_info(relay_tasks)').all();
+    assert.ok(relayTaskCols.find((c) => c.name === 'id' && c.pk === 1));
+    assert.ok(relayTaskCols.find((c) => c.name === 'user_id' && c.notnull === 1));
+    assert.ok(relayTaskCols.find((c) => c.name === 'type' && c.notnull === 1));
+    assert.ok(relayTaskCols.find((c) => c.name === 'url' && c.notnull === 1));
+    assert.ok(relayTaskCols.find((c) => c.name === 'status' && c.notnull === 1));
+    assert.ok(relayTaskCols.find((c) => c.name === 'lease_token'));
+    assert.ok(relayTaskCols.find((c) => c.name === 'leased_at'));
+    assert.ok(relayTaskCols.find((c) => c.name === 'result'));
+    assert.ok(relayTaskCols.find((c) => c.name === 'error'));
 
     // Verify users table
     const userCols = db.prepare('PRAGMA table_info(users)').all();
@@ -91,7 +103,7 @@ test('migrate is idempotent', () => {
         "SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
       )
       .get();
-    assert.equal(count.n, 4);
+    assert.equal(count.n, 5);
   } finally {
     db.close();
   }

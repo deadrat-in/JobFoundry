@@ -54,3 +54,23 @@ CREATE TABLE IF NOT EXISTS user_jobs (
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_jobs_fingerprint ON jobs(fingerprint) WHERE fingerprint IS NOT NULL AND fingerprint != '';
 
+CREATE TABLE IF NOT EXISTS relay_tasks (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  job_id TEXT REFERENCES jobs(id) ON DELETE CASCADE,
+  url TEXT NOT NULL,
+  payload TEXT,
+  status TEXT NOT NULL DEFAULT 'queued',
+  lease_token TEXT,
+  leased_at INTEGER,
+  result TEXT,
+  error TEXT,
+  retry_count INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_relay_tasks_status ON relay_tasks(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_relay_tasks_user ON relay_tasks(user_id);
+

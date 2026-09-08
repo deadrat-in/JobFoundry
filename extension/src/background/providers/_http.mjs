@@ -24,9 +24,9 @@
 // parseRetryAfterMs, isRetryableError, fetchJsonWithRetry, fetchTextWithRetry,
 // makeHttpCtx, BROWSER_LIKE_USER_AGENT.
 
-import { DEFAULT_USER_AGENT, BROWSER_LIKE_USER_AGENT } from '../user-agent.mjs';
+import { DEFAULT_USER_AGENT, BROWSER_LIKE_USER_AGENT, MACOS_BROWSER_LIKE_USER_AGENT } from '../user-agent.mjs';
 
-export { BROWSER_LIKE_USER_AGENT };
+export { BROWSER_LIKE_USER_AGENT, MACOS_BROWSER_LIKE_USER_AGENT };
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 

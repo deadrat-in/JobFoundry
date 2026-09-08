@@ -25,7 +25,14 @@ import { randomUUID } from 'node:crypto';
 import { normalizeJob } from './jobs/normalize.mjs';
 import { fingerprintFor, insertIfNew } from './jobs/dedup.mjs';
 import { parseJobDescription } from './jobs/parse-jd.mjs';
-import { fetchAndDecantUrl, cleanBoilerplate } from './jobs/decant.mjs';
+import { cleanBoilerplate } from './jobs/decant.mjs';
+import {
+  enqueueTask,
+  leaseNextTask,
+  fulfillTask,
+  getTaskStatus,
+  getRelayStatus,
+} from './relay/task-queue.mjs';
 import { hashPassword, verifyPassword } from './auth/passwords.mjs';
 import { createToken, verifyToken, generateApiKey } from './auth/tokens.mjs';
 import {
@@ -428,7 +435,11 @@ export function buildApp({
         return reply.code(400).send({ error: `invalid job: ${err.message}` });
       }
 
-      // Universal Decanter safety net: fetch and populate if description is missing or truncated
+      // Clean existing description boilerplate
+      if (row.description) {
+        row.description = cleanBoilerplate(row.description);
+      }
+
       const descTrimmed = (row.description || '').trim();
       const isTruncated =
         !descTrimmed ||
@@ -437,16 +448,7 @@ export function buildApp({
         /\b(see more|read more)\s*$/i.test(descTrimmed);
 
       if (isTruncated && row.url && /^https?:\/\//i.test(row.url)) {
-        try {
-          const decanted = await fetchAndDecantUrl(row.url, { timeoutMs: 5000 });
-          if (decanted && decanted.length > descTrimmed.length) {
-            row.description = decanted;
-          }
-        } catch {}
-      }
-
-      if (row.description) {
-        row.description = cleanBoilerplate(row.description);
+        row._needsFetch = true;
       }
 
       rows.push(row);
@@ -460,6 +462,9 @@ export function buildApp({
 
     db.transaction(() => {
       for (const row of rows) {
+        const needsFetch = row._needsFetch;
+        delete row._needsFetch;
+
         const { id, deduped: dup } = insertIfNew(db, row);
         ids.push(id);
         if (dup) deduped += 1;
@@ -473,6 +478,18 @@ export function buildApp({
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON CONFLICT(user_id, job_id) DO NOTHING`
           ).run(ujId, userId, id, null, null, 'new', null, now, now);
+        }
+
+        // Asynchronously enqueue task for companion extension if JD is missing/truncated
+        if (needsFetch && userId) {
+          try {
+            enqueueTask(db, {
+              userId,
+              type: 'FETCH_JOB_PAGE',
+              jobId: id,
+              url: row.url,
+            });
+          } catch {}
         }
       }
     })();
@@ -590,8 +607,8 @@ export function buildApp({
     return { job };
   });
 
-  // POST /api/v1/jobs/:id/decant - Auto-fetch and decant job description from its URL
-  app.post('/api/v1/jobs/:id/decant', async (request, reply) => {
+  // POST /api/v1/jobs/:id/decant & /api/v1/jobs/:id/fetch-jd - Asynchronously queue JD extraction for companion
+  const handleQueueDecant = async (request, reply) => {
     if (!authenticate(request, reply)) return;
 
     const { id } = request.params;
@@ -604,62 +621,131 @@ export function buildApp({
       return reply.code(400).send({ error: 'job has no valid URL to fetch' });
     }
 
-    const decanted = await fetchAndDecantUrl(job.url, { timeoutMs: 8000 });
-    if (!decanted || decanted.length < 50) {
-      return reply.code(422).send({ error: 'Could not extract job description from URL' });
-    }
+    const task = enqueueTask(db, {
+      userId: request.user.id,
+      type: 'FETCH_JOB_PAGE',
+      jobId: job.id,
+      url: job.url,
+    });
 
-    const now = Date.now();
-    const userId = request.user.id;
+    return reply.code(202).send({
+      ok: true,
+      status: 'queued',
+      taskId: task.id,
+      message: 'Job extraction queued for companion extension',
+      job,
+    });
+  };
 
-    db.prepare('UPDATE jobs SET description = ?, updated_at = ? WHERE id = ?').run(
-      decanted,
-      now,
-      id
-    );
+  app.post('/api/v1/jobs/:id/decant', handleQueueDecant);
+  app.post('/api/v1/jobs/:id/fetch-jd', handleQueueDecant);
 
-    if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
-      db.prepare(
-        "UPDATE user_jobs SET fit_score = NULL, fit_notes = NULL, status = 'new', updated_at = ? WHERE job_id = ? AND user_id = ?"
-      ).run(now, id, userId);
-    }
-
-    const updatedJob = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
-    return { ok: true, job: updatedJob, description: decanted };
-  });
-
-  // POST /api/v1/jobs/:id/sanitize - Fetch full page from URL if needed & clean with LLM
-  app.post('/api/v1/jobs/:id/sanitize', async (request, reply) => {
+  // POST /api/v1/jobs/:id/check-liveness - Asynchronously queue liveness check for companion
+  app.post('/api/v1/jobs/:id/check-liveness', async (request, reply) => {
     if (!authenticate(request, reply)) return;
 
     const { id } = request.params;
-    const { refetch = false } = request.body || {};
     const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
     if (!job) {
       return reply.code(404).send({ error: 'job not found' });
     }
 
-    let rawContent = (job.description || '').trim();
-
-    // If description is missing/short/truncated or refetch requested, fetch live URL first
-    const isTruncated =
-      !rawContent ||
-      rawContent.length < 300 ||
-      /(\.\.\.|…)\s*(see more|read more|view more)?\s*$/i.test(rawContent) ||
-      /\b(see more|read more)\s*$/i.test(rawContent);
-
-    if ((refetch || isTruncated) && job.url && /^https?:\/\//i.test(job.url)) {
-      try {
-        const decanted = await fetchAndDecantUrl(job.url, { timeoutMs: 8000 });
-        if (decanted && decanted.length > 50) {
-          rawContent = decanted;
-        }
-      } catch {}
+    if (!job.url || !/^https?:\/\//i.test(job.url)) {
+      return reply.code(400).send({ error: 'job has no valid URL to check' });
     }
 
+    const task = enqueueTask(db, {
+      userId: request.user.id,
+      type: 'CHECK_LIVENESS',
+      jobId: job.id,
+      url: job.url,
+    });
+
+    return reply.code(202).send({
+      ok: true,
+      status: 'queued',
+      taskId: task.id,
+      message: 'Liveness check queued for companion extension',
+      job,
+    });
+  });
+
+  // --- Relay / Companion Routes ---
+
+  // GET /api/v1/relay/status - Companion connection & queue status
+  app.get('/api/v1/relay/status', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+    const status = getRelayStatus(db, request.user.id);
+    return { ok: true, relay: status };
+  });
+
+  // GET /api/v1/relay/tasks/lease - Lease next available task for companion
+  app.get('/api/v1/relay/tasks/lease', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+    const task = leaseNextTask(db, { userId: request.user.id, leaseDurationMs: 30000 });
+    return { ok: true, task };
+  });
+
+  // POST /api/v1/relay/tasks/:id/fulfill - Companion delivers task result
+  app.post('/api/v1/relay/tasks/:id/fulfill', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+    const { id } = request.params;
+    const { leaseToken, result, error } = request.body || {};
+
+    try {
+      const outcome = fulfillTask(db, {
+        taskId: id,
+        leaseToken,
+        result,
+        error,
+        userId: request.user.id,
+      });
+      return { ok: true, ...outcome };
+    } catch (err) {
+      return reply.code(400).send({ error: err.message });
+    }
+  });
+
+  // GET /api/v1/relay/tasks/:id - Check status of a specific task
+  app.get('/api/v1/relay/tasks/:id', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+    const { id } = request.params;
+    const task = getTaskStatus(db, id, request.user.id);
+    if (!task) {
+      return reply.code(404).send({ error: 'task not found' });
+    }
+    return { ok: true, task };
+  });
+
+  // POST /api/v1/jobs/:id/sanitize - Clean existing JD content with LLM (no server-side scraping)
+  app.post('/api/v1/jobs/:id/sanitize', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+
+    const { id } = request.params;
+    const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+    if (!job) {
+      return reply.code(404).send({ error: 'job not found' });
+    }
+
+    const rawContent = (job.description || '').trim();
+
     if (!rawContent || rawContent.length < 15) {
+      if (job.url && /^https?:\/\//i.test(job.url)) {
+        const task = enqueueTask(db, {
+          userId: request.user.id,
+          type: 'FETCH_JOB_PAGE',
+          jobId: job.id,
+          url: job.url,
+        });
+        return reply.code(202).send({
+          ok: true,
+          status: 'queued',
+          taskId: task.id,
+          message: 'Job description is missing or too short. Extraction queued for companion extension.',
+        });
+      }
       return reply.code(422).send({
-        error: 'Unable to retrieve sufficient job description content from database or live URL',
+        error: 'Unable to retrieve sufficient job description content. URL is missing or invalid.',
       });
     }
 
