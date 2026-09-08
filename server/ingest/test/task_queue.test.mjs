@@ -184,3 +184,129 @@ test('task-queue: reclaims expired lease and marks failed after max retries', ()
     db.close();
   }
 });
+
+test('task-queue: rejects IPv4-mapped IPv6 loopback and private addresses', () => {
+  const db = openDb({ path: ':memory:' });
+  try {
+    const invalidUrls = [
+      'http://[::ffff:127.0.0.1]/job',
+      'http://[::ffff:7f00:1]/job',
+      'http://[::ffff:169.254.169.254]/job',
+      'http://[::ffff:10.0.0.1]/job',
+      'http://[::ffff:0a00:1]/job',
+    ];
+
+    for (const url of invalidUrls) {
+      assert.throws(
+        () => enqueueTask(db, { userId: 'u1', type: 'FETCH_JOB_PAGE', url }),
+        /forbidden private\/reserved IP/
+      );
+    }
+  } finally {
+    db.close();
+  }
+});
+
+test('task-queue: distinct jobs and standalone tasks do not hijack each other', () => {
+  const db = openDb({ path: ':memory:' });
+  try {
+    const now = Date.now();
+    db.prepare(
+      'INSERT INTO users (id, email, password_hash, api_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run('u1', 'test@example.com', 'h', 'k1', now, now);
+
+    const jobUrl = 'https://company.test/careers/openings';
+
+    db.prepare(
+      'INSERT INTO jobs (id, title, company, url, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run('job_alpha', 'Role A', 'Acme', jobUrl, 'lever', now, now);
+
+    // 1. Enqueue task linked to specific job
+    const t1 = enqueueTask(db, {
+      userId: 'u1',
+      type: 'FETCH_JOB_PAGE',
+      jobId: 'job_alpha',
+      url: jobUrl,
+    });
+
+    // 2. Enqueue standalone task on same URL without jobId
+    const t2 = enqueueTask(db, {
+      userId: 'u1',
+      type: 'FETCH_JOB_PAGE',
+      jobId: null,
+      url: jobUrl,
+    });
+
+    assert.notEqual(t1.id, t2.id);
+    assert.equal(t1.job_id, 'job_alpha');
+    assert.equal(t2.job_id, null);
+
+    // 3. Repeating the job task returns t1
+    const t1Dupe = enqueueTask(db, {
+      userId: 'u1',
+      type: 'FETCH_JOB_PAGE',
+      jobId: 'job_alpha',
+      url: jobUrl,
+    });
+    assert.equal(t1Dupe.id, t1.id);
+
+    // 4. Repeating the standalone task returns t2
+    const t2Dupe = enqueueTask(db, {
+      userId: 'u1',
+      type: 'FETCH_JOB_PAGE',
+      jobId: null,
+      url: jobUrl,
+    });
+    assert.equal(t2Dupe.id, t2.id);
+  } finally {
+    db.close();
+  }
+});
+
+test('task-queue: fulfillTask strictly requires valid lease token', () => {
+  const db = openDb({ path: ':memory:' });
+  try {
+    const now = Date.now();
+    db.prepare(
+      'INSERT INTO users (id, email, password_hash, api_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run('u1', 'test@example.com', 'h', 'k1', now, now);
+
+    const task = enqueueTask(db, {
+      userId: 'u1',
+      type: 'FETCH_JOB_PAGE',
+      url: 'https://example.com/job-token-test',
+    });
+
+    const leased = leaseNextTask(db, { userId: 'u1' });
+    assert.ok(leased.leaseToken);
+
+    // Fulfill without token -> rejected
+    const noToken = fulfillTask(db, {
+      taskId: task.id,
+      userId: 'u1',
+      result: { description: 'test' },
+    });
+    assert.equal(noToken.ok, false);
+
+    // Fulfill with wrong token -> rejected
+    const wrongToken = fulfillTask(db, {
+      taskId: task.id,
+      leaseToken: 'lease_invalid_token',
+      userId: 'u1',
+      result: { description: 'test' },
+    });
+    assert.equal(wrongToken.ok, false);
+
+    // Fulfill with correct token -> succeeds
+    const success = fulfillTask(db, {
+      taskId: task.id,
+      leaseToken: leased.leaseToken,
+      userId: 'u1',
+      result: { description: 'test' },
+    });
+    assert.equal(success.ok, true);
+    assert.equal(success.status, 'completed');
+  } finally {
+    db.close();
+  }
+});

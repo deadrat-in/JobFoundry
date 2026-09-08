@@ -63,12 +63,51 @@ export function enqueueTask(db, { userId, type, jobId = null, url, payload = nul
 
   const cleanHost =
     hostname.startsWith('[') && hostname.endsWith(']') ? hostname.slice(1, -1) : hostname;
-  if (
-    cleanHost === '::1' ||
-    cleanHost === '::' ||
+
+  // Check for IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1 or ::ffff:7f00:1)
+  const mappedV6 = cleanHost.match(/^(?:(?:0{1,4}:){5}|::)ffff:(.+)$/i);
+  if (mappedV6) {
+    const embedded = mappedV6[1];
+    let o1, o2;
+    if (embedded.includes('.')) {
+      const parts = embedded.split('.');
+      if (parts.length === 4) {
+        o1 = Number(parts[0]);
+        o2 = Number(parts[1]);
+      }
+    } else {
+      const hexParts = embedded.split(':');
+      if (
+        hexParts.length === 2 &&
+        /^[0-9a-f]{1,4}$/i.test(hexParts[0]) &&
+        /^[0-9a-f]{1,4}$/i.test(hexParts[1])
+      ) {
+        const h1 = parseInt(hexParts[0], 16);
+        o1 = (h1 >> 8) & 0xff;
+        o2 = h1 & 0xff;
+      }
+    }
+
+    if (
+      o1 === undefined ||
+      o1 === 0 ||
+      o1 === 127 ||
+      o1 === 10 ||
+      (o1 === 172 && o2 >= 16 && o2 <= 31) ||
+      (o1 === 192 && o2 === 168) ||
+      (o1 === 169 && o2 === 254) ||
+      (o1 === 100 && o2 >= 64 && o2 <= 127) ||
+      o1 >= 224
+    ) {
+      throw new Error(`Task URL targets forbidden private/reserved IP: "${hostname}"`);
+    }
+  } else if (
+    cleanHost.startsWith('::') ||
     cleanHost.startsWith('fe80:') ||
     cleanHost.startsWith('fc') ||
-    cleanHost.startsWith('fd')
+    cleanHost.startsWith('fd') ||
+    cleanHost.startsWith('2001:db8:') ||
+    cleanHost.startsWith('2001:0db8:')
   ) {
     throw new Error(`Task URL targets forbidden private IPv6: "${hostname}"`);
   }
@@ -76,11 +115,17 @@ export function enqueueTask(db, { userId, type, jobId = null, url, payload = nul
   const now = Date.now();
 
   // Deduplicate active tasks for same target
-  const existing = db
-    .prepare(
-      "SELECT id, user_id, type, job_id, url, status, created_at FROM relay_tasks WHERE user_id = ? AND type = ? AND (job_id = ? OR url = ?) AND status IN ('queued', 'leased') LIMIT 1"
-    )
-    .get(userId, type, jobId, url);
+  const existing = jobId
+    ? db
+        .prepare(
+          "SELECT id, user_id, type, job_id, url, status, created_at FROM relay_tasks WHERE user_id = ? AND type = ? AND job_id = ? AND status IN ('queued', 'leased') LIMIT 1"
+        )
+        .get(userId, type, jobId)
+    : db
+        .prepare(
+          "SELECT id, user_id, type, job_id, url, status, created_at FROM relay_tasks WHERE user_id = ? AND type = ? AND job_id IS NULL AND url = ? AND status IN ('queued', 'leased') LIMIT 1"
+        )
+        .get(userId, type, url);
 
   if (existing) {
     return existing;
@@ -188,7 +233,7 @@ export function fulfillTask(
     throw new Error('Unauthorized to fulfill this task');
   }
 
-  if (task.status !== 'leased' || (leaseToken && task.lease_token !== leaseToken)) {
+  if (task.status !== 'leased' || !leaseToken || task.lease_token !== leaseToken) {
     // Task already expired or was fulfilled
     return { ok: false, status: task.status, message: 'Task lease mismatch or expired' };
   }
@@ -201,31 +246,35 @@ export function fulfillTask(
   }
 
   const resultStr = result ? JSON.stringify(result) : null;
-  db.prepare(
-    "UPDATE relay_tasks SET status = 'completed', result = ?, error = NULL, updated_at = ? WHERE id = ?"
-  ).run(resultStr, now, taskId);
+  const completeTx = db.transaction(() => {
+    db.prepare(
+      "UPDATE relay_tasks SET status = 'completed', result = ?, error = NULL, updated_at = ? WHERE id = ?"
+    ).run(resultStr, now, taskId);
 
-  // Apply side-effects to jobs table
-  if (task.job_id && result && typeof result === 'object') {
-    if (task.type === 'FETCH_JOB_PAGE' && result.description) {
-      db.prepare('UPDATE jobs SET description = ?, updated_at = ? WHERE id = ?').run(
-        result.description,
-        now,
-        task.job_id
-      );
-      if (result.title) {
-        db.prepare(
-          "UPDATE jobs SET title = CASE WHEN title = 'Unknown Position' OR title = '' THEN ? ELSE title END WHERE id = ?"
-        ).run(result.title, task.job_id);
+    // Apply side-effects to jobs table
+    if (task.job_id && result && typeof result === 'object') {
+      if (task.type === 'FETCH_JOB_PAGE' && result.description) {
+        db.prepare('UPDATE jobs SET description = ?, updated_at = ? WHERE id = ?').run(
+          result.description,
+          now,
+          task.job_id
+        );
+        if (result.title) {
+          db.prepare(
+            "UPDATE jobs SET title = CASE WHEN title = 'Unknown Position' OR title = '' THEN ? ELSE title END WHERE id = ?"
+          ).run(result.title, task.job_id);
+        }
+      } else if (task.type === 'CHECK_LIVENESS' && result.liveness) {
+        db.prepare('UPDATE jobs SET liveness = ?, updated_at = ? WHERE id = ?').run(
+          result.liveness,
+          now,
+          task.job_id
+        );
       }
-    } else if (task.type === 'CHECK_LIVENESS' && result.liveness) {
-      db.prepare('UPDATE jobs SET liveness = ?, updated_at = ? WHERE id = ?').run(
-        result.liveness,
-        now,
-        task.job_id
-      );
     }
-  }
+  });
+
+  completeTx();
 
   return { ok: true, status: 'completed', result };
 }

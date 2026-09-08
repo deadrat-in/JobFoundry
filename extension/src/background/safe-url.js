@@ -67,7 +67,33 @@ export function isBlockedAddress(address) {
     });
   }
 
-  if (!addr.includes(':')) return true;
+  // Handle IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1, ::ffff:7f00:1, 0:0:0:0:0:ffff:7f00:1)
+  const mappedMatch = addr.match(/^(?:(?:0{1,4}:){5}|::)ffff:(.+)$/i);
+  if (mappedMatch) {
+    const embedded = mappedMatch[1];
+    if (embedded.includes('.')) {
+      const v4 = v4ToInt(embedded);
+      return v4 === null ? true : isBlockedAddress(embedded);
+    }
+    const hexParts = embedded.split(':');
+    if (
+      hexParts.length === 2 &&
+      /^[0-9a-f]{1,4}$/i.test(hexParts[0]) &&
+      /^[0-9a-f]{1,4}$/i.test(hexParts[1])
+    ) {
+      const h1 = parseInt(hexParts[0], 16);
+      const h2 = parseInt(hexParts[1], 16);
+      const asV4 = ((h1 << 16) | h2) >>> 0;
+      return V4_BLOCKED.some(([net, bits]) => {
+        const mask = bits === 0 ? 0 : (0xffffffff << (32 - bits)) >>> 0;
+        return (asV4 & mask) >>> 0 === net;
+      });
+    }
+    return true; // malformed mapped IPv6 -> block
+  }
+
+  // Any other address starting with :: is in the 0000::/8 reserved prefix (loopback, unspecified, deprecated IPv4-compatible)
+  if (addr.startsWith('::')) return true;
 
   const tail = addr.slice(addr.lastIndexOf(':') + 1);
   if (tail.includes('.')) {
@@ -75,10 +101,11 @@ export function isBlockedAddress(address) {
     return embedded === null ? true : isBlockedAddress(tail);
   }
 
-  if (addr === '::' || addr === '::1') return true;
-  if (/^f[cd]/.test(addr)) return true; // unique local
-  if (/^fe[89ab]/.test(addr)) return true; // link-local
-  if (/^ff/.test(addr)) return true; // multicast
+  if (/^f[cd]/i.test(addr)) return true; // unique local (fc00::/7)
+  if (/^fe[89ab]/i.test(addr)) return true; // link-local (fe80::/10)
+  if (/^ff/i.test(addr)) return true; // multicast (ff00::/8)
+  if (/^2001:0?db8:/i.test(addr)) return true; // documentation prefix (2001:db8::/32)
+  if (/^100::/i.test(addr)) return true; // discard-only (100::/64)
   return false;
 }
 
@@ -205,37 +232,65 @@ export async function assertSafeDestination(
 export async function fetchWithSafeRedirects(
   initialUrl,
   opts = {},
-  { lookupImpl = null, fetchImpl = globalThis.fetch, maxRedirects = 5 } = {}
+  { lookupImpl = null, fetchImpl = globalThis.fetch, maxRedirects = 5, timeoutMs = 20000 } = {}
 ) {
   let currentUrl = initialUrl;
 
   for (let hop = 0; hop <= maxRedirects; hop++) {
     await assertSafeDestination(currentUrl, { lookupImpl, fetchImpl });
 
-    const fetchOpts = {
-      ...opts,
-      redirect: 'manual',
+    const controller = new AbortController();
+    let timer = null;
+    if (timeoutMs > 0) {
+      timer = setTimeout(() => {
+        controller.abort(new Error(`Fetch timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+    }
+
+    const onAbort = () => {
+      controller.abort(opts.signal?.reason);
     };
 
-    const res = await fetchImpl(currentUrl, fetchOpts);
-
-    if (res.status >= 300 && res.status < 400) {
-      const location = res.headers?.get ? res.headers.get('location') : null;
-      if (!location) {
-        throw new Error(
-          `HTTP ${res.status} redirect without Location header cannot be safely followed`
-        );
+    if (opts.signal) {
+      if (opts.signal.aborted) {
+        if (timer) clearTimeout(timer);
+        throw opts.signal.reason || new Error('Aborted');
       }
-      const nextUrl = new URL(location, currentUrl).href;
-      currentUrl = nextUrl;
-      continue;
+      opts.signal.addEventListener('abort', onAbort, { once: true });
     }
 
-    if (res.type === 'opaqueredirect') {
-      throw new Error('Opaque redirect cannot be safely verified');
-    }
+    try {
+      const fetchOpts = {
+        ...opts,
+        signal: controller.signal,
+        redirect: 'manual',
+      };
 
-    return res;
+      const res = await fetchImpl(currentUrl, fetchOpts);
+
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers?.get ? res.headers.get('location') : null;
+        if (!location) {
+          throw new Error(
+            `HTTP ${res.status} redirect without Location header cannot be safely followed`
+          );
+        }
+        const nextUrl = new URL(location, currentUrl).href;
+        currentUrl = nextUrl;
+        continue;
+      }
+
+      if (res.type === 'opaqueredirect') {
+        throw new Error('Opaque redirect cannot be safely verified');
+      }
+
+      return res;
+    } finally {
+      if (timer) clearTimeout(timer);
+      if (opts.signal) {
+        opts.signal.removeEventListener('abort', onAbort);
+      }
+    }
   }
 
   throw new Error(`Exceeded maximum redirect limit of ${maxRedirects}`);

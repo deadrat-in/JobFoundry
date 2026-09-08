@@ -15,8 +15,17 @@ test('relay API: decant and liveness return 202 and companion can lease/fulfill'
   try {
     const now = Date.now();
     // Seed a job
-    db.prepare('INSERT INTO jobs (id, title, company, url, source, liveness, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
-      'job_1', 'Software Engineer', 'Acme', 'https://boards.greenhouse.io/acme/jobs/101', 'greenhouse', 'unknown', now, now
+    db.prepare(
+      'INSERT INTO jobs (id, title, company, url, source, liveness, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(
+      'job_1',
+      'Software Engineer',
+      'Acme',
+      'https://boards.greenhouse.io/acme/jobs/101',
+      'greenhouse',
+      'unknown',
+      now,
+      now
     );
 
     // 1. Check relay status initially
@@ -63,7 +72,8 @@ test('relay API: decant and liveness return 202 and companion can lease/fulfill'
       payload: {
         leaseToken: leaseJson.task.leaseToken,
         result: {
-          description: 'We are hiring a backend engineer with Node.js and distributed systems expertise.',
+          description:
+            'We are hiring a backend engineer with Node.js and distributed systems expertise.',
         },
       },
     });

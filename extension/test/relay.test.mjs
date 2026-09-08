@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { executeRelayTask, pollAndExecuteOnce } from '../src/background/relay.js';
+import { fetchWithSafeRedirects } from '../src/background/safe-url.js';
 
 test('relay: rejects unsupported task types or invalid URLs', async () => {
   await assert.rejects(
@@ -147,6 +148,9 @@ test('relay: rejects direct private, loopback, and metadata network targets', as
     'http://192.168.1.1/router',
     'http://169.254.169.254/latest/meta-data',
     'http://[::1]/root',
+    'http://[::ffff:127.0.0.1]/secret',
+    'http://[::ffff:7f00:1]/secret',
+    'http://[::ffff:169.254.169.254]/meta-data',
     'http://my-service.local/dashboard',
     'http://internal-host/jobs',
     'http://user:pass@public-job.test/job',
@@ -251,4 +255,28 @@ test('relay: safely follows public redirects and returns extracted content', asy
   );
 
   assert.ok(result.description.includes('Public career opportunity'));
+});
+
+test('relay: aborts fetch when timeout is reached', async () => {
+  const hangingFetch = async (url, { signal } = {}) => {
+    return new Promise((_, reject) => {
+      if (signal) {
+        signal.addEventListener('abort', () => reject(signal.reason || new Error('Aborted')));
+      }
+    });
+  };
+
+  await assert.rejects(
+    () =>
+      fetchWithSafeRedirects(
+        'https://slow-ats.test/job/1',
+        {},
+        {
+          fetchImpl: hangingFetch,
+          lookupImpl: async () => ['93.184.216.34'],
+          timeoutMs: 50,
+        }
+      ),
+    /timed out after 50ms/
+  );
 });

@@ -501,8 +501,15 @@ export function buildApp({
   app.get('/api/v1/jobs', async (request, reply) => {
     if (!authenticate(request, reply)) return;
 
-    const { status, source, min_score, search, sort_by = 'created_at', order = 'desc', limit = 100 } =
-      request.query || {};
+    const {
+      status,
+      source,
+      min_score,
+      search,
+      sort_by = 'created_at',
+      order = 'desc',
+      limit = 100,
+    } = request.query || {};
     const userId = request.user.id;
     const isMultiTenant = Boolean(userId && userId !== 'legacy-admin' && userId !== 'dev-user');
     const sortDirection = String(order).toLowerCase() === 'asc' ? 'ASC' : 'DESC';
@@ -621,20 +628,24 @@ export function buildApp({
       return reply.code(400).send({ error: 'job has no valid URL to fetch' });
     }
 
-    const task = enqueueTask(db, {
-      userId: request.user.id,
-      type: 'FETCH_JOB_PAGE',
-      jobId: job.id,
-      url: job.url,
-    });
+    try {
+      const task = enqueueTask(db, {
+        userId: request.user.id,
+        type: 'FETCH_JOB_PAGE',
+        jobId: job.id,
+        url: job.url,
+      });
 
-    return reply.code(202).send({
-      ok: true,
-      status: 'queued',
-      taskId: task.id,
-      message: 'Job extraction queued for companion extension',
-      job,
-    });
+      return reply.code(202).send({
+        ok: true,
+        status: 'queued',
+        taskId: task.id,
+        message: 'Job extraction queued for companion extension',
+        job,
+      });
+    } catch (err) {
+      return reply.code(400).send({ error: err.message });
+    }
   };
 
   app.post('/api/v1/jobs/:id/decant', handleQueueDecant);
@@ -654,20 +665,24 @@ export function buildApp({
       return reply.code(400).send({ error: 'job has no valid URL to check' });
     }
 
-    const task = enqueueTask(db, {
-      userId: request.user.id,
-      type: 'CHECK_LIVENESS',
-      jobId: job.id,
-      url: job.url,
-    });
+    try {
+      const task = enqueueTask(db, {
+        userId: request.user.id,
+        type: 'CHECK_LIVENESS',
+        jobId: job.id,
+        url: job.url,
+      });
 
-    return reply.code(202).send({
-      ok: true,
-      status: 'queued',
-      taskId: task.id,
-      message: 'Liveness check queued for companion extension',
-      job,
-    });
+      return reply.code(202).send({
+        ok: true,
+        status: 'queued',
+        taskId: task.id,
+        message: 'Liveness check queued for companion extension',
+        job,
+      });
+    } catch (err) {
+      return reply.code(400).send({ error: err.message });
+    }
   });
 
   // --- Relay / Companion Routes ---
@@ -731,18 +746,23 @@ export function buildApp({
 
     if (!rawContent || rawContent.length < 15) {
       if (job.url && /^https?:\/\//i.test(job.url)) {
-        const task = enqueueTask(db, {
-          userId: request.user.id,
-          type: 'FETCH_JOB_PAGE',
-          jobId: job.id,
-          url: job.url,
-        });
-        return reply.code(202).send({
-          ok: true,
-          status: 'queued',
-          taskId: task.id,
-          message: 'Job description is missing or too short. Extraction queued for companion extension.',
-        });
+        try {
+          const task = enqueueTask(db, {
+            userId: request.user.id,
+            type: 'FETCH_JOB_PAGE',
+            jobId: job.id,
+            url: job.url,
+          });
+          return reply.code(202).send({
+            ok: true,
+            status: 'queued',
+            taskId: task.id,
+            message:
+              'Job description is missing or too short. Extraction queued for companion extension.',
+          });
+        } catch (err) {
+          return reply.code(400).send({ error: err.message });
+        }
       }
       return reply.code(422).send({
         error: 'Unable to retrieve sufficient job description content. URL is missing or invalid.',
@@ -759,11 +779,12 @@ export function buildApp({
       const userId = request.user.id;
 
       const title =
-        parsed.title && parsed.title !== 'Job Opportunity' && !/^\d+\s+notifications?$/i.test(parsed.title)
+        parsed.title &&
+        parsed.title !== 'Job Opportunity' &&
+        !/^\d+\s+notifications?$/i.test(parsed.title)
           ? parsed.title
           : job.title;
-      const company =
-        parsed.company && parsed.company !== 'Company' ? parsed.company : job.company;
+      const company = parsed.company && parsed.company !== 'Company' ? parsed.company : job.company;
       const location = parsed.location || job.location;
       const description = parsed.description || rawContent;
 
@@ -991,7 +1012,11 @@ export function buildApp({
             writeFileSync(resolve(jobDir, 'resume-text.txt'), data.plain_text, 'utf-8');
           }
           if (data.resume) {
-            writeFileSync(resolve(jobDir, 'resume.json'), JSON.stringify(data.resume, null, 2), 'utf-8');
+            writeFileSync(
+              resolve(jobDir, 'resume.json'),
+              JSON.stringify(data.resume, null, 2),
+              'utf-8'
+            );
           }
           tailorSuccess = true;
         } else {
@@ -1013,9 +1038,11 @@ export function buildApp({
           'UPDATE user_jobs SET status = ?, updated_at = ? WHERE job_id = ? AND user_id = ?'
         ).run(statusToSet, now, id, userId);
       } else {
-        db.prepare(
-          'UPDATE jobs SET status = ?, updated_at = ? WHERE id = ?'
-        ).run(statusToSet, now, id);
+        db.prepare('UPDATE jobs SET status = ?, updated_at = ? WHERE id = ?').run(
+          statusToSet,
+          now,
+          id
+        );
       }
       return reply.code(502).send({
         error: tailorError || 'Failed to tailor resume via AI service',
@@ -1174,11 +1201,15 @@ export function buildApp({
         ? `ORDER BY j.source COLLATE NOCASE ${sortDirection}`
         : `ORDER BY source COLLATE NOCASE ${sortDirection}`;
     } else if (sort_by === 'status') {
-      orderClause = isMultiTenant ? `ORDER BY uj.status ${sortDirection}` : `ORDER BY status ${sortDirection}`;
+      orderClause = isMultiTenant
+        ? `ORDER BY uj.status ${sortDirection}`
+        : `ORDER BY status ${sortDirection}`;
     } else if (sort_by === 'has_description') {
       orderClause = `ORDER BY has_description ${sortDirection}`;
     } else if (sort_by === 'created_at') {
-      orderClause = isMultiTenant ? `ORDER BY uj.created_at ${sortDirection}` : `ORDER BY created_at ${sortDirection}`;
+      orderClause = isMultiTenant
+        ? `ORDER BY uj.created_at ${sortDirection}`
+        : `ORDER BY created_at ${sortDirection}`;
     }
 
     let rows;
