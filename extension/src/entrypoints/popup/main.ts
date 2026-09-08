@@ -210,9 +210,9 @@ export async function verifyConnection({
   const cleanUrl = config.serverUrl.replace(/\/+$/, '');
   const authUrl = `${cleanUrl}/api/v1/auth/me`;
 
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timeout = controller ? setTimeout(() => controller.abort(), 4000) : null;
   try {
-    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timeout = controller ? setTimeout(() => controller.abort(), 4000) : null;
     const res = await fetchImpl(authUrl, {
       method: 'GET',
       headers: {
@@ -221,7 +221,6 @@ export async function verifyConnection({
       },
       signal: controller?.signal,
     });
-    if (timeout) clearTimeout(timeout);
 
     if (res.ok) {
       const data = await res.json().catch(() => null);
@@ -261,6 +260,8 @@ export async function verifyConnection({
       connBadge.textContent = '🔴 Server Offline';
     }
     return { ok: false, error: err?.message || 'Server offline' };
+  } finally {
+    if (timeout) clearTimeout(timeout);
   }
 }
 
@@ -302,7 +303,7 @@ export function init(opts: { doc?: Document; [key: string]: any } = {}) {
         }
       } else {
         if (status) {
-          status.textContent = autoRes?.error || `Server offline: ${verifyRes.error}`;
+          status.textContent = autoRes?.error || verifyRes.error || 'Connection failed';
           status.style.color = '#ef4444';
         }
       }
