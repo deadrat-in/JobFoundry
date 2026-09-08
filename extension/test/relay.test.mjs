@@ -1,10 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  executeRelayTask,
-  pollAndExecuteOnce,
-  SUPPORTED_TASK_TYPES,
-} from '../src/background/relay.js';
+import { executeRelayTask, pollAndExecuteOnce } from '../src/background/relay.js';
 
 test('relay: rejects unsupported task types or invalid URLs', async () => {
   await assert.rejects(
@@ -46,7 +42,7 @@ test('relay: executes FETCH_JOB_PAGE and decants HTML and JSON-LD', async () => 
     </html>
   `;
 
-  const mockFetch = async (url) => {
+  const mockFetch = async () => {
     return {
       ok: true,
       status: 200,
@@ -68,7 +64,7 @@ test('relay: executes FETCH_JOB_PAGE and decants HTML and JSON-LD', async () => 
 
 test('relay: executes CHECK_LIVENESS using ATS liveness engine', async () => {
   const mockCtx = {
-    fetchResponse: async (url) => {
+    fetchResponse: async () => {
       // 200 OK -> active
       return { status: 200 };
     },
@@ -107,7 +103,8 @@ test('relay: pollAndExecuteOnce leases, executes, and fulfills task', async () =
       return {
         ok: true,
         status: 200,
-        text: async () => '<h1>Senior Developer</h1><p>Join our team to build scalable microservices.</p>',
+        text: async () =>
+          '<h1>Senior Developer</h1><p>Join our team to build scalable microservices.</p>',
       };
     }
 
@@ -138,4 +135,120 @@ test('relay: pollAndExecuteOnce leases, executes, and fulfills task', async () =
   const payload = JSON.parse(fulfillCall.opts.body);
   assert.equal(payload.leaseToken, 'lease_xyz789');
   assert.ok(payload.result.description.includes('Join our team to build scalable microservices'));
+});
+
+test('relay: rejects direct private, loopback, and metadata network targets', async () => {
+  const privateUrls = [
+    'http://localhost:8080/admin',
+    'http://127.0.0.1:8080/secret',
+    'http://127.1.2.3/internal',
+    'http://10.0.0.1/network',
+    'http://172.16.0.5/api',
+    'http://192.168.1.1/router',
+    'http://169.254.169.254/latest/meta-data',
+    'http://[::1]/root',
+    'http://my-service.local/dashboard',
+    'http://internal-host/jobs',
+    'http://user:pass@public-job.test/job',
+    'http://public-job.test:22/ssh',
+  ];
+
+  for (const url of privateUrls) {
+    await assert.rejects(
+      () => executeRelayTask({ type: 'FETCH_JOB_PAGE', url }),
+      /Destination forbidden|Invalid URL|Userinfo/
+    );
+  }
+});
+
+test('relay: rejects domain names that resolve to private IP addresses (DNS rebinding guard)', async () => {
+  const mockLookup = async (hostname) => {
+    if (hostname === 'rebind.evil.test') {
+      return ['127.0.0.1'];
+    }
+    if (hostname === 'metadata.evil.test') {
+      return ['169.254.169.254'];
+    }
+    return ['93.184.216.34']; // public IP
+  };
+
+  await assert.rejects(
+    () =>
+      executeRelayTask(
+        { type: 'FETCH_JOB_PAGE', url: 'https://rebind.evil.test/job/1' },
+        { lookupImpl: mockLookup }
+      ),
+    /resolves to private\/reserved IP "127.0.0.1"/
+  );
+
+  await assert.rejects(
+    () =>
+      executeRelayTask(
+        { type: 'FETCH_JOB_PAGE', url: 'https://metadata.evil.test/job/1' },
+        { lookupImpl: mockLookup }
+      ),
+    /resolves to private\/reserved IP "169.254.169.254"/
+  );
+});
+
+test('relay: blocks redirects targeting private network destinations', async () => {
+  const mockFetch = async (url) => {
+    if (url === 'https://public-board.test/job/redirect-loopback') {
+      return {
+        status: 302,
+        headers: new Headers({ location: 'http://127.0.0.1:8080/internal' }),
+      };
+    }
+    if (url === 'https://public-board.test/job/redirect-metadata') {
+      return {
+        status: 301,
+        headers: new Headers({ location: 'http://169.254.169.254/latest/meta-data' }),
+      };
+    }
+    throw new Error(`Unexpected fetch to ${url}`);
+  };
+
+  await assert.rejects(
+    () =>
+      executeRelayTask(
+        { type: 'FETCH_JOB_PAGE', url: 'https://public-board.test/job/redirect-loopback' },
+        { fetchImpl: mockFetch, lookupImpl: async () => ['93.184.216.34'] }
+      ),
+    /Destination forbidden: "127.0.0.1" is a private or reserved IP address/
+  );
+
+  await assert.rejects(
+    () =>
+      executeRelayTask(
+        { type: 'FETCH_JOB_PAGE', url: 'https://public-board.test/job/redirect-metadata' },
+        { fetchImpl: mockFetch, lookupImpl: async () => ['93.184.216.34'] }
+      ),
+    /Destination forbidden: "169.254.169.254" is a private or reserved IP address/
+  );
+});
+
+test('relay: safely follows public redirects and returns extracted content', async () => {
+  const mockFetch = async (url) => {
+    if (url === 'https://initial-company.test/careers/sre') {
+      return {
+        status: 302,
+        headers: new Headers({ location: 'https://final-ats.test/jobs/42' }),
+      };
+    }
+    if (url === 'https://final-ats.test/jobs/42') {
+      return {
+        ok: true,
+        status: 200,
+        text: async () => '<h1>Senior SRE</h1><p>Public career opportunity.</p>',
+      };
+    }
+    throw new Error(`Unexpected fetch to ${url}`);
+  };
+
+  const result = await executeRelayTask(
+    { type: 'FETCH_JOB_PAGE', url: 'https://initial-company.test/careers/sre' },
+    { fetchImpl: mockFetch, lookupImpl: async () => ['93.184.216.34'] }
+  );
+
+  assert.ok(result.description.includes('Public career opportunity'));
 });

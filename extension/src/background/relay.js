@@ -10,6 +10,7 @@ import { decantHtml } from '../content/extractors/helpers.js';
 import { checkLiveness } from './liveness/index.js';
 import { makeHttpCtx } from './providers/_http.mjs';
 import { BROWSER_LIKE_USER_AGENT } from './user-agent.mjs';
+import { assertSafeDestination, fetchWithSafeRedirects } from './safe-url.js';
 
 export const SUPPORTED_TASK_TYPES = new Set([
   'FETCH_JOB_PAGE',
@@ -20,7 +21,10 @@ export const SUPPORTED_TASK_TYPES = new Set([
 /**
  * Pure execution of a typed companion task.
  */
-export async function executeRelayTask(task, { fetchImpl = globalThis.fetch, httpCtx = null, logger = console } = {}) {
+export async function executeRelayTask(
+  task,
+  { fetchImpl = globalThis.fetch, httpCtx = null, lookupImpl = null } = {}
+) {
   if (!task || !task.type) {
     throw new Error('Task must specify a type');
   }
@@ -33,16 +37,24 @@ export async function executeRelayTask(task, { fetchImpl = globalThis.fetch, htt
     throw new Error(`Task URL must be valid HTTP(S): "${task.url}"`);
   }
 
+  // Validate destination against SSRF policy: reject private IP ranges, localhost,
+  // link-local, cloud metadata, and unresolved private domains.
+  await assertSafeDestination(task.url, { lookupImpl, fetchImpl });
+
   const ctx = httpCtx || makeHttpCtx();
 
   if (task.type === 'FETCH_JOB_PAGE') {
-    const res = await fetchImpl(task.url, {
-      headers: {
-        'User-Agent': BROWSER_LIKE_USER_AGENT,
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    // Fetch using manual redirects, verifying the destination policy at every hop.
+    const res = await fetchWithSafeRedirects(
+      task.url,
+      {
+        headers: {
+          'User-Agent': BROWSER_LIKE_USER_AGENT,
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        },
       },
-      redirect: 'follow',
-    });
+      { lookupImpl, fetchImpl }
+    );
 
     if (!res.ok) {
       throw new Error(`HTTP error ${res.status} fetching job page`);
@@ -53,11 +65,17 @@ export async function executeRelayTask(task, { fetchImpl = globalThis.fetch, htt
     // Extract title & company from JSON-LD if available in HTML
     let title;
     let company;
-    const jsonLdMatch = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i);
+    const jsonLdMatch = html.match(
+      /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i
+    );
     if (jsonLdMatch) {
       try {
         const parsed = JSON.parse(jsonLdMatch[1]);
-        const item = Array.isArray(parsed) ? parsed[0] : parsed['@graph'] ? parsed['@graph'][0] : parsed;
+        const item = Array.isArray(parsed)
+          ? parsed[0]
+          : parsed['@graph']
+            ? parsed['@graph'][0]
+            : parsed;
         if (item?.title && typeof item.title === 'string') title = item.title.trim();
         if (item?.hiringOrganization?.name && typeof item.hiringOrganization.name === 'string') {
           company = item.hiringOrganization.name.trim();
@@ -94,6 +112,7 @@ export async function pollAndExecuteOnce({
   apiKey,
   fetchImpl = globalThis.fetch,
   httpCtx = null,
+  lookupImpl = null,
   logger = console,
 }) {
   if (!serverUrl || !apiKey) {
@@ -134,7 +153,7 @@ export async function pollAndExecuteOnce({
   let taskError = null;
 
   try {
-    result = await executeRelayTask(task, { fetchImpl, httpCtx, logger });
+    result = await executeRelayTask(task, { fetchImpl, httpCtx, lookupImpl, logger });
   } catch (err) {
     taskError = err.message || String(err);
     logger.warn?.(`[relay] Task ${task.id} execution failed: ${taskError}`);

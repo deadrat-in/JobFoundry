@@ -42,6 +42,8 @@ function isRedirectResponse(res) {
   return res.type === 'opaqueredirect';
 }
 
+const REDIRECT_REFUSAL_CAUSE_MESSAGE = 'unexpected redirect';
+
 /**
  * Build the pinned redirect-refusal error. Mirrors the shape undici produces
  * for redirect:'error' (REDIRECT_REFUSAL_CAUSE_MESSAGE below) so
@@ -51,16 +53,24 @@ function isRedirectResponse(res) {
  */
 function redirectRefusal(res) {
   const err = Object.assign(new TypeError('fetch failed'), {
-    cause: { message: 'unexpected redirect' },
+    cause: { message: REDIRECT_REFUSAL_CAUSE_MESSAGE },
   });
   if (typeof res?.status === 'number' && res.status >= 300 && res.status < 400) err.status = res.status;
   if (res?.headers && typeof res.headers.get === 'function') err.location = res.headers.get('location');
   return err;
 }
 
+export function isRefusedRedirectError(err) {
+  return (
+    err?.status === undefined &&
+    err instanceof TypeError &&
+    err?.cause?.message === REDIRECT_REFUSAL_CAUSE_MESSAGE
+  );
+}
+
 const NULL_BODY_STATUSES = new Set([204, 205, 304]);
 
-async function fetchWithTimeout(url, { timeoutMs = DEFAULT_TIMEOUT_MS, headers = {}, method = 'GET', body = null } = {}, consume, allowEmptyBody = false) {
+async function fetchWithTimeout(url, { timeoutMs = DEFAULT_TIMEOUT_MS, headers = {}, method = 'GET', body = null, redirect = null } = {}, consume, allowEmptyBody = false) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -76,7 +86,18 @@ async function fetchWithTimeout(url, { timeoutMs = DEFAULT_TIMEOUT_MS, headers =
       redirect: 'manual',
       signal: controller.signal,
     });
-    if (isRedirectResponse(res)) throw redirectRefusal(res);
+    if (isRedirectResponse(res)) {
+      if (redirect === 'manual') {
+        const responseText = await res.text().catch(() => '');
+        const err = new Error(`HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ''}`);
+        err.status = res.status;
+        err.body = responseText;
+        err.retryAfter = res.headers.get('retry-after');
+        err.location = res.headers.get('location');
+        throw err;
+      }
+      throw redirectRefusal(res);
+    }
     if (!res.ok && !(allowEmptyBody && NULL_BODY_STATUSES.has(res.status))) {
       const responseText = await res.text().catch(() => '');
       const err = new Error(`HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ''}`);
@@ -131,7 +152,6 @@ const RETRY_DEFAULTS = { retries: 2, baseDelayMs: 500, maxDelayMs: 8_000 };
  * future Node/undici bump that changes the wording fails loudly. The browser
  * port's own redirectRefusal() emits this same cause message.
  */
-const REDIRECT_REFUSAL_CAUSE_MESSAGE = 'unexpected redirect';
 
 /** Awaitable sleep that honours a ctx-supplied clock, so tests never wall-clock wait. */
 export function sleep(ms, ctx) {
@@ -164,7 +184,7 @@ export function isRetryableError(err) {
   const status = err?.status;
   if (status === 429) return true;
   if (typeof status === 'number' && status >= 500) return true;
-  if (status === undefined && err instanceof TypeError && err?.cause?.message === REDIRECT_REFUSAL_CAUSE_MESSAGE) return false;
+  if (isRefusedRedirectError(err)) return false;
   return status === undefined; // network error / timeout / abort — no status set
 }
 

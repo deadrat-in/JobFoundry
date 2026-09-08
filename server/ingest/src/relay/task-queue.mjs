@@ -12,10 +12,65 @@ export const ALLOWED_TASK_TYPES = new Set([
  */
 export function enqueueTask(db, { userId, type, jobId = null, url, payload = null }) {
   if (!ALLOWED_TASK_TYPES.has(type)) {
-    throw new Error(`Invalid task type: "${type}". Allowed: ${Array.from(ALLOWED_TASK_TYPES).join(', ')}`);
+    throw new Error(
+      `Invalid task type: "${type}". Allowed: ${Array.from(ALLOWED_TASK_TYPES).join(', ')}`
+    );
   }
   if (!url || typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
     throw new Error('Task requires a valid http/https URL');
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error('Task requires a valid http/https URL');
+  }
+
+  if (parsed.username || parsed.password) {
+    throw new Error('Task URL cannot contain user credentials');
+  }
+
+  const hostname = parsed.hostname.toLowerCase().trim();
+  if (
+    hostname === 'localhost' ||
+    hostname.endsWith('.localhost') ||
+    hostname.endsWith('.local') ||
+    hostname.endsWith('.internal') ||
+    hostname.endsWith('.lan') ||
+    hostname.endsWith('.home.arpa')
+  ) {
+    throw new Error(`Task URL targets forbidden private/local destination: "${hostname}"`);
+  }
+
+  const v4Match = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (v4Match) {
+    const o1 = Number(v4Match[1]);
+    const o2 = Number(v4Match[2]);
+    if (
+      o1 === 0 ||
+      o1 === 127 ||
+      o1 === 10 ||
+      (o1 === 172 && o2 >= 16 && o2 <= 31) ||
+      (o1 === 192 && o2 === 168) ||
+      (o1 === 169 && o2 === 254) ||
+      (o1 === 100 && o2 >= 64 && o2 <= 127) ||
+      o1 >= 224
+    ) {
+      throw new Error(`Task URL targets forbidden private/reserved IP: "${hostname}"`);
+    }
+  }
+
+  const cleanHost =
+    hostname.startsWith('[') && hostname.endsWith(']') ? hostname.slice(1, -1) : hostname;
+  if (
+    cleanHost === '::1' ||
+    cleanHost === '::' ||
+    cleanHost.startsWith('fe80:') ||
+    cleanHost.startsWith('fc') ||
+    cleanHost.startsWith('fd')
+  ) {
+    throw new Error(`Task URL targets forbidden private IPv6: "${hostname}"`);
   }
 
   const now = Date.now();
@@ -118,7 +173,10 @@ export function leaseNextTask(db, { userId, leaseDurationMs = 30000 }) {
 /**
  * Fulfills a leased task and applies results to database models.
  */
-export function fulfillTask(db, { taskId, leaseToken, result = null, error = null, userId = null }) {
+export function fulfillTask(
+  db,
+  { taskId, leaseToken, result = null, error = null, userId = null }
+) {
   const now = Date.now();
   const task = db.prepare('SELECT * FROM relay_tasks WHERE id = ?').get(taskId);
 
@@ -214,9 +272,7 @@ export function getRelayStatus(db, userId, activeWindowMs = 60000) {
   const now = Date.now();
 
   const counts = db
-    .prepare(
-      'SELECT status, COUNT(*) as count FROM relay_tasks WHERE user_id = ? GROUP BY status'
-    )
+    .prepare('SELECT status, COUNT(*) as count FROM relay_tasks WHERE user_id = ? GROUP BY status')
     .all(userId);
 
   const statusMap = {};
@@ -225,13 +281,11 @@ export function getRelayStatus(db, userId, activeWindowMs = 60000) {
   }
 
   const lastLeased = db
-    .prepare(
-      'SELECT MAX(leased_at) as last_seen FROM relay_tasks WHERE user_id = ?'
-    )
+    .prepare('SELECT MAX(leased_at) as last_seen FROM relay_tasks WHERE user_id = ?')
     .get(userId);
 
   const lastSeen = lastLeased?.last_seen || null;
-  const connected = lastSeen !== null && (now - lastSeen) < activeWindowMs;
+  const connected = lastSeen !== null && now - lastSeen < activeWindowMs;
 
   return {
     connected,

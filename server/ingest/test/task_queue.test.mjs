@@ -7,10 +7,9 @@ import {
   fulfillTask,
   getTaskStatus,
   getRelayStatus,
-  ALLOWED_TASK_TYPES,
 } from '../src/relay/task-queue.mjs';
 
-test('task-queue: rejects invalid task types and non-http URLs', () => {
+test('task-queue: rejects invalid task types, non-http URLs, and private destinations', () => {
   const db = openDb({ path: ':memory:' });
   try {
     assert.throws(
@@ -21,6 +20,20 @@ test('task-queue: rejects invalid task types and non-http URLs', () => {
       () => enqueueTask(db, { userId: 'u1', type: 'FETCH_JOB_PAGE', url: 'ftp://bad' }),
       /valid http\/https URL/
     );
+    assert.throws(
+      () =>
+        enqueueTask(db, {
+          userId: 'u1',
+          type: 'FETCH_JOB_PAGE',
+          url: 'http://127.0.0.1:8080/admin',
+        }),
+      /forbidden private\/reserved IP/
+    );
+    assert.throws(
+      () =>
+        enqueueTask(db, { userId: 'u1', type: 'FETCH_JOB_PAGE', url: 'http://localhost/secret' }),
+      /forbidden private\/local destination/
+    );
   } finally {
     db.close();
   }
@@ -30,12 +43,12 @@ test('task-queue: enqueues, deduplicates, leases, and fulfills task', () => {
   const db = openDb({ path: ':memory:' });
   try {
     const now = Date.now();
-    db.prepare('INSERT INTO users (id, email, password_hash, api_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)').run(
-      'u1', 'test@example.com', 'h', 'k1', now, now
-    );
-    db.prepare('INSERT INTO jobs (id, title, company, url, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
-      'j1', 'Unknown Position', 'Acme', 'https://acme.test/job1', 'greenhouse', now, now
-    );
+    db.prepare(
+      'INSERT INTO users (id, email, password_hash, api_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run('u1', 'test@example.com', 'h', 'k1', now, now);
+    db.prepare(
+      'INSERT INTO jobs (id, title, company, url, source, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run('j1', 'Unknown Position', 'Acme', 'https://acme.test/job1', 'greenhouse', now, now);
 
     // 1. Enqueue task
     const t1 = enqueueTask(db, {
@@ -103,14 +116,14 @@ test('task-queue: check liveness task updates job liveness in db', () => {
   const db = openDb({ path: ':memory:' });
   try {
     const now = Date.now();
-    db.prepare('INSERT INTO users (id, email, password_hash, api_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)').run(
-      'u1', 'test@example.com', 'h', 'k1', now, now
-    );
-    db.prepare('INSERT INTO jobs (id, title, company, url, source, liveness, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
-      'j2', 'Frontend Dev', 'Stark', 'https://stark.test/job2', 'lever', 'unknown', now, now
-    );
+    db.prepare(
+      'INSERT INTO users (id, email, password_hash, api_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run('u1', 'test@example.com', 'h', 'k1', now, now);
+    db.prepare(
+      'INSERT INTO jobs (id, title, company, url, source, liveness, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run('j2', 'Frontend Dev', 'Stark', 'https://stark.test/job2', 'lever', 'unknown', now, now);
 
-    const task = enqueueTask(db, {
+    enqueueTask(db, {
       userId: 'u1',
       type: 'CHECK_LIVENESS',
       jobId: 'j2',
@@ -136,9 +149,9 @@ test('task-queue: reclaims expired lease and marks failed after max retries', ()
   const db = openDb({ path: ':memory:' });
   try {
     const now = Date.now();
-    db.prepare('INSERT INTO users (id, email, password_hash, api_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)').run(
-      'u1', 'test@example.com', 'h', 'k1', now, now
-    );
+    db.prepare(
+      'INSERT INTO users (id, email, password_hash, api_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run('u1', 'test@example.com', 'h', 'k1', now, now);
 
     const task = enqueueTask(db, {
       userId: 'u1',
@@ -147,10 +160,9 @@ test('task-queue: reclaims expired lease and marks failed after max retries', ()
     });
 
     // Lease with expired timestamp
-    db.prepare("UPDATE relay_tasks SET status = 'leased', lease_token = 'l1', leased_at = ?, retry_count = 0 WHERE id = ?").run(
-      now - 60000,
-      task.id
-    );
+    db.prepare(
+      "UPDATE relay_tasks SET status = 'leased', lease_token = 'l1', leased_at = ?, retry_count = 0 WHERE id = ?"
+    ).run(now - 60000, task.id);
 
     // Calling leaseNextTask should recover expired task
     const leasedAgain = leaseNextTask(db, { userId: 'u1', leaseDurationMs: 10000 });
@@ -158,10 +170,9 @@ test('task-queue: reclaims expired lease and marks failed after max retries', ()
     assert.equal(leasedAgain.id, task.id);
 
     // If it expires 3 times, next recovery fails it
-    db.prepare("UPDATE relay_tasks SET status = 'leased', leased_at = ?, retry_count = 3 WHERE id = ?").run(
-      now - 60000,
-      task.id
-    );
+    db.prepare(
+      "UPDATE relay_tasks SET status = 'leased', leased_at = ?, retry_count = 3 WHERE id = ?"
+    ).run(now - 60000, task.id);
 
     const leasedNone = leaseNextTask(db, { userId: 'u1', leaseDurationMs: 10000 });
     assert.equal(leasedNone, null);
