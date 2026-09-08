@@ -80,10 +80,9 @@ COPY server/tailor/pyproject.toml server/tailor/uv.lock server/tailor/README.md 
 COPY server/tailor/src ./server/tailor/src
 RUN cd server/tailor && uv pip install --system -e .
 
-# 4. Copy Ingest Server and node_modules, rebuild native modules for runtime Node version
+# 4. Copy Ingest Server and node_modules
 COPY --from=ingest-builder /app/node_modules ./node_modules
 COPY server/ingest/ ./server/ingest/
-RUN npm rebuild --prefix /app
 
 
 # 5. Copy Scorer Source
