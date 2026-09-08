@@ -6,7 +6,7 @@ export async function initDashboard() {
   const btnOpenTab = document.querySelector<HTMLButtonElement>('#btn-open-tab');
   const btnOpenOptions = document.querySelector<HTMLButtonElement>('#btn-open-options');
 
-  const serverUrl = config.serverUrl ? 'http://localhost:5173' : 'http://localhost:5173';
+  const serverUrl = config.serverUrl || 'http://localhost:8080';
 
   if (iframe) {
     iframe.src = serverUrl;

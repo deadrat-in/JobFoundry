@@ -358,7 +358,7 @@ export function init(opts: { doc?: Document; [key: string]: any } = {}) {
 
   $<HTMLButtonElement>(doc, DOM.openDashboard)?.addEventListener('click', async () => {
     const config = await getConfig();
-    const url = config.serverUrl ? 'http://localhost:5173' : 'http://localhost:5173';
+    const url = config.serverUrl || 'http://localhost:8080';
     const api = (globalThis as any).browser ?? (globalThis as any).chrome;
     if (api?.tabs?.create) {
       api.tabs.create({ url });
