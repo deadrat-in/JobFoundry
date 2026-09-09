@@ -58,7 +58,7 @@ def _get_allowed_api_base_origins() -> set[str]:
 
 def _validate_api_base(api_base: str | None) -> None:
     """Raise AppError if api_base is not in the permitted origins allowlist."""
-    if not api_base:
+    if not api_base or not api_base.strip():
         return
     from urllib.parse import urlparse
     stripped = api_base.strip()
@@ -81,8 +81,20 @@ def _validate_api_base(api_base: str | None) -> None:
             code="invalid_api_base",
             status_code=400,
         )
-    # Build origin from scheme + hostname + optional port (avoids netloc including credentials)
-    origin = f"{parsed.scheme}://{parsed.hostname}" + (f":{parsed.port}" if parsed.port else "")
+    try:
+        port = parsed.port
+    except ValueError:
+        raise AppError(
+            f'Invalid port in api_base URL: "{api_base}"',
+            code="invalid_api_base",
+            status_code=400,
+        )
+    # Build origin from scheme + hostname + optional port (omit default ports like :443 for https, :80 for http)
+    default_port = {"http": 80, "https": 443}.get(parsed.scheme)
+    if port and port != default_port:
+        origin = f"{parsed.scheme}://{parsed.hostname}:{port}"
+    else:
+        origin = f"{parsed.scheme}://{parsed.hostname}"
     allowed = _get_allowed_api_base_origins()
     if origin not in allowed:
         raise AppError(
