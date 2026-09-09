@@ -30,7 +30,7 @@ describe('ArtifactViewer & buildDownloadFilename', () => {
   });
 
   describe('buildDownloadFilename', () => {
-    it('creates a sanitized filename formatted as Name_Company_Title.ext', () => {
+    it('creates a sanitized filename formatted as Name_Surname-Company-Job_Title.ext', () => {
       const filename = buildDownloadFilename(
         'Jane Doe',
         'Stripe, Inc.',
@@ -38,19 +38,19 @@ describe('ArtifactViewer & buildDownloadFilename', () => {
         undefined,
         'pdf'
       );
-      // Slashes and commas sanitized, spaces to underscores
-      expect(filename).toBe('Jane_Doe_Stripe,_Inc._Senior_Staff_Platform_Engineer.pdf');
+      // Slashes sanitized, hyphens between segments, spaces to underscores within segments
+      expect(filename).toBe('Jane_Doe-Stripe,_Inc.-Senior_Staff_Platform_Engineer.pdf');
     });
 
     it('handles variants like Concise and ATS text', () => {
       const conciseName = buildDownloadFilename('Jane Doe', 'Google', 'SRE', 'Concise', 'pdf');
-      expect(conciseName).toBe('Jane_Doe_Google_SRE_Concise.pdf');
+      expect(conciseName).toBe('Jane_Doe-Google-SRE-Concise.pdf');
 
       const atsName = buildDownloadFilename('Jane Doe', 'Google', 'SRE', 'ATS', 'txt');
-      expect(atsName).toBe('Jane_Doe_Google_SRE_ATS.txt');
+      expect(atsName).toBe('Jane_Doe-Google-SRE-ATS.txt');
 
       const jsonName = buildDownloadFilename('Jane Doe', 'Google', 'SRE', undefined, 'json');
-      expect(jsonName).toBe('Jane_Doe_Google_SRE.json');
+      expect(jsonName).toBe('Jane_Doe-Google-SRE.json');
     });
 
     it('falls back gracefully when fields are missing', () => {

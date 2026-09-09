@@ -28,7 +28,7 @@ export function buildDownloadFilename(
   if (title) parts.push(sanitize(title));
   if (variant) parts.push(sanitize(variant));
 
-  const base = parts.filter(Boolean).join('_');
+  const base = parts.filter(Boolean).join('-');
   return `${base || 'Resume'}.${extension}`;
 }
 
