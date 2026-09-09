@@ -11,6 +11,7 @@ describe('trackerUtils', () => {
     expect(ids).toContain('interview');
     expect(ids).toContain('offer');
     expect(ids).toContain('rejected');
+    expect(ids).toContain('archived');
   });
 
   it('validates forward and valid transitions', () => {
@@ -20,5 +21,6 @@ describe('trackerUtils', () => {
     expect(isMoveAllowed('interview', 'offer')).toBe(true);
     expect(isMoveAllowed('new', 'rejected')).toBe(true);
     expect(isMoveAllowed('interview', 'rejected')).toBe(true);
+    expect(isMoveAllowed('new', 'archived')).toBe(true);
   });
 });

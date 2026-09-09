@@ -67,7 +67,7 @@ describe('App', () => {
       expect(screen.getByText('Foundry')).toBeInTheDocument();
       expect(screen.getByText('Total Ingested Jobs')).toBeInTheDocument();
       expect(screen.getByText('Average Fit Score')).toBeInTheDocument();
-      expect(screen.getByText('Lead Architect')).toBeInTheDocument();
+      expect(screen.getAllByText('Lead Architect').length).toBeGreaterThanOrEqual(1);
     });
   });
 });

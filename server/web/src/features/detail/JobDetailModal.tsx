@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Job, FitNotes, JobStatus } from '../../types/job';
+import { Job, JobStatus } from '../../types/job';
 import { api } from '../../api/client';
-import { getScoreCategory } from '../filters/filterUtils';
+import { getScoreCategory, parseFitNotes } from '../filters/filterUtils';
 import { TailorButton } from '../tailor/TailorButton';
 import { ArtifactViewer } from '../artifacts/ArtifactViewer';
 import { ResumeDiffView } from '../diff/ResumeDiffView';
@@ -117,15 +117,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
 
   if (!job) return null;
 
-  let fitNotes: FitNotes = {};
-  if (job.fit_notes) {
-    try {
-      fitNotes = JSON.parse(job.fit_notes);
-    } catch {
-      fitNotes = { reasoning: job.fit_notes };
-    }
-  }
-
+  const fitNotes = parseFitNotes(job.fit_notes);
   const scoreCat = getScoreCategory(job.fit_score, threshold);
 
   return (
@@ -312,7 +304,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                 {/* Artifacts section if tailored */}
                 {job.status === 'tailored' && (
                   <div style={{ marginBottom: '1.5rem' }}>
-                    <ArtifactViewer jobId={job.id} />
+                    <ArtifactViewer jobId={job.id} job={job} />
                   </div>
                 )}
 

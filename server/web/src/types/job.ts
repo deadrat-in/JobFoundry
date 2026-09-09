@@ -13,6 +13,7 @@ export type JobStatus =
   | 'interview'
   | 'offer'
   | 'rejected'
+  | 'archived'
   | 'invalid_job';
 
 export interface Job {

@@ -1,7 +1,8 @@
 import React from 'react';
-import { Job, FitNotes } from '../../types/job';
-import { getScoreCategory } from '../filters/filterUtils';
+import { Job } from '../../types/job';
+import { getScoreCategory, parseFitNotes } from '../filters/filterUtils';
 import { TailorButton } from '../tailor/TailorButton';
+import { MapPin, Check } from 'lucide-react';
 
 interface JobCardProps {
   job: Job;
@@ -11,15 +12,7 @@ interface JobCardProps {
 }
 
 export const JobCard: React.FC<JobCardProps> = ({ job, threshold = 75, onSelect, onTailored }) => {
-  let fitNotes: FitNotes = {};
-  if (job.fit_notes) {
-    try {
-      fitNotes = JSON.parse(job.fit_notes);
-    } catch {
-      fitNotes = { reasoning: job.fit_notes };
-    }
-  }
-
+  const fitNotes = parseFitNotes(job.fit_notes);
   const scoreCat = getScoreCategory(job.fit_score, threshold);
 
   return (
@@ -38,10 +31,25 @@ export const JobCard: React.FC<JobCardProps> = ({ job, threshold = 75, onSelect,
         </div>
 
         <div className="job-card-meta">
-          {job.location && <span className="meta-item">📍 {job.location}</span>}
+          {job.location && (
+            <span
+              className="meta-item"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+            >
+              <MapPin size={13} style={{ flexShrink: 0 }} /> {job.location}
+            </span>
+          )}
           <span className="badge badge-indigo">{job.source}</span>
           <span
-            className={`badge ${job.status === 'tailored' ? 'badge-purple' : job.status === 'rejected_by_score' ? 'badge-red' : 'badge-blue'}`}
+            className={`badge ${
+              job.status === 'tailored'
+                ? 'badge-purple'
+                : job.status === 'rejected_by_score' || job.status === 'rejected'
+                  ? 'badge-red'
+                  : job.status === 'archived'
+                    ? 'badge-muted'
+                    : 'badge-blue'
+            }`}
           >
             {job.status.replace(/_/g, ' ')}
           </span>
@@ -51,8 +59,12 @@ export const JobCard: React.FC<JobCardProps> = ({ job, threshold = 75, onSelect,
         {fitNotes.matching_skills && fitNotes.matching_skills.length > 0 && (
           <div className="skills-container">
             {fitNotes.matching_skills.slice(0, 3).map((s, idx) => (
-              <span key={idx} className="skill-chip skill-matching">
-                ✓ {s}
+              <span
+                key={idx}
+                className="skill-chip skill-matching"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+              >
+                <Check size={11} /> {s}
               </span>
             ))}
             {fitNotes.matching_skills.length > 3 && (
