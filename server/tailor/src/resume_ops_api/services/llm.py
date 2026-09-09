@@ -32,10 +32,26 @@ def _get_allowed_api_base_origins() -> set[str]:
         "http://127.0.0.1:11434",
         "http://localhost:11434",
     }
+    def _normalize_origin(s: str) -> str | None:
+        from urllib.parse import urlparse
+        try:
+            p = urlparse(s.strip())
+            if p.scheme not in ("http", "https") or not p.hostname:
+                return None
+            # Canonicalize: omit port when it is the scheme default
+            default_port = {"http": 80, "https": 443}.get(p.scheme)
+            if p.port and p.port != default_port:
+                return f"{p.scheme}://{p.hostname}:{p.port}"
+            return f"{p.scheme}://{p.hostname}"
+        except Exception:
+            return None
+
     extra = {
-        s.strip().rstrip("/")
+        origin
         for s in os.environ.get("ALLOWED_LLM_BASES", "").split(",")
         if s.strip()
+        for origin in [_normalize_origin(s)]
+        if origin
     }
     return defaults | extra
 

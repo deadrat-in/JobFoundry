@@ -127,7 +127,17 @@ export function getAllowedApiBaseOrigins(env = process.env) {
 
   const extra = (env.ALLOWED_LLM_BASES || '')
     .split(',')
-    .map((s) => s.trim().replace(/\/$/, ''))
+    .map((s) => {
+      const trimmed = s.trim();
+      if (!trimmed) return null;
+      try {
+        // Parse through URL so default ports are canonicalized (e.g. :443 → dropped)
+        // matching what validateApiBase() extracts via parsed.origin.
+        return new URL(trimmed).origin;
+      } catch {
+        return null; // skip malformed entries silently
+      }
+    })
     .filter(Boolean);
 
   return new Set([...defaults, ...extra]);
