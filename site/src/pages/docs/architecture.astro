@@ -67,10 +67,14 @@ import { resolvePath } from '../../utils/paths.js';
   <p>
     Rather than rewriting your entire career history, the tailoring engine (<code>server/tailor/</code>) re-ranks and highlights your genuine experiences that directly align with the job's stated requirements.
   </p>
-  <ul>
-    <li><strong>Typst Compilation:</strong> Compiles clean, modern resumes using Typst, producing pixel-perfect PDF and plain-text ATS formats.</li>
-    <li><strong>Deterministic Output:</strong> Generates verifiable, professional documents ready for submission.</li>
-  </ul>
+    <ul>
+      <li>
+        <strong>Print-Optimized PDF Compilation:</strong> Compiles clean, modern resumes using <code>folio-export</code> (powered by <code>jsonresume-theme-folio</code> and Puppeteer), enforcing strict CSS page-break rules that eliminate orphaned headings.
+      </li>
+      <li>
+        <strong>Deterministic Output:</strong> Generates verifiable, professional documents ready for submission.
+      </li>
+    </ul>
 
   <h2>Stage 5: Local Kanban Dashboard</h2>
   <p>

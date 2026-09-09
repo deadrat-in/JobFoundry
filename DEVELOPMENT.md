@@ -10,10 +10,13 @@ JobFoundry is structured as an npm multi-workspace repository:
 
 ```
 JobFoundry/
+├── bin/
+│   └── gatepass        # Local Go LLM rate limiting reverse proxy
 ├── extension/          # WXT-based Browser Extension (MV3 / Firefox)
 ├── server/
 │   ├── ingest/         # Fastify REST API, SQLite DB, multi-tenant auth, SimHash dedup
 │   ├── scorer/         # FastAPI fit screener, LiteLLM integration, tailor worker daemon
+│   ├── tailor/         # LangGraph resume tailoring engine & folio-export PDF bridge
 │   └── web/            # Vite + React 19 SPA (Kanban board, job feed, resume manager)
 ├── docs/               # GitHub Pages documentation portal
 ├── compose.yaml        # Local full-stack container orchestration
@@ -63,7 +66,30 @@ To run the background worker daemon standalone:
 uv run python -m src.worker
 ```
 
-### 3. Web Dashboard (`server/web`)
+### 3. Resume Tailor Service (`server/tailor`)
+
+The tailoring engine (`resume_ops_api`) uses LangGraph state machines to truthfully tailor resumes to job requirements and compiles PDFs using `folio-export` (Puppeteer).
+
+```bash
+cd server/tailor
+uv sync --dev
+uv run python -m resume_ops_api
+```
+
+- Runs by default on `http://localhost:8081`
+
+### 4. Gatepass Rate Limiter Proxy (`bin/gatepass`)
+
+Gatepass is a lightweight Go reverse proxy that sits between backend services and external LLMs, enforcing token bucket rate limiting (20 RPM) and logging usage into SQLite.
+
+```bash
+cd bin/gatepass
+go run main.go
+```
+
+- Runs on port `8318` by default
+
+### 5. Web Dashboard (`server/web`)
 
 The web UI is a React 19 Single Page Application built with Vite and Tailwind/Vanilla CSS.
 
@@ -75,7 +101,7 @@ npm run dev
 
 - Accessible at `http://localhost:5173`
 
-### 4. Browser Extension (`extension`)
+### 6. Browser Extension (`extension`)
 
 Built using the [WXT](https://wxt.dev/) framework for Manifest V3.
 
@@ -114,6 +140,9 @@ npm --workspace=server/web test
 
 # 5. Scorer Python pytest suite
 cd server/scorer && uv run pytest
+
+# 6. Tailor Python pytest suite
+cd server/tailor && uv run pytest
 ```
 
 ---
