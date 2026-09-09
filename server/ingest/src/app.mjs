@@ -236,91 +236,136 @@ export function buildApp({
   }
 
   // GET /api/v1/settings - Get effective settings with masked secrets
-  app.get('/api/v1/settings', async (request, reply) => {
-    if (!checkRateLimit(request, reply, 60)) return;
-    if (!authenticate(request, reply)) return;
-    return getAllSettings(db, { maskSecrets: true });
-  });
+  app.get(
+    '/api/v1/settings',
+    {
+      config: {
+        rateLimit: {
+          max: 60,
+          timeWindow: '1 minute',
+        },
+      },
+      rateLimit: {
+        max: 60,
+        timeWindow: '1 minute',
+      },
+    },
+    async (request, reply) => {
+      if (!checkRateLimit(request, reply, 60)) return;
+      if (!authenticate(request, reply)) return;
+      return getAllSettings(db, { maskSecrets: true });
+    }
+  );
 
   // PUT /api/v1/settings - Update settings in SQLite
-  app.put('/api/v1/settings', async (request, reply) => {
-    if (!checkRateLimit(request, reply, 30)) return;
-    if (!authenticate(request, reply)) return;
-    const body = request.body || {};
-    try {
-      const updated = updateSettings(db, body);
-      return { ok: true, ...updated };
-    } catch (err) {
-      return reply.code(400).send({ error: err.message });
+  app.put(
+    '/api/v1/settings',
+    {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: '1 minute',
+        },
+      },
+      rateLimit: {
+        max: 30,
+        timeWindow: '1 minute',
+      },
+    },
+    async (request, reply) => {
+      if (!checkRateLimit(request, reply, 30)) return;
+      if (!authenticate(request, reply)) return;
+      const body = request.body || {};
+      try {
+        const updated = updateSettings(db, body);
+        return { ok: true, ...updated };
+      } catch (err) {
+        return reply.code(400).send({ error: err.message });
+      }
     }
-  });
+  );
 
   // POST /api/v1/settings/test-llm - Live test connection against LLM endpoint
-  app.post('/api/v1/settings/test-llm', async (request, reply) => {
-    if (!checkRateLimit(request, reply, 15)) return;
-    if (!authenticate(request, reply)) return;
-    const { model, apiKey } = request.body || {};
-
-    // Strictly use the server-configured API base URL from database or defaults to prevent SSRF
-    const configuredBase =
-      getEffectiveSetting(db, 'scorer_api_base') || 'https://openrouter.ai/api/v1';
-    const effectiveBase = configuredBase.replace(/\/$/, '');
-
-    const hasExplicitKey = Boolean(apiKey && !apiKey.includes('••••'));
-    const effectiveModel =
-      model ||
-      getEffectiveSetting(db, 'scorer_model') ||
-      'openrouter/google/gemini-2.0-flash-exp:free';
-    const effectiveKey = hasExplicitKey ? apiKey : getEffectiveSetting(db, 'scorer_api_key');
-
-    if (!effectiveKey) {
-      return reply.code(400).send({
-        success: false,
-        error: 'No API key provided or configured. Please enter an API key to test.',
-      });
-    }
-    const startTime = Date.now();
-    try {
-      const resp = await fetch(`${effectiveBase}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${effectiveKey}`,
+  app.post(
+    '/api/v1/settings/test-llm',
+    {
+      config: {
+        rateLimit: {
+          max: 15,
+          timeWindow: '1 minute',
         },
-        signal: AbortSignal.timeout(15000),
-        body: JSON.stringify({
-          model: effectiveModel,
-          messages: [{ role: 'user', content: 'Reply with the word OK.' }],
-          max_tokens: 5,
-        }),
-      });
+      },
+      rateLimit: {
+        max: 15,
+        timeWindow: '1 minute',
+      },
+    },
+    async (request, reply) => {
+      if (!checkRateLimit(request, reply, 15)) return;
+      if (!authenticate(request, reply)) return;
+      const { model, apiKey } = request.body || {};
 
-      const latencyMs = Date.now() - startTime;
-      if (resp.ok) {
-        return {
-          success: true,
-          latencyMs,
-          model: effectiveModel,
-          message: `Connected successfully to ${effectiveModel} (${latencyMs}ms)`,
-        };
-      } else {
-        const errorText = await resp.text().catch(() => '');
-        return reply.code(resp.status).send({
+      // Strictly use the server-configured API base URL from database or defaults to prevent SSRF
+      const configuredBase =
+        getEffectiveSetting(db, 'scorer_api_base') || 'https://openrouter.ai/api/v1';
+      const effectiveBase = configuredBase.replace(/\/$/, '');
+
+      const hasExplicitKey = Boolean(apiKey && !apiKey.includes('••••'));
+      const effectiveModel =
+        model ||
+        getEffectiveSetting(db, 'scorer_model') ||
+        'openrouter/google/gemini-2.0-flash-exp:free';
+      const effectiveKey = hasExplicitKey ? apiKey : getEffectiveSetting(db, 'scorer_api_key');
+
+      if (!effectiveKey) {
+        return reply.code(400).send({
           success: false,
-          status: resp.status,
-          latencyMs,
-          error: `Endpoint returned HTTP ${resp.status}: ${errorText.slice(0, 300)}`,
+          error: 'No API key provided or configured. Please enter an API key to test.',
         });
       }
-    } catch (err) {
-      const latencyMs = Date.now() - startTime;
-      return reply.code(502).send({
-        success: false,
-        latencyMs,
-        error: `Connection error: ${err.message}`,
-      });
+      const startTime = Date.now();
+      try {
+        const resp = await fetch(`${effectiveBase}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${effectiveKey}`,
+          },
+          signal: AbortSignal.timeout(15000),
+          body: JSON.stringify({
+            model: effectiveModel,
+            messages: [{ role: 'user', content: 'Reply with the word OK.' }],
+            max_tokens: 5,
+          }),
+        });
+
+        const latencyMs = Date.now() - startTime;
+        if (resp.ok) {
+          return {
+            success: true,
+            latencyMs,
+            model: effectiveModel,
+            message: `Connected successfully to ${effectiveModel} (${latencyMs}ms)`,
+          };
+        } else {
+          const errorText = await resp.text().catch(() => '');
+          return reply.code(resp.status).send({
+            success: false,
+            status: resp.status,
+            latencyMs,
+            error: `Endpoint returned HTTP ${resp.status}: ${errorText.slice(0, 300)}`,
+          });
+        }
+      } catch (err) {
+        const latencyMs = Date.now() - startTime;
+        return reply.code(502).send({
+          success: false,
+          latencyMs,
+          error: `Connection error: ${err.message}`,
+        });
+      }
     }
-  });
+  );
 
   // --- AUTHENTICATION ROUTES ---
 
