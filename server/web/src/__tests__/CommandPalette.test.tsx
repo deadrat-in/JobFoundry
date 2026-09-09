@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { CommandPalette } from '../components/CommandPalette';
 import { ThemeProvider } from '../context/ThemeContext';
@@ -15,6 +14,7 @@ const mockJobs: Job[] = [
     location: 'Remote',
     url: 'https://example.com/rust',
     source: 'linkedin',
+    liveness: 'active',
     fit_score: 92,
     status: 'new',
     created_at: Date.now(),
@@ -27,6 +27,7 @@ const mockJobs: Job[] = [
     location: 'San Francisco, CA',
     url: 'https://example.com/staff',
     source: 'indeed',
+    liveness: 'active',
     fit_score: 78,
     status: 'applied',
     created_at: Date.now(),

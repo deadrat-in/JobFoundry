@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { AppSettings, DEFAULT_SETTINGS } from '../../lib/auth';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
-import { useTheme, ACCENT_THEMES } from '../../context/ThemeContext';
+import { useTheme, ACCENT_THEMES, ColorMode, AccentTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
 import { Laptop, Moon, Sun, Palette } from 'lucide-react';
 
@@ -26,8 +26,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [apiKey, setApiKey] = useState(settings.apiKey);
   const [apiUrl, setApiUrl] = useState(settings.apiUrl);
   const [threshold, setThreshold] = useState(settings.threshold);
+  const [tempColorMode, setTempColorMode] = useState<ColorMode>(colorMode);
+  const [tempAccentTheme, setTempAccentTheme] = useState<AccentTheme>(accentTheme);
   const [copied, setCopied] = useState(false);
   const [rotating, setRotating] = useState(false);
+
+  // Sync state when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setApiKey(settings.apiKey);
+      setApiUrl(settings.apiUrl);
+      setThreshold(settings.threshold);
+      setTempColorMode(colorMode);
+      setTempAccentTheme(accentTheme);
+    }
+  }, [isOpen, settings, colorMode, accentTheme]);
 
   if (!isOpen) return null;
 
@@ -38,6 +51,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       apiUrl: apiUrl.trim(),
       threshold: Number(threshold) || 75,
     });
+    if (tempColorMode !== colorMode) {
+      setColorMode(tempColorMode);
+    }
+    if (tempAccentTheme !== accentTheme) {
+      setAccentTheme(tempAccentTheme);
+    }
     toast.success('Settings saved successfully');
     onClose();
   };
@@ -46,9 +65,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setApiKey(DEFAULT_SETTINGS.apiKey);
     setApiUrl(DEFAULT_SETTINGS.apiUrl);
     setThreshold(DEFAULT_SETTINGS.threshold);
-    setColorMode('system');
-    setAccentTheme('indigo');
-    toast.info('Settings reset to defaults');
+    setTempColorMode('system');
+    setTempAccentTheme('indigo');
+    toast.info('Settings form reset to defaults (click Save to apply)');
   };
 
   const handleCopyApiKey = () => {
@@ -277,33 +296,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div className="mode-selector-group">
                   <button
                     type="button"
-                    className={`mode-selector-btn ${colorMode === 'system' ? 'active' : ''}`}
-                    onClick={() => {
-                      setColorMode('system');
-                      toast.success('Color mode set to Auto (System)');
-                    }}
+                    className={`mode-selector-btn ${tempColorMode === 'system' ? 'active' : ''}`}
+                    onClick={() => setTempColorMode('system')}
                     title="Automatically match OS theme"
                   >
                     <Laptop size={16} /> Auto
                   </button>
                   <button
                     type="button"
-                    className={`mode-selector-btn ${colorMode === 'dark' ? 'active' : ''}`}
-                    onClick={() => {
-                      setColorMode('dark');
-                      toast.success('Dark mode activated');
-                    }}
+                    className={`mode-selector-btn ${tempColorMode === 'dark' ? 'active' : ''}`}
+                    onClick={() => setTempColorMode('dark')}
                     title="Force dark theme"
                   >
                     <Moon size={16} /> Dark
                   </button>
                   <button
                     type="button"
-                    className={`mode-selector-btn ${colorMode === 'light' ? 'active' : ''}`}
-                    onClick={() => {
-                      setColorMode('light');
-                      toast.success('Light mode activated');
-                    }}
+                    className={`mode-selector-btn ${tempColorMode === 'light' ? 'active' : ''}`}
+                    onClick={() => setTempColorMode('light')}
                     title="Force light theme"
                   >
                     <Sun size={16} /> Light
@@ -321,11 +331,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <button
                       key={theme.id}
                       type="button"
-                      className={`accent-swatch-btn ${accentTheme === theme.id ? 'active' : ''}`}
-                      onClick={() => {
-                        setAccentTheme(theme.id);
-                        toast.success(`Accent changed to ${theme.name}`);
-                      }}
+                      className={`accent-swatch-btn ${tempAccentTheme === theme.id ? 'active' : ''}`}
+                      onClick={() => setTempAccentTheme(theme.id)}
                     >
                       <span
                         className="accent-swatch-dot"

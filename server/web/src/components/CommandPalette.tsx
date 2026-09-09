@@ -234,8 +234,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       });
     });
 
-    // 5. Jobs (Up to 15 matching jobs)
-    jobs.slice(0, 50).forEach((job) => {
+    // 5. All Loaded Jobs
+    jobs.forEach((job) => {
       list.push({
         id: `job-${job.id}`,
         category: 'Jobs',
@@ -259,13 +259,15 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       return items.filter((item) => item.category !== 'Jobs'); // Show quick links when empty
     }
     const q = query.toLowerCase();
-    return items.filter((item) => {
+    const matched = items.filter((item) => {
       return (
         item.title.toLowerCase().includes(q) ||
         (item.subtitle && item.subtitle.toLowerCase().includes(q)) ||
         item.category.toLowerCase().includes(q)
       );
     });
+    // Cap to top 50 matches for high performance rendering
+    return matched.slice(0, 50);
   }, [items, query]);
 
   // Reset selected index when filtered list changes
