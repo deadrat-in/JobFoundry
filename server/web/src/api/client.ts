@@ -365,6 +365,74 @@ export class ApiClient {
   async getDiagnostics(): Promise<DiagnosticsInfo> {
     return this.request<DiagnosticsInfo>('/api/v1/diagnostics');
   }
+
+  async getSettings(): Promise<SystemSettingsResponse> {
+    return this.request<SystemSettingsResponse>('/api/v1/settings');
+  }
+
+  async updateSettings(
+    payload: Partial<SystemSettings>
+  ): Promise<{ ok: boolean } & SystemSettingsResponse> {
+    return this.request<{ ok: boolean } & SystemSettingsResponse>('/api/v1/settings', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async testLlmConnection(payload: {
+    model?: string;
+    apiKey?: string;
+    apiBase?: string;
+  }): Promise<TestLlmResponse> {
+    return this.request<TestLlmResponse>('/api/v1/settings/test-llm', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+}
+
+export interface SettingMeta {
+  source: 'database' | 'env' | 'default';
+  hasCustomKey: boolean;
+  updatedAt: number | null;
+  type: 'string' | 'number' | 'boolean';
+  secret: boolean;
+}
+
+export interface SystemSettings {
+  scorer_model: string;
+  scorer_provider: string;
+  scorer_api_key: string;
+  scorer_api_base: string;
+  scorer_threshold: number;
+  worker_enabled: boolean;
+  worker_poll_interval_seconds: number;
+  tailor_model: string;
+  tailor_api_key: string;
+  tailor_api_base: string;
+  tailor_theme: string;
+  tailor_timeout_seconds: number;
+  opik_enabled: boolean;
+  opik_project_name: string;
+  opik_api_key: string;
+  opik_workspace: string;
+  opik_url_override: string;
+  theme_color_mode: string;
+  theme_accent: string;
+  [key: string]: any;
+}
+
+export interface SystemSettingsResponse {
+  settings: SystemSettings;
+  meta: Record<string, SettingMeta>;
+}
+
+export interface TestLlmResponse {
+  success: boolean;
+  latencyMs?: number;
+  model?: string;
+  message?: string;
+  error?: string;
 }
 
 export const api = new ApiClient();

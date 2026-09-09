@@ -19,7 +19,7 @@ import { ResumeManager } from './features/resume/ResumeManager';
 import { JobFeed } from './features/feed/JobFeed';
 import { KanbanBoard } from './features/tracker/KanbanBoard';
 import { JobDetailModal } from './features/detail/JobDetailModal';
-import { SettingsModal } from './features/settings/SettingsModal';
+import { SettingsPage } from './features/settings/SettingsPage';
 import { PipelineView } from './features/pipeline/PipelineView';
 import { ExtensionSyncView } from './features/sync/ExtensionSyncView';
 import { AddJobModal } from './features/feed/AddJobModal';
@@ -155,7 +155,8 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
     location.pathname.startsWith('/resume') ||
     location.pathname.startsWith('/profile') ||
     location.pathname.startsWith('/pipeline') ||
-    location.pathname.startsWith('/extension-sync');
+    location.pathname.startsWith('/extension-sync') ||
+    location.pathname.startsWith('/settings');
 
   return (
     <div className="app-container">
@@ -429,22 +430,7 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
             />
             <Route
               path="/settings"
-              element={
-                <>
-                  <JobFeed
-                    jobs={jobs}
-                    threshold={settings.threshold}
-                    onSelectJob={(job) => navigate(`/jobs/${job.id}`)}
-                    onJobUpdated={onJobUpdated}
-                  />
-                  <SettingsModal
-                    settings={settings}
-                    isOpen={true}
-                    onClose={() => navigate(-1)}
-                    onSave={onSaveSettings}
-                  />
-                </>
-              }
+              element={<SettingsPage settings={settings} onSaveSettings={onSaveSettings} />}
             />
             <Route path="*" element={<Navigate to="/feed" replace />} />
           </Routes>

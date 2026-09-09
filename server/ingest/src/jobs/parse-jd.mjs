@@ -202,18 +202,26 @@ ${text.slice(0, 20000)}
 /**
  * Primary Parse JD handler: Uses LLM when key exists, otherwise gracefully falls back to heuristic.
  */
-export async function parseJobDescription({ text, markdown, url = '' }) {
+export async function parseJobDescription({ text, markdown, url = '', model, apiKey, apiBase }) {
   const content = (markdown || text || '').trim();
   if (!content || content.length < 15) {
     throw new Error('Content is too short or empty to parse a job description');
   }
 
-  const apiKey =
-    process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY;
+  const effectiveKey =
+    apiKey ||
+    process.env.OPENROUTER_API_KEY ||
+    process.env.OPENAI_API_KEY ||
+    process.env.GEMINI_API_KEY;
 
-  if (apiKey) {
+  if (effectiveKey) {
     try {
-      const llmResult = await callLlmParser({ text: content, apiKey });
+      const llmResult = await callLlmParser({
+        text: content,
+        apiKey: effectiveKey,
+        ...(model ? { model } : {}),
+        ...(apiBase ? { apiBase } : {}),
+      });
       return {
         ...llmResult,
         url: url || '',
