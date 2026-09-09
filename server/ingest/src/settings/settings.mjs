@@ -107,6 +107,58 @@ export const SETTINGS_METADATA = {
 };
 
 /**
+ * Permitted origins for LLM API base URLs.
+ * Prevents SSRF and credential exfiltration to attacker-controlled hosts.
+ * Extend at runtime via the ALLOWED_LLM_BASES env var (comma-separated origins,
+ * e.g. "https://my-proxy.internal,http://localhost:11434").
+ */
+export function getAllowedApiBaseOrigins(env = process.env) {
+  const defaults = [
+    'https://openrouter.ai',
+    'https://api.openai.com',
+    'https://openai.com',
+    'https://api.anthropic.com',
+    'https://generativelanguage.googleapis.com',
+    'http://127.0.0.1:8318',
+    'http://localhost:8318',
+    'http://127.0.0.1:11434',
+    'http://localhost:11434',
+  ];
+
+  const extra = (env.ALLOWED_LLM_BASES || '')
+    .split(',')
+    .map((s) => s.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+
+  return new Set([...defaults, ...extra]);
+}
+
+/**
+ * Validates that an API base URL belongs to an allowed origin.
+ * Throws an error if the URL is not permitted.
+ * @param {string} val - The URL to validate.
+ * @param {object} [env=process.env]
+ */
+export function validateApiBase(val, env = process.env) {
+  if (!val || typeof val !== 'string') return;
+  let parsed;
+  try {
+    parsed = new URL(val.trim());
+  } catch {
+    throw new Error(`Invalid URL: "${val}"`);
+  }
+  const origin = parsed.origin; // e.g. "https://openrouter.ai"
+  const allowed = getAllowedApiBaseOrigins(env);
+  if (!allowed.has(origin)) {
+    throw new Error(
+      `API base URL "${origin}" is not in the allowed origins list. ` +
+        `Permitted origins: ${[...allowed].join(', ')}. ` +
+        `Add custom origins via the ALLOWED_LLM_BASES environment variable.`
+    );
+  }
+}
+
+/**
  * Masks a secret string for safe client display.
  */
 export function maskSecret(val) {
@@ -273,6 +325,11 @@ export function updateSettings(db, newValues = {}) {
         if (isNaN(num) || num < 0 || num > 100) {
           throw new Error('scorer_threshold must be a number between 0 and 100');
         }
+      }
+
+      // Validate API base URLs against allowlist to prevent SSRF / credential leakage
+      if (key === 'scorer_api_base' || key === 'tailor_api_base') {
+        validateApiBase(val);
       }
 
       // Coerce & store as string

@@ -378,7 +378,11 @@ class WorkerDaemon:
                 self._in_flight = False
 
     async def _run_loop(self) -> None:
-        logger.info("WorkerDaemon loop started (interval=%.1fs)", self.poll_interval)
+        logger.info(
+            "WorkerDaemon loop started (interval=%.1fs, initially_enabled=%s)",
+            self.poll_interval,
+            self.enabled,
+        )
         while not self._stop_event.is_set():
             try:
                 await self.tick()
@@ -394,12 +398,12 @@ class WorkerDaemon:
         logger.info("WorkerDaemon loop exited")
 
     def start(self) -> None:
-        if not self.enabled:
-            logger.info("WorkerDaemon is disabled via config")
-            return
-
         if self.is_running:
             return
+
+        # Note: we always start the loop even if currently disabled.
+        # _sync_settings() re-reads `worker_enabled` from the database on every tick,
+        # so a settings change that re-enables the worker takes effect without a restart.
 
         # Self-healing on startup: reset stranded in-progress records
         reset_count = self.store.reset_in_flight_jobs()
