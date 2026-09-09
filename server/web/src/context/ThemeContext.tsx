@@ -57,15 +57,31 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 const COLOR_MODE_KEY = 'jf_theme_mode';
 const ACCENT_KEY = 'jf_theme_accent';
 
+function safeGetItem(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSetItem(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Ignore storage errors in restricted environments
+  }
+}
+
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [colorMode, setColorModeState] = useState<ColorMode>(() => {
-    const saved = localStorage.getItem(COLOR_MODE_KEY);
+    const saved = safeGetItem(COLOR_MODE_KEY);
     if (saved === 'dark' || saved === 'light' || saved === 'system') return saved;
     return 'system';
   });
 
   const [accentTheme, setAccentThemeState] = useState<AccentTheme>(() => {
-    const saved = localStorage.getItem(ACCENT_KEY);
+    const saved = safeGetItem(ACCENT_KEY);
     if (saved && ACCENT_THEMES.some((t) => t.id === saved)) return saved as AccentTheme;
     return 'indigo';
   });
@@ -107,12 +123,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setColorMode = useCallback((mode: ColorMode) => {
     setColorModeState(mode);
-    localStorage.setItem(COLOR_MODE_KEY, mode);
+    safeSetItem(COLOR_MODE_KEY, mode);
   }, []);
 
   const setAccentTheme = useCallback((accent: AccentTheme) => {
     setAccentThemeState(accent);
-    localStorage.setItem(ACCENT_KEY, accent);
+    safeSetItem(ACCENT_KEY, accent);
   }, []);
 
   const cycleColorMode = useCallback(() => {
@@ -121,7 +137,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (prev === 'system') next = 'dark';
       else if (prev === 'dark') next = 'light';
       else next = 'system';
-      localStorage.setItem(COLOR_MODE_KEY, next);
+      safeSetItem(COLOR_MODE_KEY, next);
       return next;
     });
   }, []);

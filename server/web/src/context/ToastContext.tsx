@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { CheckCircle2, AlertCircle, Info, AlertTriangle, X } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -25,8 +25,14 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const timerMap = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const removeToast = useCallback((id: string) => {
+    const timer = timerMap.current.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      timerMap.current.delete(id);
+    }
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
@@ -38,14 +44,22 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       const duration = toast.duration ?? 4000;
       if (duration > 0) {
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           removeToast(id);
         }, duration);
+        timerMap.current.set(id, timer);
       }
       return id;
     },
     [removeToast]
   );
+
+  useEffect(() => {
+    return () => {
+      timerMap.current.forEach((timer) => clearTimeout(timer));
+      timerMap.current.clear();
+    };
+  }, []);
 
   const success = useCallback(
     (message: string, title?: string) => {
@@ -75,18 +89,21 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [addToast]
   );
 
+  const contextValue = useMemo(
+    () => ({
+      toasts,
+      addToast,
+      removeToast,
+      success,
+      error,
+      info,
+      warning,
+    }),
+    [toasts, addToast, removeToast, success, error, info, warning]
+  );
+
   return (
-    <ToastContext.Provider
-      value={{
-        toasts,
-        addToast,
-        removeToast,
-        success,
-        error,
-        info,
-        warning,
-      }}
-    >
+    <ToastContext.Provider value={contextValue}>
       {children}
 
       {/* Floating Toast Container */}

@@ -91,8 +91,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       await api.rotateApiKey();
       await refreshUser();
       toast.success('API Key rotated successfully');
-    } catch {
-      toast.error('Failed to rotate API Key');
+    } catch (err: any) {
+      toast.error(`Failed to rotate API Key: ${err?.message || 'Unknown error'}`);
     } finally {
       setRotating(false);
     }
@@ -297,6 +297,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <button
                     type="button"
                     className={`mode-selector-btn ${tempColorMode === 'system' ? 'active' : ''}`}
+                    aria-pressed={tempColorMode === 'system'}
                     onClick={() => setTempColorMode('system')}
                     title="Automatically match OS theme"
                   >
@@ -305,6 +306,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <button
                     type="button"
                     className={`mode-selector-btn ${tempColorMode === 'dark' ? 'active' : ''}`}
+                    aria-pressed={tempColorMode === 'dark'}
                     onClick={() => setTempColorMode('dark')}
                     title="Force dark theme"
                   >
@@ -313,6 +315,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <button
                     type="button"
                     className={`mode-selector-btn ${tempColorMode === 'light' ? 'active' : ''}`}
+                    aria-pressed={tempColorMode === 'light'}
                     onClick={() => setTempColorMode('light')}
                     title="Force light theme"
                   >
@@ -332,6 +335,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       key={theme.id}
                       type="button"
                       className={`accent-swatch-btn ${tempAccentTheme === theme.id ? 'active' : ''}`}
+                      aria-pressed={tempAccentTheme === theme.id}
                       onClick={() => setTempAccentTheme(theme.id)}
                     >
                       <span
