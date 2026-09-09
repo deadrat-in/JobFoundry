@@ -74,3 +74,10 @@ CREATE TABLE IF NOT EXISTS relay_tasks (
 CREATE INDEX IF NOT EXISTS idx_relay_tasks_status ON relay_tasks(status, created_at);
 CREATE INDEX IF NOT EXISTS idx_relay_tasks_user ON relay_tasks(user_id);
 
+CREATE TABLE IF NOT EXISTS system_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+

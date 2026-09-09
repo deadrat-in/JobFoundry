@@ -42,6 +42,12 @@ import {
   setActiveResume,
   deleteUserResume,
 } from './resumes/resumes.mjs';
+import {
+  getAllSettings,
+  getEffectiveSetting,
+  updateSettings,
+} from './settings/settings.mjs';
+
 
 function bearerToken(header) {
   if (typeof header !== 'string') return '';
@@ -204,18 +210,100 @@ export function buildApp({
       serverUrl || (hostHeader ? `${protocol}://${hostHeader}` : 'http://localhost:8080');
 
     const user = resolveUser(request);
+    const threshold = getEffectiveSetting(db, 'scorer_threshold') ?? 75;
     return {
       serverUrl: computedUrl,
       apiKey: user?.apiKey || (legacyKeys.size > 0 ? Array.from(legacyKeys)[0] : ''),
       scanIntervalHours: 6,
       passiveMode: true,
       activeMode: false,
-      fitThreshold: 75,
+      fitThreshold: threshold,
       portals: {},
     };
   });
 
+  // --- SYSTEM SETTINGS ROUTES ---
+
+  // GET /api/v1/settings - Get effective settings with masked secrets
+  app.get('/api/v1/settings', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+    return getAllSettings(db, { maskSecrets: true });
+  });
+
+  // PUT /api/v1/settings - Update settings in SQLite
+  app.put('/api/v1/settings', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+    const body = request.body || {};
+    try {
+      const updated = updateSettings(db, body);
+      return { ok: true, ...updated };
+    } catch (err) {
+      return reply.code(400).send({ error: err.message });
+    }
+  });
+
+  // POST /api/v1/settings/test-llm - Live test connection against LLM endpoint
+  app.post('/api/v1/settings/test-llm', async (request, reply) => {
+    if (!authenticate(request, reply)) return;
+    const { model, apiKey, apiBase } = request.body || {};
+
+    const effectiveModel = model || getEffectiveSetting(db, 'scorer_model') || 'openrouter/google/gemini-2.0-flash-exp:free';
+    const effectiveKey = (apiKey && !apiKey.includes('••••')) ? apiKey : getEffectiveSetting(db, 'scorer_api_key');
+    let effectiveBase = apiBase || getEffectiveSetting(db, 'scorer_api_base') || 'https://openrouter.ai/api/v1';
+
+    if (!effectiveKey) {
+      return reply.code(400).send({
+        success: false,
+        error: 'No API key provided or configured. Please enter an API key to test.',
+      });
+    }
+
+    effectiveBase = effectiveBase.replace(/\/$/, '');
+    const startTime = Date.now();
+    try {
+      const resp = await fetch(`${effectiveBase}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${effectiveKey}`,
+        },
+        signal: AbortSignal.timeout(15000),
+        body: JSON.stringify({
+          model: effectiveModel,
+          messages: [{ role: 'user', content: 'Reply with the word OK.' }],
+          max_tokens: 5,
+        }),
+      });
+
+      const latencyMs = Date.now() - startTime;
+      if (resp.ok) {
+        return {
+          success: true,
+          latencyMs,
+          model: effectiveModel,
+          message: `Connected successfully to ${effectiveModel} (${latencyMs}ms)`,
+        };
+      } else {
+        const errorText = await resp.text().catch(() => '');
+        return reply.code(resp.status).send({
+          success: false,
+          status: resp.status,
+          latencyMs,
+          error: `Endpoint returned HTTP ${resp.status}: ${errorText.slice(0, 300)}`,
+        });
+      }
+    } catch (err) {
+      const latencyMs = Date.now() - startTime;
+      return reply.code(502).send({
+        success: false,
+        latencyMs,
+        error: `Connection error: ${err.message}`,
+      });
+    }
+  });
+
   // --- AUTHENTICATION ROUTES ---
+
 
   // POST /api/v1/auth/register
   app.post('/api/v1/auth/register', async (request, reply) => {
@@ -400,7 +488,10 @@ export function buildApp({
     }
 
     try {
-      const parsed = await parseJobDescription({ text, markdown, url });
+      const model = getEffectiveSetting(db, 'scorer_model');
+      const apiKey = getEffectiveSetting(db, 'scorer_api_key');
+      const apiBase = getEffectiveSetting(db, 'scorer_api_base');
+      const parsed = await parseJobDescription({ text, markdown, url, model, apiKey, apiBase });
       return { ok: true, job: parsed };
     } catch (err) {
       request.log.error(err, 'Failed to parse job description');
@@ -988,17 +1079,19 @@ export function buildApp({
     const resumeOpsUrl = process.env.RESUME_OPS_URL || 'http://127.0.0.1:8081';
     let tailorSuccess = false;
     let tailorError = null;
+    const tailorTheme = getEffectiveSetting(db, 'tailor_theme') || 'jsonresume-theme-folio';
+    const tailorTimeoutMs = (Number(getEffectiveSetting(db, 'tailor_timeout_seconds')) || 900) * 1000;
 
     if (resumeOpsUrl) {
       try {
         const resp = await fetch(`${resumeOpsUrl.replace(/\/$/, '')}/api/v1/tailor`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          signal: AbortSignal.timeout(Number(process.env.TAILOR_TIMEOUT_MS) || 1_800_000), // 30 minute default timeout for slow models
+          signal: AbortSignal.timeout(tailorTimeoutMs),
           body: JSON.stringify({
             job_description: jobRecord.description,
             resume: tailoredResume,
-            theme: 'jsonresume-theme-folio',
+            theme: tailorTheme,
           }),
         });
 

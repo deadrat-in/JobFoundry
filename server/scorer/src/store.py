@@ -60,6 +60,28 @@ class JobStore:
         )
         return cursor.fetchone() is not None
 
+    def get_system_settings(self) -> dict[str, str]:
+        """
+        Loads all key-value pairs from system_settings table if present.
+        """
+        try:
+            cursor = self.conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='system_settings'"
+            )
+            if not cursor.fetchone():
+                return {}
+            rows = self.conn.execute("SELECT key, value FROM system_settings").fetchall()
+            return {row["key"]: row["value"] for row in rows}
+        except Exception:
+            return {}
+
+    def get_effective_setting(self, key: str, default: Any = None) -> Any:
+        settings = self.get_system_settings()
+        if key in settings and settings[key] is not None and settings[key] != "":
+            return settings[key]
+        return default
+
+
     def reset_in_flight_jobs(self) -> int:
         """
         Self-healing on daemon startup: reset any stuck in-flight states

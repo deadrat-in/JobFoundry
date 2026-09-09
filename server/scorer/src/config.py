@@ -39,9 +39,10 @@ def load_config() -> ScorerConfig:
     if scorer_threshold < 0 or scorer_threshold > 100:
         raise ValueError(f"Threshold must be between 0 and 100, got: {scorer_threshold}")
 
-    db_path = os.getenv("DB_PATH", "./jobs.db")
+    default_base_dir = "/data" if os.path.exists("/data") else "./data"
+    db_path = (os.getenv("DB_PATH") or "").strip() or f"{default_base_dir}/jobfoundry.db"
     resume_ops_url = os.getenv("RESUME_OPS_URL")
-    artifacts_dir = os.getenv("ARTIFACTS_DIR", "./data/artifacts")
+    artifacts_dir = (os.getenv("ARTIFACTS_DIR") or "").strip() or f"{default_base_dir}/artifacts"
     scorer_api_key = (
         os.getenv("OPENROUTER_API_KEY")
         or os.getenv("SCORER_API_KEY")

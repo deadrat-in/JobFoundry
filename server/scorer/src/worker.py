@@ -307,6 +307,42 @@ class WorkerDaemon:
     def is_running(self) -> bool:
         return self._task is not None and not self._task.done()
 
+    def _sync_settings(self) -> None:
+        """
+        Dynamically synchronize threshold, model, and worker settings from SQLite system_settings.
+        """
+        try:
+            settings = self.store.get_system_settings()
+            if not settings:
+                return
+
+            if "scorer_threshold" in settings:
+                try:
+                    thresh = int(settings["scorer_threshold"])
+                    if 0 <= thresh <= 100:
+                        self.store.threshold = thresh
+                except (ValueError, TypeError):
+                    pass
+
+            if "worker_poll_interval_seconds" in settings:
+                try:
+                    interval = float(settings["worker_poll_interval_seconds"])
+                    if interval > 0:
+                        self.poll_interval = interval
+                except (ValueError, TypeError):
+                    pass
+
+            client = getattr(self.screener, "llm_client", None)
+            if client and hasattr(client, "model"):
+                if settings.get("scorer_model"):
+                    client.model = settings["scorer_model"]
+                if settings.get("scorer_api_key"):
+                    client.api_key = settings["scorer_api_key"]
+                if settings.get("scorer_api_base"):
+                    client.api_base = settings["scorer_api_base"]
+        except Exception as e:
+            logger.warning("Failed to sync dynamic settings in WorkerDaemon: %s", e)
+
     async def tick(self) -> dict[str, Any]:
         """
         Execute a single processing iteration protected by an overlap lock.
@@ -318,6 +354,7 @@ class WorkerDaemon:
         async with self._lock:
             self._in_flight = True
             try:
+                self._sync_settings()
                 result = await process_unscored_jobs(
                     store=self.store,
                     screener=self.screener,
