@@ -1,6 +1,6 @@
 import React from 'react';
-import { Job, FitNotes } from '../../types/job';
-import { getScoreCategory } from '../filters/filterUtils';
+import { Job } from '../../types/job';
+import { getScoreCategory, parseFitNotes } from '../filters/filterUtils';
 import { TailorButton } from '../tailor/TailorButton';
 import { MapPin, Check } from 'lucide-react';
 
@@ -12,15 +12,7 @@ interface JobCardProps {
 }
 
 export const JobCard: React.FC<JobCardProps> = ({ job, threshold = 75, onSelect, onTailored }) => {
-  let fitNotes: FitNotes = {};
-  if (job.fit_notes) {
-    try {
-      fitNotes = JSON.parse(job.fit_notes);
-    } catch {
-      fitNotes = { reasoning: job.fit_notes };
-    }
-  }
-
+  const fitNotes = parseFitNotes(job.fit_notes);
   const scoreCat = getScoreCategory(job.fit_score, threshold);
 
   return (

@@ -185,4 +185,30 @@ describe('TriageStation & Split View', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByText('Triage & Actions')).not.toBeInTheDocument();
   });
+
+  it('renders TriageListItem safely when fit_notes is string "null" and sets aria-current', () => {
+    const jobWithNullNotes: Job = {
+      ...mockJobs[0],
+      id: 'job-null-notes',
+      fit_notes: 'null',
+    };
+    render(
+      <TriageListItem job={jobWithNullNotes} threshold={75} isActive={true} onSelect={vi.fn()} />
+    );
+    const item = screen.getByRole('button');
+    expect(item).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByText('Senior Staff Engineer')).toBeInTheDocument();
+  });
+
+  it('does not trigger triage shortcuts when modifier keys are pressed', () => {
+    const handleStatusChange = vi.fn();
+    render(<JobFeed jobs={mockJobs} onSelectJob={vi.fn()} onStatusChange={handleStatusChange} />);
+
+    // Ctrl+S or Cmd+A should not trigger status change
+    fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+    expect(handleStatusChange).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(window, { key: 'a', metaKey: true });
+    expect(handleStatusChange).not.toHaveBeenCalled();
+  });
 });

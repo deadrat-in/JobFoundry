@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filterJobs, getScoreCategory } from '../filterUtils';
+import { filterJobs, getScoreCategory, parseFitNotes } from '../filterUtils';
 import { Job } from '../../../types/job';
 
 const mockJobs: Job[] = [
@@ -85,5 +85,42 @@ describe('getScoreCategory', () => {
     expect(getScoreCategory(60, 75)).toBe('medium');
     expect(getScoreCategory(30, 75)).toBe('low');
     expect(getScoreCategory(null, 75)).toBe('unscored');
+  });
+});
+
+describe('parseFitNotes', () => {
+  it('returns empty object when input is null, undefined, or empty', () => {
+    expect(parseFitNotes(null)).toEqual({});
+    expect(parseFitNotes(undefined)).toEqual({});
+    expect(parseFitNotes('')).toEqual({});
+    expect(parseFitNotes('   ')).toEqual({});
+  });
+
+  it('parses valid structured JSON fit_notes', () => {
+    const raw = JSON.stringify({
+      matching_skills: ['React', 'TypeScript'],
+      missing_skills: ['Go'],
+      reasoning: 'Strong frontend match',
+    });
+    expect(parseFitNotes(raw)).toEqual({
+      matching_skills: ['React', 'TypeScript'],
+      missing_skills: ['Go'],
+      reasoning: 'Strong frontend match',
+    });
+  });
+
+  it('falls back to { reasoning: raw } when input is raw non-JSON text', () => {
+    const raw = 'Great role, requires 5 years experience.';
+    expect(parseFitNotes(raw)).toEqual({ reasoning: raw });
+  });
+
+  it('safely handles "null" JSON string without throwing', () => {
+    expect(parseFitNotes('null')).toEqual({ reasoning: 'null' });
+  });
+
+  it('safely handles non-object JSON values like numbers or arrays', () => {
+    expect(parseFitNotes('42')).toEqual({ reasoning: '42' });
+    expect(parseFitNotes('true')).toEqual({ reasoning: 'true' });
+    expect(parseFitNotes('["skill1", "skill2"]')).toEqual({ reasoning: '["skill1", "skill2"]' });
   });
 });

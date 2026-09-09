@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Job, FitNotes, JobStatus } from '../../types/job';
+import React, { useState, useEffect, useRef } from 'react';
+import { Job, JobStatus } from '../../types/job';
 import { api } from '../../api/client';
-import { getScoreCategory } from '../filters/filterUtils';
+import { getScoreCategory, parseFitNotes } from '../filters/filterUtils';
 import { TailorButton } from '../tailor/TailorButton';
 import { ArtifactViewer } from '../artifacts/ArtifactViewer';
 import { ResumeDiffView } from '../diff/ResumeDiffView';
@@ -35,6 +35,9 @@ export const JobWorkbench: React.FC<JobWorkbenchProps> = ({
   onJobUpdated,
   onDeleteJob,
 }) => {
+  const currentJobIdRef = useRef<string | undefined>(job?.id);
+  currentJobIdRef.current = job?.id;
+
   const [activeTab, setActiveTab] = useState<'fit' | 'diff' | 'notes'>('fit');
   const [editingDesc, setEditingDesc] = useState(false);
   const [descDraft, setDescDraft] = useState(job?.description || '');
@@ -61,6 +64,9 @@ export const JobWorkbench: React.FC<JobWorkbenchProps> = ({
       setSanitizeSuccess(null);
       const savedNotes = localStorage.getItem(`jf_notes_${job.id}`) || '';
       setUserNotes(savedNotes);
+      if (activeTab === 'diff' && job.status !== 'tailored' && !job.tailored_resume_id) {
+        setActiveTab('fit');
+      }
     }
   }, [job?.id]);
 
@@ -103,41 +109,63 @@ export const JobWorkbench: React.FC<JobWorkbenchProps> = ({
 
   const handleDecantFromUrl = async () => {
     if (!job) return;
+    const targetJobId = job.id;
     setDecanting(true);
     setDescError(null);
     try {
-      const res = await api.decantJob(job.id);
-      if (res.ok && res.description) {
-        setDescDraft(res.description);
+      const res = await api.decantJob(targetJobId);
+      if (currentJobIdRef.current === targetJobId) {
+        if (res.ok && res.description) {
+          setDescDraft(res.description);
+          onJobUpdated(res.job);
+          setEditingDesc(false);
+        } else {
+          setDescError('Could not extract job description from URL');
+        }
+      } else if (res.ok && res.job) {
         onJobUpdated(res.job);
-        setEditingDesc(false);
-      } else {
-        setDescError('Could not extract job description from URL');
       }
     } catch (err: any) {
-      setDescError(err.message || 'Auto-decant failed');
+      if (currentJobIdRef.current === targetJobId) {
+        setDescError(err.message || 'Auto-decant failed');
+      }
     } finally {
-      setDecanting(false);
+      if (currentJobIdRef.current === targetJobId) {
+        setDecanting(false);
+      }
     }
   };
 
   const handleSanitize = async () => {
     if (!job) return;
+    const targetJobId = job.id;
     setSanitizing(true);
     setDescError(null);
     setSanitizeSuccess(null);
     try {
-      const res = await api.sanitizeJob(job.id, { refetch: true });
-      if (res.ok && res.job) {
+      const res = await api.sanitizeJob(targetJobId, { refetch: true });
+      if (currentJobIdRef.current === targetJobId) {
+        if (res.ok && res.job) {
+          onJobUpdated(res.job);
+          setDescDraft(res.job.description || '');
+          setSanitizeSuccess('Job title, company, and description sanitized with AI!');
+          setTimeout(() => {
+            if (currentJobIdRef.current === targetJobId) {
+              setSanitizeSuccess(null);
+            }
+          }, 4000);
+        }
+      } else if (res.ok && res.job) {
         onJobUpdated(res.job);
-        setDescDraft(res.job.description || '');
-        setSanitizeSuccess('Job title, company, and description sanitized with AI!');
-        setTimeout(() => setSanitizeSuccess(null), 4000);
       }
     } catch (err: any) {
-      setDescError(err.message || 'AI sanitization failed');
+      if (currentJobIdRef.current === targetJobId) {
+        setDescError(err.message || 'AI sanitization failed');
+      }
     } finally {
-      setSanitizing(false);
+      if (currentJobIdRef.current === targetJobId) {
+        setSanitizing(false);
+      }
     }
   };
 
@@ -150,6 +178,7 @@ export const JobWorkbench: React.FC<JobWorkbenchProps> = ({
         onDeleteJob(job.id);
       } catch (err: any) {
         alert(err.message || 'Failed to delete job');
+      } finally {
         setDeleting(false);
       }
     }
@@ -172,14 +201,7 @@ export const JobWorkbench: React.FC<JobWorkbenchProps> = ({
     );
   }
 
-  let fitNotes: FitNotes = {};
-  if (job.fit_notes) {
-    try {
-      fitNotes = JSON.parse(job.fit_notes);
-    } catch {
-      fitNotes = { reasoning: job.fit_notes };
-    }
-  }
+  const fitNotes = parseFitNotes(job.fit_notes);
 
   const scoreCat = getScoreCategory(job.fit_score, threshold);
   const isTailored = job.status === 'tailored' || Boolean(job.tailored_resume_id);

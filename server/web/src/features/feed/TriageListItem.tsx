@@ -1,6 +1,6 @@
 import React from 'react';
-import { Job, FitNotes } from '../../types/job';
-import { getScoreCategory } from '../filters/filterUtils';
+import { Job } from '../../types/job';
+import { getScoreCategory, parseFitNotes } from '../filters/filterUtils';
 import { MapPin } from 'lucide-react';
 
 interface TriageListItemProps {
@@ -16,15 +16,7 @@ export const TriageListItem: React.FC<TriageListItemProps> = ({
   isActive,
   onSelect,
 }) => {
-  let fitNotes: FitNotes = {};
-  if (job.fit_notes) {
-    try {
-      fitNotes = JSON.parse(job.fit_notes);
-    } catch {
-      fitNotes = { reasoning: job.fit_notes };
-    }
-  }
-
+  const fitNotes = parseFitNotes(job.fit_notes);
   const scoreCat = getScoreCategory(job.fit_score, threshold);
 
   return (
@@ -39,7 +31,7 @@ export const TriageListItem: React.FC<TriageListItemProps> = ({
           onSelect();
         }
       }}
-      aria-selected={isActive}
+      aria-current={isActive ? 'true' : undefined}
     >
       <div className="triage-item-row-top">
         <span className="triage-item-title" title={job.title}>

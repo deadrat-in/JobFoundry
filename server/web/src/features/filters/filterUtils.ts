@@ -1,4 +1,4 @@
-import { Job } from '../../types/job';
+import { Job, FitNotes } from '../../types/job';
 
 export interface FilterCriteria {
   search?: string;
@@ -65,4 +65,17 @@ export function filterJobs(jobs: Job[], criteria: FilterCriteria): Job[] {
 
     return true;
   });
+}
+
+export function parseFitNotes(raw?: string | null): FitNotes {
+  if (!raw || !raw.trim()) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as FitNotes;
+    }
+    return { reasoning: raw };
+  } catch {
+    return { reasoning: raw };
+  }
 }

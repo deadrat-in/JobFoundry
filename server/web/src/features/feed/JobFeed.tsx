@@ -98,12 +98,15 @@ export const JobFeed: React.FC<JobFeedProps> = ({
     });
   }, [jobs, filters, sortOption]);
 
-  // Keep active job valid
+  // Synchronize when external selection changes
   useEffect(() => {
     if (externalSelectedJobId) {
       setActiveJobId(externalSelectedJobId);
-      return;
     }
+  }, [externalSelectedJobId]);
+
+  // Keep active job valid within current filtered/sorted view
+  useEffect(() => {
     if (sortedAndFilteredJobs.length > 0) {
       if (!activeJobId || !sortedAndFilteredJobs.some((j) => j.id === activeJobId)) {
         setActiveJobId(sortedAndFilteredJobs[0].id);
@@ -111,7 +114,7 @@ export const JobFeed: React.FC<JobFeedProps> = ({
     } else {
       setActiveJobId(null);
     }
-  }, [sortedAndFilteredJobs, externalSelectedJobId, activeJobId]);
+  }, [sortedAndFilteredJobs, activeJobId]);
 
   // Global keyboard shortcuts for triage station
   useEffect(() => {
@@ -134,6 +137,11 @@ export const JobFeed: React.FC<JobFeedProps> = ({
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault();
         searchInputRef.current?.focus();
+        return;
+      }
+
+      // Ignore single-key triage shortcuts when modifier keys are held (e.g. Ctrl+S, Ctrl+A, Alt+Left)
+      if (e.metaKey || e.ctrlKey || e.altKey) {
         return;
       }
 
