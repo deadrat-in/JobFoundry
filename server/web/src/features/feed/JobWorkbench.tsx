@@ -565,7 +565,7 @@ export const JobWorkbench: React.FC<JobWorkbenchProps> = ({
               <div>
                 <ResumeDiffView originalResume={originalResume} tailoredResume={tailoredResume} />
                 <div style={{ marginTop: '1.5rem' }}>
-                  <ArtifactViewer jobId={job.id} />
+                  <ArtifactViewer jobId={job.id} job={job} />
                 </div>
               </div>
             )}

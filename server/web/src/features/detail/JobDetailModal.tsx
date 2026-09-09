@@ -312,7 +312,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                 {/* Artifacts section if tailored */}
                 {job.status === 'tailored' && (
                   <div style={{ marginBottom: '1.5rem' }}>
-                    <ArtifactViewer jobId={job.id} />
+                    <ArtifactViewer jobId={job.id} job={job} />
                   </div>
                 )}
 
