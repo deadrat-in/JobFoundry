@@ -295,7 +295,11 @@ export function init(opts: { doc?: Document; [key: string]: any } = {}) {
     // If autoConnect didn't find an open dashboard tab, test existing server credentials
     const currentConfig = await getConfig();
     if (currentConfig.serverUrl && currentConfig.apiKey) {
-      const verifyRes = await verifyConnection({ doc, config: currentConfig, fetchImpl: opts.fetchImpl });
+      const verifyRes = await verifyConnection({
+        doc,
+        config: currentConfig,
+        fetchImpl: opts.fetchImpl,
+      });
       if (verifyRes.ok) {
         if (status) {
           status.textContent = `✅ Connection verified with ${currentConfig.serverUrl}!`;
