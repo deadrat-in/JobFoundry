@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Job, JobStatus } from '../../types/job';
+import { api } from '../../api/client';
 import { JobCard } from './JobCard';
 import { TriageListItem } from './TriageListItem';
 import { JobWorkbench } from './JobWorkbench';
+import { KeyboardHelpModal } from './KeyboardHelpModal';
 import { filterJobs, FilterCriteria } from '../filters/filterUtils';
-import { Search, LayoutList, LayoutGrid, X } from 'lucide-react';
+import { Search, LayoutList, LayoutGrid, X, Keyboard } from 'lucide-react';
 
 interface JobFeedProps {
   jobs: Job[];
@@ -51,7 +53,10 @@ export const JobFeed: React.FC<JobFeedProps> = ({
 
   const [activeJobId, setActiveJobId] = useState<string | null>(externalSelectedJobId || null);
 
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const lastGPressTimeRef = useRef<number>(0);
 
   const handleViewModeChange = (mode: 'split' | 'grid') => {
     setViewMode(mode);
@@ -112,21 +117,43 @@ export const JobFeed: React.FC<JobFeedProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      if (
+      const isInputFocused =
         target.tagName === 'INPUT' ||
         target.tagName === 'TEXTAREA' ||
         target.tagName === 'SELECT' ||
-        target.isContentEditable
-      ) {
+        target.isContentEditable;
+
+      if (isInputFocused) {
         if (e.key === 'Escape') {
           target.blur();
         }
         return;
       }
 
+      // Cmd+K or Ctrl+K to search
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        return;
+      }
+
+      // / to search
       if (e.key === '/') {
         e.preventDefault();
         searchInputRef.current?.focus();
+        return;
+      }
+
+      // ? to open help modal
+      if (e.key === '?') {
+        e.preventDefault();
+        setIsHelpModalOpen((prev) => !prev);
+        return;
+      }
+
+      // Escape closes help modal
+      if (e.key === 'Escape') {
+        setIsHelpModalOpen(false);
         return;
       }
 
@@ -134,6 +161,7 @@ export const JobFeed: React.FC<JobFeedProps> = ({
 
       const currentIndex = sortedAndFilteredJobs.findIndex((j) => j.id === activeJobId);
 
+      // Vim movement: j or Down arrow
       if (e.key === 'j' || e.key === 'ArrowDown') {
         e.preventDefault();
         const nextIndex = currentIndex < sortedAndFilteredJobs.length - 1 ? currentIndex + 1 : 0;
@@ -146,6 +174,7 @@ export const JobFeed: React.FC<JobFeedProps> = ({
         return;
       }
 
+      // Vim movement: k or Up arrow
       if (e.key === 'k' || e.key === 'ArrowUp') {
         e.preventDefault();
         const prevIndex = currentIndex > 0 ? currentIndex - 1 : sortedAndFilteredJobs.length - 1;
@@ -158,7 +187,38 @@ export const JobFeed: React.FC<JobFeedProps> = ({
         return;
       }
 
-      if (e.key === 'o' || e.key === 'O') {
+      // Vim movement: gg (top of list)
+      if (e.key === 'g') {
+        const now = Date.now();
+        if (now - lastGPressTimeRef.current < 500) {
+          e.preventDefault();
+          const targetJob = sortedAndFilteredJobs[0];
+          setActiveJobId(targetJob.id);
+          const el = document.querySelector(`[data-job-id="${targetJob.id}"]`);
+          if (el && typeof el.scrollIntoView === 'function') {
+            el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          }
+          lastGPressTimeRef.current = 0;
+        } else {
+          lastGPressTimeRef.current = now;
+        }
+        return;
+      }
+
+      // Vim movement: G (Shift+G, bottom of list)
+      if (e.key === 'G') {
+        e.preventDefault();
+        const targetJob = sortedAndFilteredJobs[sortedAndFilteredJobs.length - 1];
+        setActiveJobId(targetJob.id);
+        const el = document.querySelector(`[data-job-id="${targetJob.id}"]`);
+        if (el && typeof el.scrollIntoView === 'function') {
+          el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+        return;
+      }
+
+      // Open listing: o or Enter
+      if (e.key === 'o' || e.key === 'O' || e.key === 'Enter') {
         const activeJob = sortedAndFilteredJobs.find((j) => j.id === activeJobId);
         if (activeJob?.url) {
           e.preventDefault();
@@ -167,6 +227,7 @@ export const JobFeed: React.FC<JobFeedProps> = ({
         return;
       }
 
+      // Save/Star toggle: s
       if (e.key === 's' || e.key === 'S') {
         const activeJob = sortedAndFilteredJobs.find((j) => j.id === activeJobId);
         if (activeJob && onStatusChange) {
@@ -176,11 +237,48 @@ export const JobFeed: React.FC<JobFeedProps> = ({
         }
         return;
       }
+
+      // Dismiss/Archive (Reject): e
+      if (e.key === 'e' || e.key === 'E') {
+        const activeJob = sortedAndFilteredJobs.find((j) => j.id === activeJobId);
+        if (activeJob && onStatusChange) {
+          e.preventDefault();
+          onStatusChange(activeJob.id, 'rejected');
+        }
+        return;
+      }
+
+      // Mark Applied: a
+      if (e.key === 'a' || e.key === 'A') {
+        const activeJob = sortedAndFilteredJobs.find((j) => j.id === activeJobId);
+        if (activeJob && onStatusChange) {
+          e.preventDefault();
+          onStatusChange(activeJob.id, 'applied');
+        }
+        return;
+      }
+
+      // Tailor CV: t
+      if (e.key === 't' || e.key === 'T') {
+        const activeJob = sortedAndFilteredJobs.find((j) => j.id === activeJobId);
+        if (activeJob && activeJob.status !== 'tailored' && !activeJob.tailored_resume_id) {
+          e.preventDefault();
+          api
+            .tailor(activeJob.id)
+            .then((res) => {
+              if (onJobUpdated) onJobUpdated(res.job);
+            })
+            .catch((err) => {
+              console.error('Failed to tailor via shortcut:', err);
+            });
+        }
+        return;
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [sortedAndFilteredJobs, activeJobId, onStatusChange]);
+  }, [sortedAndFilteredJobs, activeJobId, onStatusChange, onJobUpdated]);
 
   const hasActiveFilters =
     Boolean(filters.search) ||
@@ -205,21 +303,56 @@ export const JobFeed: React.FC<JobFeedProps> = ({
 
   return (
     <div>
+      {/* Keyboard Help Modal */}
+      <KeyboardHelpModal isOpen={isHelpModalOpen} onClose={() => setIsHelpModalOpen(false)} />
+
       {/* Keyboard Shortcut Hint Bar */}
-      <div className="keyboard-hint-bar">
-        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Quick Triage:</span>
-        <span className="keyboard-hint-item">
-          <span className="kbd-pill">J</span> / <span className="kbd-pill">K</span> Next / Prev Job
-        </span>
-        <span className="keyboard-hint-item">
-          <span className="kbd-pill">O</span> Open Post
-        </span>
-        <span className="keyboard-hint-item">
-          <span className="kbd-pill">S</span> Save / Star
-        </span>
-        <span className="keyboard-hint-item">
-          <span className="kbd-pill">/</span> Search
-        </span>
+      <div
+        className="keyboard-hint-bar"
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Quick Triage:</span>
+          <span className="keyboard-hint-item">
+            <span className="kbd-pill">J</span> / <span className="kbd-pill">K</span> Next/Prev
+          </span>
+          <span className="keyboard-hint-item">
+            <span className="kbd-pill">O</span> Open Post
+          </span>
+          <span className="keyboard-hint-item">
+            <span className="kbd-pill">S</span> Save
+          </span>
+          <span className="keyboard-hint-item">
+            <span className="kbd-pill">E</span> Dismiss
+          </span>
+          <span className="keyboard-hint-item">
+            <span className="kbd-pill">A</span> Apply
+          </span>
+          <span className="keyboard-hint-item">
+            <span className="kbd-pill">T</span> Tailor
+          </span>
+          <span className="keyboard-hint-item">
+            <span className="kbd-pill">/</span> Search
+          </span>
+        </div>
+        <button
+          onClick={() => setIsHelpModalOpen(true)}
+          className="btn btn-secondary btn-sm"
+          style={{
+            fontSize: '0.75rem',
+            padding: '0.2rem 0.5rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.3rem',
+            marginLeft: 'auto',
+          }}
+          title="View all shortcuts (press ?)"
+        >
+          <Keyboard size={13} /> Shortcuts{' '}
+          <span className="kbd-pill" style={{ marginLeft: 2 }}>
+            ?
+          </span>
+        </button>
       </div>
 
       {/* Filters and Sorting Bar */}

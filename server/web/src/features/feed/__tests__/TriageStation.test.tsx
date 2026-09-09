@@ -140,4 +140,49 @@ describe('TriageStation & Split View', () => {
     );
     openSpy.mockRestore();
   });
+
+  it('triggers status changes on s (save), e (dismiss), and a (apply)', () => {
+    const handleSelect = vi.fn();
+    const handleStatusChange = vi.fn();
+
+    render(
+      <JobFeed jobs={mockJobs} onSelectJob={handleSelect} onStatusChange={handleStatusChange} />
+    );
+
+    // Press 's' to toggle saved
+    fireEvent.keyDown(window, { key: 's' });
+    expect(handleStatusChange).toHaveBeenCalledWith('job-1', 'saved');
+
+    // Press 'e' to dismiss (rejected)
+    fireEvent.keyDown(window, { key: 'e' });
+    expect(handleStatusChange).toHaveBeenCalledWith('job-1', 'rejected');
+
+    // Press 'a' to mark applied
+    fireEvent.keyDown(window, { key: 'a' });
+    expect(handleStatusChange).toHaveBeenCalledWith('job-1', 'applied');
+  });
+
+  it('jumps to bottom of list with Shift+G', () => {
+    const handleSelect = vi.fn();
+    render(<JobFeed jobs={mockJobs} onSelectJob={handleSelect} />);
+
+    expect(screen.getByText(/Superb architecture background/)).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'G' });
+    expect(screen.getByText(/Strong React, modern CSS/)).toBeInTheDocument();
+  });
+
+  it('opens and closes keyboard shortcuts help modal with ? and Esc', () => {
+    const handleSelect = vi.fn();
+    render(<JobFeed jobs={mockJobs} onSelectJob={handleSelect} />);
+
+    // Press '?' to open modal
+    fireEvent.keyDown(window, { key: '?' });
+    expect(screen.getByText('Keyboard Shortcuts')).toBeInTheDocument();
+    expect(screen.getByText('Triage & Actions')).toBeInTheDocument();
+
+    // Press 'Escape' to close modal
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByText('Triage & Actions')).not.toBeInTheDocument();
+  });
 });
