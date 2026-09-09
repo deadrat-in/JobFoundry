@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../../api/client';
 import { Job } from '../../types/job';
 import { useAuth } from '../../context/AuthContext';
@@ -39,6 +39,18 @@ export const ArtifactViewer: React.FC<ArtifactViewerProps> = ({ jobId, job }) =>
   const [previewTheme, setPreviewTheme] = useState<'folio' | 'concise'>('folio');
   const [candidateName, setCandidateName] = useState<string>(user?.name || '');
   const [error, setError] = useState<string | null>(null);
+
+  const previewUrlRef = useRef<string | null>(null);
+  previewUrlRef.current = previewUrl;
+
+  // Cleanup object URL on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (previewUrlRef.current) {
+        window.URL.revokeObjectURL(previewUrlRef.current);
+      }
+    };
+  }, []);
 
   // Fetch tailored resume data to resolve candidate name if not yet set
   useEffect(() => {

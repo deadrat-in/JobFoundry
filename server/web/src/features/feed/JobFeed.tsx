@@ -57,6 +57,7 @@ export const JobFeed: React.FC<JobFeedProps> = ({
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const lastGPressTimeRef = useRef<number>(0);
+  const tailoringJobIdRef = useRef<string | null>(null);
 
   const handleViewModeChange = (mode: 'split' | 'grid') => {
     setViewMode(mode);
@@ -120,11 +121,13 @@ export const JobFeed: React.FC<JobFeedProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      const isInputFocused =
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.tagName === 'SELECT' ||
-        target.isContentEditable;
+      const isInputFocused = Boolean(
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable)
+      );
 
       if (isInputFocused) {
         if (e.key === 'Escape') {
@@ -145,6 +148,15 @@ export const JobFeed: React.FC<JobFeedProps> = ({
         return;
       }
 
+      // If help modal is open, only allow Escape or ? to close it
+      if (isHelpModalOpen) {
+        if (e.key === 'Escape' || e.key === '?') {
+          e.preventDefault();
+          setIsHelpModalOpen(false);
+        }
+        return;
+      }
+
       // / to search
       if (e.key === '/') {
         e.preventDefault();
@@ -155,13 +167,7 @@ export const JobFeed: React.FC<JobFeedProps> = ({
       // ? to open help modal
       if (e.key === '?') {
         e.preventDefault();
-        setIsHelpModalOpen((prev) => !prev);
-        return;
-      }
-
-      // Escape closes help modal
-      if (e.key === 'Escape') {
-        setIsHelpModalOpen(false);
+        setIsHelpModalOpen(true);
         return;
       }
 
@@ -225,8 +231,16 @@ export const JobFeed: React.FC<JobFeedProps> = ({
         return;
       }
 
-      // Open listing: o or Enter
-      if (e.key === 'o' || e.key === 'O' || e.key === 'Enter') {
+      // Open listing: o or O (or Enter when not focused on an interactive button/link)
+      const isInteractiveTarget = Boolean(
+        target &&
+        typeof target.getAttribute === 'function' &&
+        (target.tagName === 'BUTTON' ||
+          target.tagName === 'A' ||
+          target.getAttribute('role') === 'button')
+      );
+
+      if (e.key === 'o' || e.key === 'O' || (e.key === 'Enter' && !isInteractiveTarget)) {
         const activeJob = sortedAndFilteredJobs.find((j) => j.id === activeJobId);
         if (activeJob?.url) {
           e.preventDefault();
@@ -266,18 +280,27 @@ export const JobFeed: React.FC<JobFeedProps> = ({
         return;
       }
 
-      // Tailor CV: t
+      // Tailor CV: t (guarded against concurrent requests)
       if (e.key === 't' || e.key === 'T') {
         const activeJob = sortedAndFilteredJobs.find((j) => j.id === activeJobId);
-        if (activeJob && activeJob.status !== 'tailored' && !activeJob.tailored_resume_id) {
+        if (
+          activeJob &&
+          activeJob.status !== 'tailored' &&
+          !activeJob.tailored_resume_id &&
+          tailoringJobIdRef.current !== activeJob.id
+        ) {
           e.preventDefault();
+          tailoringJobIdRef.current = activeJob.id;
           api
             .tailor(activeJob.id)
             .then((res) => {
               if (onJobUpdated) onJobUpdated(res.job);
             })
             .catch((err) => {
-              console.error('Failed to tailor via shortcut:', err);
+              alert(err.message || 'Failed to tailor CV');
+            })
+            .finally(() => {
+              tailoringJobIdRef.current = null;
             });
         }
         return;
@@ -286,7 +309,7 @@ export const JobFeed: React.FC<JobFeedProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [sortedAndFilteredJobs, activeJobId, onStatusChange, onJobUpdated]);
+  }, [sortedAndFilteredJobs, activeJobId, onStatusChange, onJobUpdated, isHelpModalOpen]);
 
   const hasActiveFilters =
     Boolean(filters.search) ||

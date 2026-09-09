@@ -123,4 +123,17 @@ describe('parseFitNotes', () => {
     expect(parseFitNotes('true')).toEqual({ reasoning: 'true' });
     expect(parseFitNotes('["skill1", "skill2"]')).toEqual({ reasoning: '["skill1", "skill2"]' });
   });
+
+  it('falls back to { reasoning: raw } when skills are not arrays or reasoning is not a string', () => {
+    const invalidSkills = JSON.stringify({
+      matching_skills: 'React, TypeScript', // string instead of array
+      missing_skills: 123, // number instead of array
+    });
+    expect(parseFitNotes(invalidSkills)).toEqual({ reasoning: invalidSkills });
+
+    const invalidReasoning = JSON.stringify({
+      reasoning: { note: 'invalid object' },
+    });
+    expect(parseFitNotes(invalidReasoning)).toEqual({ reasoning: invalidReasoning });
+  });
 });

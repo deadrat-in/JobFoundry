@@ -13,6 +13,9 @@ export const KeyboardHelpModal: React.FC<KeyboardHelpModalProps> = ({ isOpen, on
     <div className="modal-backdrop" onClick={onClose} style={{ zIndex: 100 }}>
       <div
         className="modal-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="keyboard-shortcuts-title"
         onClick={(e) => e.stopPropagation()}
         style={{ maxWidth: '540px', padding: '1.5rem' }}
       >
@@ -28,7 +31,10 @@ export const KeyboardHelpModal: React.FC<KeyboardHelpModalProps> = ({ isOpen, on
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Keyboard size={20} style={{ color: 'var(--accent-primary)' }} />
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+            <h3
+              id="keyboard-shortcuts-title"
+              style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}
+            >
               Keyboard Shortcuts
             </h3>
           </div>

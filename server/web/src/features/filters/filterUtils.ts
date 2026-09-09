@@ -72,7 +72,15 @@ export function parseFitNotes(raw?: string | null): FitNotes {
   try {
     const parsed = JSON.parse(raw);
     if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      return parsed as FitNotes;
+      const reasoningValid = parsed.reasoning === undefined || typeof parsed.reasoning === 'string';
+      const matchingValid =
+        parsed.matching_skills === undefined || Array.isArray(parsed.matching_skills);
+      const missingValid =
+        parsed.missing_skills === undefined || Array.isArray(parsed.missing_skills);
+
+      if (reasoningValid && matchingValid && missingValid) {
+        return parsed as FitNotes;
+      }
     }
     return { reasoning: raw };
   } catch {

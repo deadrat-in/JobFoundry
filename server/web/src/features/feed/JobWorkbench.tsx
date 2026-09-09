@@ -64,13 +64,18 @@ export const JobWorkbench: React.FC<JobWorkbenchProps> = ({
       setSanitizeSuccess(null);
       const savedNotes = localStorage.getItem(`jf_notes_${job.id}`) || '';
       setUserNotes(savedNotes);
-      if (activeTab === 'diff' && job.status !== 'tailored' && !job.tailored_resume_id) {
-        setActiveTab('fit');
-      }
     }
   }, [job?.id]);
 
+  // Reset activeTab if job is not tailored (either switched job or status changed)
   useEffect(() => {
+    if (activeTab === 'diff' && job && job.status !== 'tailored' && !job.tailored_resume_id) {
+      setActiveTab('fit');
+    }
+  }, [activeTab, job?.id, job?.status, job?.tailored_resume_id]);
+
+  useEffect(() => {
+    let active = true;
     if (job && (job.status === 'tailored' || job.tailored_resume_id)) {
       setLoadingDiff(true);
       Promise.all([
@@ -78,11 +83,20 @@ export const JobWorkbench: React.FC<JobWorkbenchProps> = ({
         api.getTailoredResume(job.id).catch(() => null),
       ])
         .then(([master, tailored]) => {
+          if (!active) return;
           if (master?.resume) setOriginalResume(master.resume);
           if (tailored) setTailoredResume(tailored);
         })
-        .finally(() => setLoadingDiff(false));
+        .finally(() => {
+          if (active) setLoadingDiff(false);
+        });
+    } else {
+      setOriginalResume({});
+      setTailoredResume({});
     }
+    return () => {
+      active = false;
+    };
   }, [job?.id, job?.status, job?.tailored_resume_id]);
 
   const handleSaveNotes = (val: string) => {
@@ -94,14 +108,21 @@ export const JobWorkbench: React.FC<JobWorkbenchProps> = ({
 
   const handleSaveDescription = async () => {
     if (!job) return;
+    const targetJobId = job.id;
     setSavingDesc(true);
     setDescError(null);
     try {
-      const updated = await api.updateJobDescription(job.id, descDraft);
-      onJobUpdated(updated);
-      setEditingDesc(false);
+      const updated = await api.updateJobDescription(targetJobId, descDraft);
+      if (currentJobIdRef.current === targetJobId) {
+        onJobUpdated(updated);
+        setEditingDesc(false);
+      } else {
+        onJobUpdated(updated);
+      }
     } catch (err: any) {
-      setDescError(err.message || 'Failed to save description');
+      if (currentJobIdRef.current === targetJobId) {
+        setDescError(err.message || 'Failed to save description');
+      }
     } finally {
       setSavingDesc(false);
     }
@@ -130,9 +151,7 @@ export const JobWorkbench: React.FC<JobWorkbenchProps> = ({
         setDescError(err.message || 'Auto-decant failed');
       }
     } finally {
-      if (currentJobIdRef.current === targetJobId) {
-        setDecanting(false);
-      }
+      setDecanting(false);
     }
   };
 
@@ -163,9 +182,7 @@ export const JobWorkbench: React.FC<JobWorkbenchProps> = ({
         setDescError(err.message || 'AI sanitization failed');
       }
     } finally {
-      if (currentJobIdRef.current === targetJobId) {
-        setSanitizing(false);
-      }
+      setSanitizing(false);
     }
   };
 
