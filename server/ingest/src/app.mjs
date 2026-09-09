@@ -219,14 +219,32 @@ export function buildApp({
 
   // --- SYSTEM SETTINGS ROUTES ---
 
+  // Rate limiter for settings endpoints to mitigate abuse and satisfy security auditing
+  const rateLimitStore = new Map();
+  function checkRateLimit(request, reply, max = 60, windowMs = 60000) {
+    const ip = request.ip || request.headers['x-forwarded-for'] || '127.0.0.1';
+    const now = Date.now();
+    const windowStart = now - windowMs;
+    const timestamps = (rateLimitStore.get(ip) || []).filter((ts) => ts > windowStart);
+    if (timestamps.length >= max) {
+      reply.code(429).send({ error: 'Too many requests, please try again later.' });
+      return false;
+    }
+    timestamps.push(now);
+    rateLimitStore.set(ip, timestamps);
+    return true;
+  }
+
   // GET /api/v1/settings - Get effective settings with masked secrets
   app.get('/api/v1/settings', async (request, reply) => {
+    if (!checkRateLimit(request, reply, 60)) return;
     if (!authenticate(request, reply)) return;
     return getAllSettings(db, { maskSecrets: true });
   });
 
   // PUT /api/v1/settings - Update settings in SQLite
   app.put('/api/v1/settings', async (request, reply) => {
+    if (!checkRateLimit(request, reply, 30)) return;
     if (!authenticate(request, reply)) return;
     const body = request.body || {};
     try {
@@ -239,41 +257,16 @@ export function buildApp({
 
   // POST /api/v1/settings/test-llm - Live test connection against LLM endpoint
   app.post('/api/v1/settings/test-llm', async (request, reply) => {
+    if (!checkRateLimit(request, reply, 15)) return;
     if (!authenticate(request, reply)) return;
-    const { model, apiKey, apiBase } = request.body || {};
+    const { model, apiKey } = request.body || {};
 
+    // Strictly use the server-configured API base URL from database or defaults to prevent SSRF
     const configuredBase =
       getEffectiveSetting(db, 'scorer_api_base') || 'https://openrouter.ai/api/v1';
-    let effectiveBase =
-      apiBase && typeof apiBase === 'string' && apiBase.trim() ? apiBase.trim() : configuredBase;
+    const effectiveBase = configuredBase.replace(/\/$/, '');
 
-    // Validate URL protocol (only http: and https: allowed)
-    try {
-      const parsedUrl = new URL(effectiveBase);
-      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-        return reply.code(400).send({
-          success: false,
-          error: 'Invalid API base URL: only http and https protocols are supported.',
-        });
-      }
-    } catch {
-      return reply.code(400).send({
-        success: false,
-        error: 'Invalid API base URL format.',
-      });
-    }
-
-    // Security: Prevent sending the server's configured secret to an untrusted caller-supplied apiBase
     const hasExplicitKey = Boolean(apiKey && !apiKey.includes('••••'));
-    const isCustomBase = effectiveBase.replace(/\/$/, '') !== configuredBase.replace(/\/$/, '');
-
-    if (isCustomBase && !hasExplicitKey) {
-      return reply.code(400).send({
-        success: false,
-        error: 'Testing a custom API Base URL requires explicitly providing the API key.',
-      });
-    }
-
     const effectiveModel =
       model ||
       getEffectiveSetting(db, 'scorer_model') ||
@@ -286,8 +279,6 @@ export function buildApp({
         error: 'No API key provided or configured. Please enter an API key to test.',
       });
     }
-
-    effectiveBase = effectiveBase.replace(/\/$/, '');
     const startTime = Date.now();
     try {
       const resp = await fetch(`${effectiveBase}/chat/completions`, {
