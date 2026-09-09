@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { AppSettings, DEFAULT_SETTINGS } from '../../lib/auth';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
+import { useTheme, ACCENT_THEMES } from '../../context/ThemeContext';
+import { useToast } from '../../context/ToastContext';
+import { Laptop, Moon, Sun, Palette } from 'lucide-react';
 
 interface SettingsModalProps {
   settings: AppSettings;
@@ -17,6 +20,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onSave,
 }) => {
   const { user, refreshUser } = useAuth();
+  const { colorMode, setColorMode, accentTheme, setAccentTheme } = useTheme();
+  const toast = useToast();
+
   const [apiKey, setApiKey] = useState(settings.apiKey);
   const [apiUrl, setApiUrl] = useState(settings.apiUrl);
   const [threshold, setThreshold] = useState(settings.threshold);
@@ -32,6 +38,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       apiUrl: apiUrl.trim(),
       threshold: Number(threshold) || 75,
     });
+    toast.success('Settings saved successfully');
     onClose();
   };
 
@@ -39,12 +46,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setApiKey(DEFAULT_SETTINGS.apiKey);
     setApiUrl(DEFAULT_SETTINGS.apiUrl);
     setThreshold(DEFAULT_SETTINGS.threshold);
+    setColorMode('system');
+    setAccentTheme('indigo');
+    toast.info('Settings reset to defaults');
   };
 
   const handleCopyApiKey = () => {
     if (!user?.apiKey) return;
     navigator.clipboard.writeText(user.apiKey);
     setCopied(true);
+    toast.success('API Key copied to clipboard');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -60,8 +71,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     try {
       await api.rotateApiKey();
       await refreshUser();
-    } catch (err: any) {
-      alert(`Failed to rotate key: ${err.message}`);
+      toast.success('API Key rotated successfully');
+    } catch {
+      toast.error('Failed to rotate API Key');
     } finally {
       setRotating(false);
     }
@@ -228,6 +240,102 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 Jobs scoring at or above this threshold will qualify for automatic tailoring
                 (Default: 75).
               </span>
+            </div>
+
+            {/* Appearance & Theming */}
+            <div className="appearance-section">
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  marginBottom: '0.25rem',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <Palette size={16} style={{ color: 'var(--accent-primary)' }} />
+                Appearance & Themes
+              </label>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--text-muted)',
+                  display: 'block',
+                  marginBottom: '0.75rem',
+                }}
+              >
+                Choose your preferred interface theme and system auto-detection.
+              </span>
+
+              {/* Color Mode */}
+              <div style={{ marginBottom: '1rem' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                  Color Mode
+                </span>
+                <div className="mode-selector-group">
+                  <button
+                    type="button"
+                    className={`mode-selector-btn ${colorMode === 'system' ? 'active' : ''}`}
+                    onClick={() => {
+                      setColorMode('system');
+                      toast.success('Color mode set to Auto (System)');
+                    }}
+                    title="Automatically match OS theme"
+                  >
+                    <Laptop size={16} /> Auto
+                  </button>
+                  <button
+                    type="button"
+                    className={`mode-selector-btn ${colorMode === 'dark' ? 'active' : ''}`}
+                    onClick={() => {
+                      setColorMode('dark');
+                      toast.success('Dark mode activated');
+                    }}
+                    title="Force dark theme"
+                  >
+                    <Moon size={16} /> Dark
+                  </button>
+                  <button
+                    type="button"
+                    className={`mode-selector-btn ${colorMode === 'light' ? 'active' : ''}`}
+                    onClick={() => {
+                      setColorMode('light');
+                      toast.success('Light mode activated');
+                    }}
+                    title="Force light theme"
+                  >
+                    <Sun size={16} /> Light
+                  </button>
+                </div>
+              </div>
+
+              {/* Accent Color */}
+              <div>
+                <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                  Accent Color
+                </span>
+                <div className="accent-selector-group">
+                  {ACCENT_THEMES.map((theme) => (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      className={`accent-swatch-btn ${accentTheme === theme.id ? 'active' : ''}`}
+                      onClick={() => {
+                        setAccentTheme(theme.id);
+                        toast.success(`Accent changed to ${theme.name}`);
+                      }}
+                    >
+                      <span
+                        className="accent-swatch-dot"
+                        style={{ background: theme.primaryColor }}
+                      />
+                      {theme.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 

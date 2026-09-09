@@ -24,6 +24,10 @@ import { PipelineView } from './features/pipeline/PipelineView';
 import { ExtensionSyncView } from './features/sync/ExtensionSyncView';
 import { AddJobModal } from './features/feed/AddJobModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { ToastProvider, useToast } from './context/ToastContext';
+import { SkeletonFeed } from './components/Skeleton';
+import { CommandPalette } from './components/CommandPalette';
 import {
   Briefcase,
   Kanban,
@@ -37,6 +41,10 @@ import {
   Target,
   Sparkles,
   Flame,
+  Search,
+  Laptop,
+  Moon,
+  Sun,
 } from 'lucide-react';
 
 interface DashboardContentProps {
@@ -113,12 +121,26 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
   onStatusChange,
 }) => {
   const { logout } = useAuth();
+  const { colorMode, cycleColorMode, resolvedMode } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
 
   const isSettingsOpen = location.pathname === '/settings';
   const [isAddJobOpen, setIsAddJobOpen] = useState(false);
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [feedInitialFilters, setFeedInitialFilters] = useState<any>(undefined);
+
+  // Global shortcut for Command Palette
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Metrics
   const totalJobs = jobs.length;
@@ -182,6 +204,34 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
 
         <div className="nav-actions">
           <button
+            type="button"
+            onClick={() => setIsPaletteOpen(true)}
+            className="cmd-k-btn"
+            title="Open Command Palette (Cmd + K / Ctrl + K)"
+            aria-label="Command Palette"
+          >
+            <Search size={14} />
+            <span>Search</span>
+            <kbd className="cmd-k-badge">⌘K</kbd>
+          </button>
+
+          <button
+            type="button"
+            onClick={cycleColorMode}
+            className="btn btn-secondary btn-sm"
+            title={`Color Mode: ${colorMode} (Click to cycle)`}
+            aria-label="Cycle Color Mode"
+          >
+            {colorMode === 'system' ? (
+              <Laptop size={15} />
+            ) : resolvedMode === 'dark' ? (
+              <Moon size={15} />
+            ) : (
+              <Sun size={15} />
+            )}
+          </button>
+
+          <button
             onClick={() => setIsAddJobOpen(true)}
             className="btn btn-secondary btn-sm"
             style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
@@ -201,7 +251,7 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
           <button
             onClick={() => navigate('/settings')}
             className={`btn btn-secondary btn-sm ${isSettingsOpen ? 'btn-primary' : ''}`}
-            title="Settings"
+            title="Settings & Themes"
             aria-label="Settings"
           >
             <Settings size={16} />
@@ -318,9 +368,7 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
         )}
 
         {loading && !isStandalonePage ? (
-          <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-muted)' }}>
-            Loading jobs from database...
-          </div>
+          <SkeletonFeed count={4} />
         ) : (
           <Routes>
             <Route
@@ -411,6 +459,14 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
             }}
           />
         )}
+
+        <CommandPalette
+          isOpen={isPaletteOpen}
+          onClose={() => setIsPaletteOpen(false)}
+          jobs={jobs}
+          onOpenAddJob={() => setIsAddJobOpen(true)}
+          onRefreshJobs={onRefresh}
+        />
       </main>
     </div>
   );
@@ -418,6 +474,7 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
 
 const DashboardRoot: React.FC = () => {
   const { user, token, loading: authLoading, logout } = useAuth();
+  const toast = useToast();
   const navigate = useNavigate();
 
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
@@ -462,8 +519,9 @@ const DashboardRoot: React.FC = () => {
     try {
       const updated = await api.updateStatus(jobId, newStatus);
       setJobs((prev) => prev.map((j) => (j.id === jobId ? updated : j)));
+      toast.success(`Job marked as "${newStatus}"`);
     } catch (err: any) {
-      alert(`Failed to update status: ${err.message}`);
+      toast.error(`Failed to update status: ${err.message || 'Unknown error'}`);
     }
   };
 
@@ -529,9 +587,13 @@ const DashboardRoot: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <DashboardRoot />
-      </AuthProvider>
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <DashboardRoot />
+          </AuthProvider>
+        </ToastProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 };
