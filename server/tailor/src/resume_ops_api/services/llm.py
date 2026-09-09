@@ -45,15 +45,28 @@ def _validate_api_base(api_base: str | None) -> None:
     if not api_base:
         return
     from urllib.parse import urlparse
-    try:
-        parsed = urlparse(api_base.strip())
-        origin = f"{parsed.scheme}://{parsed.netloc}"
-    except Exception:
+    stripped = api_base.strip()
+    parsed = urlparse(stripped)
+    if parsed.scheme not in ("http", "https"):
+        raise AppError(
+            f'API base URL must use http or https scheme, got "{parsed.scheme}"',
+            code="invalid_api_base",
+            status_code=400,
+        )
+    if not parsed.netloc:
         raise AppError(
             f'Invalid api_base URL: "{api_base}"',
             code="invalid_api_base",
             status_code=400,
         )
+    if parsed.username or parsed.password:
+        raise AppError(
+            "API base URL must not contain credentials (user:pass@host)",
+            code="invalid_api_base",
+            status_code=400,
+        )
+    # Build origin from scheme + hostname + optional port (avoids netloc including credentials)
+    origin = f"{parsed.scheme}://{parsed.hostname}" + (f":{parsed.port}" if parsed.port else "")
     allowed = _get_allowed_api_base_origins()
     if origin not in allowed:
         raise AppError(

@@ -147,7 +147,14 @@ export function validateApiBase(val, env = process.env) {
   } catch {
     throw new Error(`Invalid URL: "${val}"`);
   }
-  const origin = parsed.origin; // e.g. "https://openrouter.ai"
+  // Normalize: only allow http/https schemes, reject credentials in URL
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw new Error(`API base URL must use http or https scheme, got "${parsed.protocol}"`);
+  }
+  if (parsed.username || parsed.password) {
+    throw new Error('API base URL must not contain credentials (user:pass@host)');
+  }
+  const origin = parsed.origin;
   const allowed = getAllowedApiBaseOrigins(env);
   if (!allowed.has(origin)) {
     throw new Error(
