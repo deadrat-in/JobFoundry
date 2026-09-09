@@ -119,7 +119,7 @@ export const KeyboardHelpModal: React.FC<KeyboardHelpModalProps> = ({ isOpen, on
               </span>
 
               <span style={{ color: 'var(--text-secondary)' }}>
-                Dismiss / Archive (mark rejected)
+                Archive active job (hide from feed)
               </span>
               <span>
                 <kbd className="kbd-pill">E</kbd>

@@ -238,12 +238,12 @@ export const JobFeed: React.FC<JobFeedProps> = ({
         return;
       }
 
-      // Dismiss/Archive (Reject): e
+      // Archive job: e
       if (e.key === 'e' || e.key === 'E') {
         const activeJob = sortedAndFilteredJobs.find((j) => j.id === activeJobId);
         if (activeJob && onStatusChange) {
           e.preventDefault();
-          onStatusChange(activeJob.id, 'rejected');
+          onStatusChange(activeJob.id, 'archived');
         }
         return;
       }
@@ -323,7 +323,7 @@ export const JobFeed: React.FC<JobFeedProps> = ({
             <span className="kbd-pill">S</span> Save
           </span>
           <span className="keyboard-hint-item">
-            <span className="kbd-pill">E</span> Dismiss
+            <span className="kbd-pill">E</span> Archive
           </span>
           <span className="keyboard-hint-item">
             <span className="kbd-pill">A</span> Apply
@@ -398,14 +398,15 @@ export const JobFeed: React.FC<JobFeedProps> = ({
         >
           <option value="all">All Statuses</option>
           <option value="new">New</option>
-          <option value="tailored">Tailored</option>
           <option value="saved">Saved</option>
+          <option value="tailored">Tailored</option>
           <option value="applied">Applied</option>
           <option value="interview">Interview</option>
           <option value="offer">Offer</option>
+          <option value="archived">Archived</option>
+          <option value="rejected">Rejected</option>
           <option value="rejected_by_score">Rejected By Score</option>
           <option value="invalid_job">Invalid / Non-Job</option>
-          <option value="rejected">Rejected</option>
         </select>
 
         <select

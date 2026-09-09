@@ -396,6 +396,11 @@ h6 {
   background: var(--color-red-bg);
   color: var(--color-red);
 }
+.badge-muted,
+.badge-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
 
 /* Skills Chips */
 .skills-container {

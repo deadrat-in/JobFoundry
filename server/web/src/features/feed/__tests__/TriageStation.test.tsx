@@ -153,9 +153,9 @@ describe('TriageStation & Split View', () => {
     fireEvent.keyDown(window, { key: 's' });
     expect(handleStatusChange).toHaveBeenCalledWith('job-1', 'saved');
 
-    // Press 'e' to dismiss (rejected)
+    // Press 'e' to archive
     fireEvent.keyDown(window, { key: 'e' });
-    expect(handleStatusChange).toHaveBeenCalledWith('job-1', 'rejected');
+    expect(handleStatusChange).toHaveBeenCalledWith('job-1', 'archived');
 
     // Press 'a' to mark applied
     fireEvent.keyDown(window, { key: 'a' });

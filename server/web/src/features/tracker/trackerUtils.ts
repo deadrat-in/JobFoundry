@@ -14,11 +14,12 @@ export const KANBAN_COLUMNS: KanbanColumn[] = [
   { id: 'interview', title: 'Interview', badgeClass: 'badge-amber' },
   { id: 'offer', title: 'Offer', badgeClass: 'badge-green' },
   { id: 'rejected', title: 'Rejected', badgeClass: 'badge-red' },
+  { id: 'archived', title: 'Archived', badgeClass: 'badge-muted' },
 ];
 
 export function isMoveAllowed(from: JobStatus, to: JobStatus): boolean {
   if (from === to) return true;
-  // Any status can be rejected or archived to saved
-  if (to === 'rejected' || to === 'saved') return true;
+  // Any status can be rejected, archived, or saved
+  if (to === 'rejected' || to === 'archived' || to === 'saved') return true;
   return true; // Allow user flexibility in dragging across stages
 }

@@ -49,7 +49,15 @@ export const JobCard: React.FC<JobCardProps> = ({ job, threshold = 75, onSelect,
           )}
           <span className="badge badge-indigo">{job.source}</span>
           <span
-            className={`badge ${job.status === 'tailored' ? 'badge-purple' : job.status === 'rejected_by_score' ? 'badge-red' : 'badge-blue'}`}
+            className={`badge ${
+              job.status === 'tailored'
+                ? 'badge-purple'
+                : job.status === 'rejected_by_score' || job.status === 'rejected'
+                  ? 'badge-red'
+                  : job.status === 'archived'
+                    ? 'badge-muted'
+                    : 'badge-blue'
+            }`}
           >
             {job.status.replace(/_/g, ' ')}
           </span>

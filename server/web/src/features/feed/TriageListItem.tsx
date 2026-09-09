@@ -80,9 +80,13 @@ export const TriageListItem: React.FC<TriageListItemProps> = ({
                 ? 'badge-purple'
                 : job.status === 'rejected_by_score' || job.status === 'rejected'
                   ? 'badge-red'
-                  : job.status === 'applied' || job.status === 'interview' || job.status === 'offer'
-                    ? 'badge-green'
-                    : 'badge-blue'
+                  : job.status === 'archived'
+                    ? 'badge-muted'
+                    : job.status === 'applied' ||
+                        job.status === 'interview' ||
+                        job.status === 'offer'
+                      ? 'badge-green'
+                      : 'badge-blue'
             }`}
             style={{ fontSize: '0.675rem', padding: '0.1rem 0.4rem' }}
           >
