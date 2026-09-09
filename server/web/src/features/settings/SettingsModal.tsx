@@ -31,7 +31,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [rotating, setRotating] = useState(false);
 
-  // Sync state when modal opens
+  // Sync state only when modal opens
   React.useEffect(() => {
     if (isOpen) {
       setApiKey(settings.apiKey);
@@ -40,7 +40,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setTempColorMode(colorMode);
       setTempAccentTheme(accentTheme);
     }
-  }, [isOpen, settings, colorMode, accentTheme]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -70,12 +71,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     toast.info('Settings form reset to defaults (click Save to apply)');
   };
 
-  const handleCopyApiKey = () => {
+  const handleCopyApiKey = async () => {
     if (!user?.apiKey) return;
-    navigator.clipboard.writeText(user.apiKey);
-    setCopied(true);
-    toast.success('API Key copied to clipboard');
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard API unavailable');
+      }
+      await navigator.clipboard.writeText(user.apiKey);
+      setCopied(true);
+      toast.success('API Key copied to clipboard');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Could not copy API Key automatically. Please copy it manually.');
+    }
   };
 
   const handleRotateApiKey = async () => {
@@ -290,7 +298,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               {/* Color Mode */}
               <div style={{ marginBottom: '1rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                <span
+                  style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}
+                >
                   Color Mode
                 </span>
                 <div className="mode-selector-group">
@@ -326,7 +336,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               {/* Accent Color */}
               <div>
-                <span style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                <span
+                  style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}
+                >
                   Accent Color
                 </span>
                 <div className="accent-selector-group">

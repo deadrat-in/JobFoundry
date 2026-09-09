@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  useMemo,
+} from 'react';
 import { CheckCircle2, AlertCircle, Info, AlertTriangle, X } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -107,12 +115,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       {children}
 
       {/* Floating Toast Container */}
-      <div
-        className="toast-container"
-        aria-live="polite"
-        role="region"
-        aria-label="Notifications"
-      >
+      <div className="toast-container" aria-live="polite" role="region" aria-label="Notifications">
         {toasts.map((t) => (
           <div key={t.id} className={`toast-item toast-${t.type}`} role="status">
             <div className="toast-icon">

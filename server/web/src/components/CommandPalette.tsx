@@ -251,7 +251,17 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     });
 
     return list;
-  }, [jobs, colorMode, navigate, onClose, onOpenAddJob, onRefreshJobs, setColorMode, setAccentTheme, toast]);
+  }, [
+    jobs,
+    colorMode,
+    navigate,
+    onClose,
+    onOpenAddJob,
+    onRefreshJobs,
+    setColorMode,
+    setAccentTheme,
+    toast,
+  ]);
 
   // Filter items by query
   const filteredItems = useMemo(() => {
@@ -273,7 +283,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   // Reset selected index when filtered list changes
   useEffect(() => {
     setSelectedIndex(0);
-  }, [filteredItems.length]);
+  }, [filteredItems]);
 
   // Scroll selected item into view
   useEffect(() => {
@@ -306,7 +316,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="palette-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+    <div
+      className="palette-backdrop"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Command palette"
+    >
       <div className="palette-modal" onClick={(e) => e.stopPropagation()}>
         {/* Search header */}
         <div className="palette-search-bar">
@@ -319,6 +335,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
+            role="combobox"
+            aria-expanded={true}
+            aria-controls="palette-list"
+            aria-activedescendant={filteredItems[selectedIndex]?.id}
           />
           {query && (
             <button
@@ -334,17 +354,18 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         </div>
 
         {/* Results list */}
-        <div className="palette-list" ref={listRef}>
+        <div className="palette-list" ref={listRef} id="palette-list" role="listbox">
           {filteredItems.length === 0 ? (
-            <div className="palette-empty">
-              No matching commands or jobs found for "{query}".
-            </div>
+            <div className="palette-empty">No matching commands or jobs found for "{query}".</div>
           ) : (
             filteredItems.map((item, index) => {
               const isSelected = index === selectedIndex;
               return (
                 <div
                   key={item.id}
+                  id={item.id}
+                  role="option"
+                  aria-selected={isSelected}
                   className={`palette-item ${isSelected ? 'is-selected' : ''}`}
                   onClick={() => item.action()}
                   onMouseEnter={() => setSelectedIndex(index)}
@@ -355,9 +376,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                       {item.title}
                       {item.badge && <span className="palette-item-badge">{item.badge}</span>}
                     </div>
-                    {item.subtitle && (
-                      <div className="palette-item-subtitle">{item.subtitle}</div>
-                    )}
+                    {item.subtitle && <div className="palette-item-subtitle">{item.subtitle}</div>}
                   </div>
                   <div className="palette-item-category">{item.category}</div>
                   <ArrowRight size={14} className="palette-item-arrow" />
@@ -370,12 +389,22 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         {/* Footer info */}
         <div className="palette-footer">
           <div className="palette-footer-hints">
-            <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
-            <span><kbd>↵</kbd> Select</span>
-            <span><kbd>ESC</kbd> Close</span>
+            <span>
+              <kbd>↑</kbd>
+              <kbd>↓</kbd> Navigate
+            </span>
+            <span>
+              <kbd>↵</kbd> Select
+            </span>
+            <span>
+              <kbd>ESC</kbd> Close
+            </span>
           </div>
           <div className="palette-footer-tip">
-            <Command size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+            <Command
+              size={12}
+              style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }}
+            />
             Cmd + K
           </div>
         </div>

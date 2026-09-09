@@ -112,4 +112,63 @@ describe('CommandPalette', () => {
 
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
+
+  it('navigates items with ArrowDown/ArrowUp and executes action with Enter', () => {
+    const handleOpenAddJob = vi.fn();
+
+    render(
+      <MemoryRouter>
+        <ThemeProvider>
+          <ToastProvider>
+            <CommandPalette
+              isOpen={true}
+              onClose={vi.fn()}
+              jobs={mockJobs}
+              onOpenAddJob={handleOpenAddJob}
+              onRefreshJobs={vi.fn()}
+            />
+          </ToastProvider>
+        </ThemeProvider>
+      </MemoryRouter>
+    );
+
+    const input = screen.getByPlaceholderText(/Type a command or search/i);
+    fireEvent.change(input, { target: { value: 'Add New Job' } });
+
+    const option = screen.getByRole('option', { name: /Add New Job/i });
+    expect(option).toHaveAttribute('aria-selected', 'true');
+
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    expect(handleOpenAddJob).toHaveBeenCalledTimes(1);
+  });
+
+  it('resets selectedIndex when filteredItems changes between result sets of equal length', () => {
+    render(
+      <MemoryRouter>
+        <ThemeProvider>
+          <ToastProvider>
+            <CommandPalette
+              isOpen={true}
+              onClose={vi.fn()}
+              jobs={mockJobs}
+              onOpenAddJob={vi.fn()}
+              onRefreshJobs={vi.fn()}
+            />
+          </ToastProvider>
+        </ThemeProvider>
+      </MemoryRouter>
+    );
+
+    const input = screen.getByPlaceholderText(/Type a command or search/i);
+
+    // Filter to 1 job: Senior Rust Engineer
+    fireEvent.change(input, { target: { value: 'Rust' } });
+    const rustOption = screen.getByRole('option', { name: /Senior Rust Engineer/i });
+    expect(rustOption).toHaveAttribute('aria-selected', 'true');
+
+    // Switch query to another single match: Staff Fullstack Architect
+    fireEvent.change(input, { target: { value: 'Staff' } });
+    const staffOption = screen.getByRole('option', { name: /Staff Fullstack Architect/i });
+    expect(staffOption).toHaveAttribute('aria-selected', 'true');
+  });
 });

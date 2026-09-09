@@ -32,9 +32,22 @@ export const Skeleton: React.FC<SkeletonProps> = ({
 export const SkeletonJobCard: React.FC = () => {
   return (
     <div className="job-card skeleton-card">
-      <div className="job-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+      <div
+        className="job-card-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          marginBottom: '1rem',
+        }}
+      >
         <div style={{ flex: 1, marginRight: '1rem' }}>
-          <Skeleton width="65%" height="1.4rem" borderRadius="var(--radius-sm)" style={{ marginBottom: '0.5rem' }} />
+          <Skeleton
+            width="65%"
+            height="1.4rem"
+            borderRadius="var(--radius-sm)"
+            style={{ marginBottom: '0.5rem' }}
+          />
           <Skeleton width="40%" height="1rem" borderRadius="var(--radius-xs)" />
         </div>
         <Skeleton width="52px" height="52px" borderRadius="var(--radius-md)" />
@@ -46,13 +59,23 @@ export const SkeletonJobCard: React.FC = () => {
         <Skeleton width="70px" height="24px" borderRadius="var(--radius-full)" />
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1.25rem' }}>
+      <div
+        style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1.25rem' }}
+      >
         <Skeleton width="100%" height="0.85rem" />
         <Skeleton width="92%" height="0.85rem" />
         <Skeleton width="60%" height="0.85rem" />
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid var(--border-subtle)' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingTop: '0.75rem',
+          borderTop: '1px solid var(--border-subtle)',
+        }}
+      >
         <Skeleton width="100px" height="0.8rem" />
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <Skeleton width="75px" height="28px" borderRadius="var(--radius-sm)" />
@@ -65,7 +88,13 @@ export const SkeletonJobCard: React.FC = () => {
 
 export const SkeletonFeed: React.FC<{ count?: number }> = ({ count = 3 }) => {
   return (
-    <div className="job-feed-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <div
+      className="job-feed-list"
+      style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+      role="status"
+      aria-live="polite"
+      aria-label="Loading jobs"
+    >
       {Array.from({ length: count }).map((_, i) => (
         <SkeletonJobCard key={i} />
       ))}
@@ -87,10 +116,24 @@ export const SkeletonStatCard: React.FC = () => {
 
 export const SkeletonKanban: React.FC = () => {
   return (
-    <div className="kanban-board" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem' }}>
+    <div
+      className="kanban-board"
+      style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem' }}
+    >
       {Array.from({ length: 4 }).map((_, colIdx) => (
-        <div key={colIdx} className="kanban-column" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+        <div
+          key={colIdx}
+          className="kanban-column"
+          style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '0.5rem',
+            }}
+          >
             <Skeleton width="50%" height="1.2rem" />
             <Skeleton width="28px" height="20px" borderRadius="var(--radius-full)" />
           </div>
