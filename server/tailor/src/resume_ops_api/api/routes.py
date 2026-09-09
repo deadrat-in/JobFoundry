@@ -74,6 +74,9 @@ async def tailor_resume(
         theme=payload.theme,
         callback_url=payload.callback_url,
         sections=payload.sections,
+        model=payload.model,
+        api_key=payload.api_key,
+        api_base=payload.api_base,
     )
 
     theme = container.theme_service.resolve(payload.theme)
@@ -87,6 +90,9 @@ async def tailor_resume(
         job_description=payload.job_description,
         theme=theme,
         sections=payload.sections,
+        model=payload.model,
+        api_key=payload.api_key,
+        api_base=payload.api_base,
     )
     return TailorResponse(resume=result.resume, pdf_base64=result.pdf_base64, theme=result.theme, plain_text=result.plain_text)
 

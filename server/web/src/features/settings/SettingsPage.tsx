@@ -32,10 +32,7 @@ interface SettingsPageProps {
 
 type SettingsTab = 'general' | 'scorer' | 'tailor' | 'observability' | 'sync' | 'system';
 
-export const SettingsPage: React.FC<SettingsPageProps> = ({
-  settings,
-  onSaveSettings,
-}) => {
+export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSettings }) => {
   const { user, refreshUser } = useAuth();
   const { colorMode, setColorMode, accentTheme, setAccentTheme } = useTheme();
   const toast = useToast();
@@ -1367,7 +1364,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                         type="button"
                         onClick={handleCopyApiKey}
                         className="btn btn-secondary btn-sm"
-                        style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                        style={{
+                          whiteSpace: 'nowrap',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                        }}
                       >
                         <Copy size={14} />
                         {copiedApiKey ? 'Copied' : 'Copy'}
@@ -1409,8 +1411,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                     marginBottom: '1rem',
                   }}
                 >
-                  The base URL used by your browser dashboard and extension to communicate with
-                  the backend.
+                  The base URL used by your browser dashboard and extension to communicate with the
+                  backend.
                 </p>
 
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -1429,7 +1431,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                     type="button"
                     onClick={handleCopyApiUrl}
                     className="btn btn-secondary btn-sm"
-                    style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                    style={{
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                    }}
                   >
                     <Copy size={14} />
                     {copiedUrl ? 'Copied' : 'Copy'}

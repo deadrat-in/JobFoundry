@@ -135,9 +135,9 @@ describe('SettingsPage', () => {
 
     await waitFor(() => {
       expect(testLlmSpy).toHaveBeenCalled();
-      expect(
-        screen.getAllByText(/Connected successfully to model/i).length
-      ).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText(/Connected successfully to model/i).length).toBeGreaterThanOrEqual(
+        1
+      );
     });
   });
 

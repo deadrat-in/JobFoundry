@@ -104,11 +104,13 @@ class ResumeGraph:
             tailor_basics=tailor_basics,
         )
         output = await self.llm_client.generate_structured(
-            model=self.strategy_and_basics_model,
+            model=state.get("model") or self.strategy_and_basics_model,
             system_prompt=system,
             user_prompt=user,
             response_model=StrategyAndBasicsOutput,
             session_id=state.get("job_id"),
+            api_key=state.get("api_key"),
+            api_base=state.get("api_base"),
         )
         if not tailor_basics:
             output = output.model_copy(update={"label": None, "summary": None})
@@ -141,12 +143,14 @@ class ResumeGraph:
             style=self.style,
         )
         output = await self.llm_client.generate_structured(
-            model=self.work_model,
+            model=state.get("model") or self.work_model,
             system_prompt=system,
             user_prompt=user,
             response_model=WorkTailoringOutput,
             session_id=state.get("job_id"),
             validation_context={"original_resume": state["original_resume"]},
+            api_key=state.get("api_key"),
+            api_base=state.get("api_base"),
         )
         return {"tailored_work": output}
 
@@ -172,12 +176,14 @@ class ResumeGraph:
             active_sections=list(qual_sections),
         )
         output = await self.llm_client.generate_structured(
-            model=self.qualifications_model,
+            model=state.get("model") or self.qualifications_model,
             system_prompt=system,
             user_prompt=user,
             response_model=QualificationsTailoringOutput,
             session_id=state.get("job_id"),
             validation_context={"original_resume": state["original_resume"]},
+            api_key=state.get("api_key"),
+            api_base=state.get("api_base"),
         )
         return {"tailored_qualifications": output}
 
@@ -195,12 +201,14 @@ class ResumeGraph:
             style=self.style,
         )
         output = await self.llm_client.generate_structured(
-            model=self.projects_model,
+            model=state.get("model") or self.projects_model,
             system_prompt=system,
             user_prompt=user,
             response_model=ProjectsTailoringOutput,
             session_id=state.get("job_id"),
             validation_context={"original_resume": state["original_resume"]},
+            api_key=state.get("api_key"),
+            api_base=state.get("api_base"),
         )
         return {"tailored_projects": output}
 

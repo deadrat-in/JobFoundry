@@ -324,6 +324,10 @@ class WorkerDaemon:
                 except (ValueError, TypeError):
                     pass
 
+            if "worker_enabled" in settings:
+                val = str(settings["worker_enabled"]).strip().lower()
+                self.enabled = val in ("true", "1", "yes")
+
             if "worker_poll_interval_seconds" in settings:
                 try:
                     interval = float(settings["worker_poll_interval_seconds"])
@@ -355,6 +359,8 @@ class WorkerDaemon:
             self._in_flight = True
             try:
                 self._sync_settings()
+                if not self.enabled:
+                    return {"ok": True, "status": "disabled"}
                 result = await process_unscored_jobs(
                     store=self.store,
                     screener=self.screener,

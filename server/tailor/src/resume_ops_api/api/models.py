@@ -12,6 +12,9 @@ class TailorRequest(BaseModel):
     theme: str | None = None
     callback_url: AnyHttpUrl | None = None
     sections: list[str] | None = None
+    model: str | None = None
+    api_key: str | None = None
+    api_base: str | None = None
 
 
 class TailorResponse(BaseModel):

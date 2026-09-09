@@ -12,7 +12,10 @@ test('openDb migrates an in-memory DB to the full multi-tenant schema', () => {
       .all()
       .map((r) => r.name)
       .sort();
-    assert.deepEqual(tables, ['jobs', 'relay_tasks', 'system_settings', 'user_jobs', 'user_resumes', 'users'].sort());
+    assert.deepEqual(
+      tables,
+      ['jobs', 'relay_tasks', 'system_settings', 'user_jobs', 'user_resumes', 'users'].sort()
+    );
 
     // Verify relay_tasks table
     const relayTaskCols = db.prepare('PRAGMA table_info(relay_tasks)').all();

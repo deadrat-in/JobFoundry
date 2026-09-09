@@ -12,7 +12,6 @@ test('settings API endpoints work as expected', async () => {
     logger: false,
   });
 
-
   try {
     // 1. Unauthorized access fails
     const unauthResp = await app.inject({

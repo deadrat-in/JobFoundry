@@ -158,7 +158,6 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
     location.pathname.startsWith('/extension-sync') ||
     location.pathname.startsWith('/settings');
 
-
   return (
     <div className="app-container">
       {/* Navigation */}
@@ -431,12 +430,7 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
             />
             <Route
               path="/settings"
-              element={
-                <SettingsPage
-                  settings={settings}
-                  onSaveSettings={onSaveSettings}
-                />
-              }
+              element={<SettingsPage settings={settings} onSaveSettings={onSaveSettings} />}
             />
             <Route path="*" element={<Navigate to="/feed" replace />} />
           </Routes>

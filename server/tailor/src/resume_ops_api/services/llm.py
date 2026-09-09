@@ -84,8 +84,10 @@ class StructuredLLMClient:
         response_model: type[ModelT],
         session_id: str | None = None,
         validation_context: dict[str, Any] | None = None,
+        api_key: str | None = None,
+        api_base: str | None = None,
     ) -> ModelT:
-        cache_key = (model, system_prompt, user_prompt, response_model.__name__)
+        cache_key = (model, api_key, api_base, system_prompt, user_prompt, response_model.__name__)
         if self.enable_cache and cache_key in self.cache:
             import logging
             logging.info(f"Returning cached validated response for model '{model}' and schema '{response_model.__name__}'")
@@ -135,6 +137,8 @@ class StructuredLLMClient:
                             response_model=response_model,
                             session_id=session_id,
                             validation_context=validation_context,
+                            api_key=api_key,
+                            api_base=api_base,
                         ),
                     )
 
@@ -157,10 +161,18 @@ class StructuredLLMClient:
         response_model: type[ModelT],
         session_id: str | None = None,
         validation_context: dict[str, Any] | None = None,
+        api_key: str | None = None,
+        api_base: str | None = None,
     ) -> ModelT:
         extra_headers: dict[str, str] = {}
         if session_id:
             extra_headers["X-Session-Id"] = session_id
+
+        extra_kwargs: dict[str, Any] = {}
+        if api_key:
+            extra_kwargs["api_key"] = api_key
+        if api_base:
+            extra_kwargs["api_base"] = api_base
 
         # Ensure "json" is in the prompts to satisfy APIs enforcing this when response_format is json_object
         if "json" not in system_prompt.lower() and "json" not in user_prompt.lower():
@@ -197,6 +209,7 @@ class StructuredLLMClient:
                     drop_params=True,
                     timeout=self.request_timeout,
                     extra_headers=extra_headers or None,
+                    **extra_kwargs,
                 )
                 content = completion["choices"][0]["message"]["content"]
                 if isinstance(content, dict):
@@ -242,6 +255,7 @@ class StructuredLLMClient:
                 timeout=self.request_timeout,
                 extra_headers=extra_headers or None,
                 validation_context=validation_context,
+                **extra_kwargs,
             )
             if isinstance(response, response_model):
                 return response
@@ -264,6 +278,7 @@ class StructuredLLMClient:
                 timeout=self.request_timeout,
                 extra_headers=extra_headers or None,
                 validation_context=validation_context,
+                **extra_kwargs,
             )
             if isinstance(response, response_model):
                 return response
@@ -286,6 +301,7 @@ class StructuredLLMClient:
                 timeout=self.request_timeout,
                 extra_headers=extra_headers or None,
                 validation_context=validation_context,
+                **extra_kwargs,
             )
             if isinstance(response, response_model):
                 return response
@@ -307,6 +323,7 @@ class StructuredLLMClient:
                     timeout=self.request_timeout,
                     response_format={"type": "json_object"},
                     extra_headers=extra_headers or None,
+                    **extra_kwargs,
                 )
             except Exception as format_exc:
                 import logging
@@ -324,6 +341,7 @@ class StructuredLLMClient:
                     drop_params=True,
                     timeout=self.request_timeout,
                     extra_headers=extra_headers or None,
+                    **extra_kwargs,
                 )
             content = completion["choices"][0]["message"]["content"]
             

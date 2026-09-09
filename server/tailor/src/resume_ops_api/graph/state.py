@@ -24,6 +24,9 @@ class ResumeGraphState(TypedDict, total=False):
     job_id: str
     output_dir: Path
     sections: list[str]
+    model: str
+    api_key: str
+    api_base: str
     strategy: StrategyOutput
     strategy_and_basics: StrategyAndBasicsOutput
     tailored_basics: BasicsTailoringOutput

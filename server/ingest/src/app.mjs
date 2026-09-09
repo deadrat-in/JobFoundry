@@ -42,12 +42,7 @@ import {
   setActiveResume,
   deleteUserResume,
 } from './resumes/resumes.mjs';
-import {
-  getAllSettings,
-  getEffectiveSetting,
-  updateSettings,
-} from './settings/settings.mjs';
-
+import { getAllSettings, getEffectiveSetting, updateSettings } from './settings/settings.mjs';
 
 function bearerToken(header) {
   if (typeof header !== 'string') return '';
@@ -247,9 +242,43 @@ export function buildApp({
     if (!authenticate(request, reply)) return;
     const { model, apiKey, apiBase } = request.body || {};
 
-    const effectiveModel = model || getEffectiveSetting(db, 'scorer_model') || 'openrouter/google/gemini-2.0-flash-exp:free';
-    const effectiveKey = (apiKey && !apiKey.includes('••••')) ? apiKey : getEffectiveSetting(db, 'scorer_api_key');
-    let effectiveBase = apiBase || getEffectiveSetting(db, 'scorer_api_base') || 'https://openrouter.ai/api/v1';
+    const configuredBase =
+      getEffectiveSetting(db, 'scorer_api_base') || 'https://openrouter.ai/api/v1';
+    let effectiveBase =
+      apiBase && typeof apiBase === 'string' && apiBase.trim() ? apiBase.trim() : configuredBase;
+
+    // Validate URL protocol (only http: and https: allowed)
+    try {
+      const parsedUrl = new URL(effectiveBase);
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        return reply.code(400).send({
+          success: false,
+          error: 'Invalid API base URL: only http and https protocols are supported.',
+        });
+      }
+    } catch {
+      return reply.code(400).send({
+        success: false,
+        error: 'Invalid API base URL format.',
+      });
+    }
+
+    // Security: Prevent sending the server's configured secret to an untrusted caller-supplied apiBase
+    const hasExplicitKey = Boolean(apiKey && !apiKey.includes('••••'));
+    const isCustomBase = effectiveBase.replace(/\/$/, '') !== configuredBase.replace(/\/$/, '');
+
+    if (isCustomBase && !hasExplicitKey) {
+      return reply.code(400).send({
+        success: false,
+        error: 'Testing a custom API Base URL requires explicitly providing the API key.',
+      });
+    }
+
+    const effectiveModel =
+      model ||
+      getEffectiveSetting(db, 'scorer_model') ||
+      'openrouter/google/gemini-2.0-flash-exp:free';
+    const effectiveKey = hasExplicitKey ? apiKey : getEffectiveSetting(db, 'scorer_api_key');
 
     if (!effectiveKey) {
       return reply.code(400).send({
@@ -265,7 +294,7 @@ export function buildApp({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${effectiveKey}`,
+          Authorization: `Bearer ${effectiveKey}`,
         },
         signal: AbortSignal.timeout(15000),
         body: JSON.stringify({
@@ -303,7 +332,6 @@ export function buildApp({
   });
 
   // --- AUTHENTICATION ROUTES ---
-
 
   // POST /api/v1/auth/register
   app.post('/api/v1/auth/register', async (request, reply) => {
@@ -1080,7 +1108,11 @@ export function buildApp({
     let tailorSuccess = false;
     let tailorError = null;
     const tailorTheme = getEffectiveSetting(db, 'tailor_theme') || 'jsonresume-theme-folio';
-    const tailorTimeoutMs = (Number(getEffectiveSetting(db, 'tailor_timeout_seconds')) || 900) * 1000;
+    const tailorTimeoutMs =
+      (Number(getEffectiveSetting(db, 'tailor_timeout_seconds')) || 900) * 1000;
+    const tailorModel = getEffectiveSetting(db, 'tailor_model');
+    const tailorKey = getEffectiveSetting(db, 'tailor_api_key');
+    const tailorBase = getEffectiveSetting(db, 'tailor_api_base');
 
     if (resumeOpsUrl) {
       try {
@@ -1092,6 +1124,9 @@ export function buildApp({
             job_description: jobRecord.description,
             resume: tailoredResume,
             theme: tailorTheme,
+            ...(tailorModel ? { model: tailorModel } : {}),
+            ...(tailorKey ? { api_key: tailorKey } : {}),
+            ...(tailorBase ? { api_base: tailorBase } : {}),
           }),
         });
 

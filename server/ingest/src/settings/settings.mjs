@@ -3,11 +3,7 @@
  * Provides SQLite persistence with .env fallback and secure secret masking.
  */
 
-export const SENSITIVE_KEYS = new Set([
-  'scorer_api_key',
-  'tailor_api_key',
-  'opik_api_key',
-]);
+export const SENSITIVE_KEYS = new Set(['scorer_api_key', 'tailor_api_key', 'opik_api_key']);
 
 export const SETTINGS_METADATA = {
   scorer_model: {
