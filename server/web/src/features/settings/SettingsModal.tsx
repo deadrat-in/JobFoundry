@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { AppSettings, DEFAULT_SETTINGS } from '../../lib/auth';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
+import { useTheme, ACCENT_THEMES, ColorMode, AccentTheme } from '../../context/ThemeContext';
+import { useToast } from '../../context/ToastContext';
+import { Laptop, Moon, Sun, Palette } from 'lucide-react';
 
 interface SettingsModalProps {
   settings: AppSettings;
@@ -17,11 +20,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onSave,
 }) => {
   const { user, refreshUser } = useAuth();
+  const { colorMode, setColorMode, accentTheme, setAccentTheme } = useTheme();
+  const toast = useToast();
+
   const [apiKey, setApiKey] = useState(settings.apiKey);
   const [apiUrl, setApiUrl] = useState(settings.apiUrl);
   const [threshold, setThreshold] = useState(settings.threshold);
+  const [tempColorMode, setTempColorMode] = useState<ColorMode>(colorMode);
+  const [tempAccentTheme, setTempAccentTheme] = useState<AccentTheme>(accentTheme);
   const [copied, setCopied] = useState(false);
   const [rotating, setRotating] = useState(false);
+
+  // Sync state only when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setApiKey(settings.apiKey);
+      setApiUrl(settings.apiUrl);
+      setThreshold(settings.threshold);
+      setTempColorMode(colorMode);
+      setTempAccentTheme(accentTheme);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -32,6 +52,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       apiUrl: apiUrl.trim(),
       threshold: Number(threshold) || 75,
     });
+    if (tempColorMode !== colorMode) {
+      setColorMode(tempColorMode);
+    }
+    if (tempAccentTheme !== accentTheme) {
+      setAccentTheme(tempAccentTheme);
+    }
+    toast.success('Settings saved successfully');
     onClose();
   };
 
@@ -39,13 +66,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setApiKey(DEFAULT_SETTINGS.apiKey);
     setApiUrl(DEFAULT_SETTINGS.apiUrl);
     setThreshold(DEFAULT_SETTINGS.threshold);
+    setTempColorMode('system');
+    setTempAccentTheme('indigo');
+    toast.info('Settings form reset to defaults (click Save to apply)');
   };
 
-  const handleCopyApiKey = () => {
+  const handleCopyApiKey = async () => {
     if (!user?.apiKey) return;
-    navigator.clipboard.writeText(user.apiKey);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard API unavailable');
+      }
+      await navigator.clipboard.writeText(user.apiKey);
+      setCopied(true);
+      toast.success('API Key copied to clipboard');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Could not copy API Key automatically. Please copy it manually.');
+    }
   };
 
   const handleRotateApiKey = async () => {
@@ -60,8 +98,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     try {
       await api.rotateApiKey();
       await refreshUser();
+      toast.success('API Key rotated successfully');
     } catch (err: any) {
-      alert(`Failed to rotate key: ${err.message}`);
+      toast.error(`Failed to rotate API Key: ${err?.message || 'Unknown error'}`);
     } finally {
       setRotating(false);
     }
@@ -228,6 +267,98 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 Jobs scoring at or above this threshold will qualify for automatic tailoring
                 (Default: 75).
               </span>
+            </div>
+
+            {/* Appearance & Theming */}
+            <div className="appearance-section">
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  marginBottom: '0.25rem',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <Palette size={16} style={{ color: 'var(--accent-primary)' }} />
+                Appearance & Themes
+              </label>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--text-muted)',
+                  display: 'block',
+                  marginBottom: '0.75rem',
+                }}
+              >
+                Choose your preferred interface theme and system auto-detection.
+              </span>
+
+              {/* Color Mode */}
+              <div style={{ marginBottom: '1rem' }}>
+                <span
+                  style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}
+                >
+                  Color Mode
+                </span>
+                <div className="mode-selector-group">
+                  <button
+                    type="button"
+                    className={`mode-selector-btn ${tempColorMode === 'system' ? 'active' : ''}`}
+                    aria-pressed={tempColorMode === 'system'}
+                    onClick={() => setTempColorMode('system')}
+                    title="Automatically match OS theme"
+                  >
+                    <Laptop size={16} /> Auto
+                  </button>
+                  <button
+                    type="button"
+                    className={`mode-selector-btn ${tempColorMode === 'dark' ? 'active' : ''}`}
+                    aria-pressed={tempColorMode === 'dark'}
+                    onClick={() => setTempColorMode('dark')}
+                    title="Force dark theme"
+                  >
+                    <Moon size={16} /> Dark
+                  </button>
+                  <button
+                    type="button"
+                    className={`mode-selector-btn ${tempColorMode === 'light' ? 'active' : ''}`}
+                    aria-pressed={tempColorMode === 'light'}
+                    onClick={() => setTempColorMode('light')}
+                    title="Force light theme"
+                  >
+                    <Sun size={16} /> Light
+                  </button>
+                </div>
+              </div>
+
+              {/* Accent Color */}
+              <div>
+                <span
+                  style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)' }}
+                >
+                  Accent Color
+                </span>
+                <div className="accent-selector-group">
+                  {ACCENT_THEMES.map((theme) => (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      className={`accent-swatch-btn ${tempAccentTheme === theme.id ? 'active' : ''}`}
+                      aria-pressed={tempAccentTheme === theme.id}
+                      onClick={() => setTempAccentTheme(theme.id)}
+                    >
+                      <span
+                        className="accent-swatch-dot"
+                        style={{ background: theme.primaryColor }}
+                      />
+                      {theme.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
