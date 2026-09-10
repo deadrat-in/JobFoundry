@@ -19,6 +19,7 @@
 #
 # Env overrides:
 #   NODE_MAJOR=22  PYTHON_SERIES=3.12  APP_VERSION=0.1.0
+#   UV_VERSION=0.12.12  APPIMAGETOOL_VERSION=1.9.1
 #   BUILD_DIR=<workdir>  OUTPUT_DIR=<artifact dir>  SKIP_WEB_BUILD=1
 #
 # Requirements on the build host: curl, tar, unzip, xz, patchelf-free
@@ -82,12 +83,16 @@ download "https://nodejs.org/dist/v${NODE_VERSION}/${NODE_TGZ}" "$WORK/$NODE_TGZ
 download "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" "$WORK/SHASUMS256.txt"
 (cd "$WORK" && grep "  $NODE_TGZ\$" SHASUMS256.txt | sha256sum -c -)
 
-# --- Python: latest PYTHON_SERIES.x via uv (hash-verified by uv itself) ---
+# --- Python: latest PYTHON_SERIES.x via uv (pinned & SHA-verified) ---
 # uv fetches python-build-standalone under the hood but resolves versions and
 # verifies hashes from its own release metadata, so no GitHub API calls here.
+UV_VERSION="${UV_VERSION:-0.12.12}"
+UV_SHA256="${UV_SHA256:-ab9b309d4586403f024e100abaceb396616e178a553e2500c36087d180f09509}"
 UV_TGZ="$WORK/uv.tar.gz"
-download "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-unknown-linux-gnu.tar.gz" \
+echo "[appimage] uv: $UV_VERSION"
+download "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-x86_64-unknown-linux-gnu.tar.gz" \
   "$UV_TGZ"
+echo "${UV_SHA256}  $UV_TGZ" | sha256sum -c -
 tar -xzf "$UV_TGZ" -C "$WORK"
 UV_BIN="$WORK/uv-x86_64-unknown-linux-gnu/uv"
 export UV_PYTHON_INSTALL_DIR="$WORK/uvpython"
@@ -294,13 +299,17 @@ cp "$REPO_ROOT/extension/public/icons/icon-128.png" \
   "$APPDIR/usr/share/icons/hicolor/128x128/apps/jobfoundry.png"
 
 # ------------------------------------------------------------------------------
-# 12. Run appimagetool
+# 12. Run appimagetool (pinned & SHA-verified)
 # ------------------------------------------------------------------------------
 echo "[appimage] running appimagetool..."
+APPIMAGETOOL_VERSION="${APPIMAGETOOL_VERSION:-1.9.1}"
+APPIMAGETOOL_SHA256="${APPIMAGETOOL_SHA256:-ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0}"
 APPIMAGETOOL="$WORK/appimagetool"
 if [ ! -x "$APPIMAGETOOL" ]; then
-  download "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage" \
+  echo "[appimage] appimagetool: $APPIMAGETOOL_VERSION"
+  download "https://github.com/AppImage/appimagetool/releases/download/${APPIMAGETOOL_VERSION}/appimagetool-x86_64.AppImage" \
     "$APPIMAGETOOL"
+  echo "${APPIMAGETOOL_SHA256}  $APPIMAGETOOL" | sha256sum -c -
   chmod +x "$APPIMAGETOOL"
 fi
 export ARCH

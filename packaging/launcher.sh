@@ -33,13 +33,27 @@ NODE_TOOLS_BIN="$APP_SRC/node-tools/node_modules/.bin"
 # ------------------------------------------------------------------------------
 DATA_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/jobfoundry"
 LOGS_DIR="$DATA_DIR/logs"
-RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp}/jobfoundry-$UID"
+
+# Fallback runtime directory: use $XDG_RUNTIME_DIR/jobfoundry if available,
+# valid, and owned by the current user. Otherwise fall back to $DATA_DIR/run
+# (inside user's private data dir) rather than a shared, world-writable /tmp.
+if [ -n "${XDG_RUNTIME_DIR:-}" ] && [ -d "$XDG_RUNTIME_DIR" ] && [ -O "$XDG_RUNTIME_DIR" ] && [ ! -L "$XDG_RUNTIME_DIR" ]; then
+  RUNTIME_DIR="$XDG_RUNTIME_DIR/jobfoundry"
+else
+  RUNTIME_DIR="$DATA_DIR/run"
+fi
+
+if [ -e "$RUNTIME_DIR" ] && { [ -L "$RUNTIME_DIR" ] || [ ! -O "$RUNTIME_DIR" ]; }; then
+  echo "[jobfoundry] ERROR: runtime directory $RUNTIME_DIR is insecure or not owned by user" >&2
+  exit 1
+fi
 
 mkdir -p \
   "$DATA_DIR/artifacts" \
   "$DATA_DIR/themes/node_modules" \
   "$LOGS_DIR" \
   "$RUNTIME_DIR"
+chmod 700 "$RUNTIME_DIR"
 
 export DATA_DIR
 DB_PATH="$DATA_DIR/jobfoundry.db"
@@ -141,6 +155,7 @@ _cleanup() {
     done
     kill -KILL "$pid" 2>/dev/null || true
   done
+  rm -f "$RUNTIME_DIR/tailor.pid" "$RUNTIME_DIR/scorer.pid" "$RUNTIME_DIR/ingest.pid" 2>/dev/null || true
   echo "[jobfoundry] All services stopped."
 }
 
@@ -182,6 +197,7 @@ LLM_MAX_CONCURRENCY=1 \
   >> "$LOGS_DIR/tailor.log" 2>&1 &
 PIDS+=($!)
 echo "$!" > "$RUNTIME_DIR/tailor.pid"
+chmod 600 "$RUNTIME_DIR/tailor.pid"
 _wait_for_port "tailor" "$TAILOR_PORT" 60
 
 # --- 7b. Scorer (fit scoring, port 8001) ---
@@ -198,6 +214,7 @@ TAILOR_TIMEOUT_SECONDS="$TAILOR_TIMEOUT_SECONDS" \
   >> "$LOGS_DIR/scorer.log" 2>&1 &
 PIDS+=($!)
 echo "$!" > "$RUNTIME_DIR/scorer.pid"
+chmod 600 "$RUNTIME_DIR/scorer.pid"
 _wait_for_port "scorer" "$SCORER_PORT" 60
 
 # --- 7c. Ingest (Fastify API + SPA, port 8080) ---
@@ -212,6 +229,7 @@ TAILOR_TIMEOUT_MS="$TAILOR_TIMEOUT_MS" \
   >> "$LOGS_DIR/ingest.log" 2>&1 &
 PIDS+=($!)
 echo "$!" > "$RUNTIME_DIR/ingest.pid"
+chmod 600 "$RUNTIME_DIR/ingest.pid"
 _wait_for_port "ingest" "$INGEST_PORT" 30
 
 # ------------------------------------------------------------------------------
