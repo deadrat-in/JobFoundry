@@ -4,7 +4,7 @@
 # ==============================================================================
 
 # --- Stage 1: Build React Web SPA ---
-FROM node:22-slim AS web-builder
+FROM node:26-slim AS web-builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -16,7 +16,7 @@ ENV VITE_API_URL=""
 RUN npm --workspace=server/web run build
 
 # --- Stage 2: Install Node Ingest Dependencies ---
-FROM node:22-bookworm-slim AS ingest-builder
+FROM node:26-bookworm-slim AS ingest-builder
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
@@ -64,13 +64,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     LLM_RETRY_MULTIPLIER=3 \
     API_KEYS=""
 
-# 1. Install system utilities, Node.js 22 (NodeSource), Chromium, and Supervisor
+# 1. Install system utilities, Node.js 26 (NodeSource), Chromium, and Supervisor
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         curl ca-certificates supervisor \
         chromium chromium-sandbox \
         fonts-liberation fonts-noto-color-emoji \
-    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_26.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && npm install -g puppeteer ${NPM_THEMES} \
     && rm -rf /var/lib/apt/lists/*

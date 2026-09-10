@@ -27,7 +27,7 @@ JobFoundry/
 
 ## Prerequisites
 
-- **Node.js**: v22 or newer
+- **Node.js**: v26 or newer
 - **Python**: 3.12 or newer
 - **uv**: Modern fast Python package manager ([installation instructions](https://docs.astral.sh/uv/))
 - **Docker & Docker Compose**: Optional, for running containerized services

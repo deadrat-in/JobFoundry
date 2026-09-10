@@ -121,7 +121,7 @@ Configuration and data live outside the AppImage, following XDG conventions:
 
 Notes:
 
-- The AppImage bundles its own Node.js 22, Python 3.12 and a headless Chromium
+- The AppImage bundles its own Node.js 26, Python 3.12 and a headless Chromium
   for PDF export (~250–300 MB download).
   There is no local rate limiting or prompt audit log, and LLM traffic goes
   straight to your provider.
@@ -137,7 +137,7 @@ Notes:
 
 - **Docker & Docker Compose** (recommended for containerized run)
 - Or for bare-metal development:
-  - **Node.js**: v22+
+  - **Node.js**: v26+
   - **Python**: 3.12+ (or [uv](https://docs.astral.sh/uv/))
 
 ### 2. Configure Environment

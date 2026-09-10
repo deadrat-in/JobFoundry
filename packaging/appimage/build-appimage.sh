@@ -3,7 +3,7 @@
 # JobFoundry - AppImage builder (Linux x86_64, no container required)
 #
 # Assembles a portable AppImage bundling:
-#   - Node.js 22 (portable tarball from nodejs.org)
+#   - Node.js 26 (portable tarball from nodejs.org)
 #   - Python 3.12 (via uv's python-build-standalone distribution)
 #   - chrome-headless-shell (chrome-for-testing, ~50 MB instead of ~300 MB
 #     full Chromium) for Puppeteer PDF rendering
@@ -17,7 +17,7 @@
 #   packaging/appimage/build-appimage.sh
 #
 # Env overrides:
-#   NODE_MAJOR=22  PYTHON_SERIES=3.12  APP_VERSION=0.1.0
+#   NODE_MAJOR=26  PYTHON_SERIES=3.12  APP_VERSION=0.1.0
 #   UV_VERSION=0.12.12  APPIMAGETOOL_VERSION=1.9.1  CHROME_VERSION=153.0.8010.36
 #   BUILD_DIR=<workdir>  OUTPUT_DIR=<artifact dir>  SKIP_WEB_BUILD=1
 #
@@ -31,7 +31,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-NODE_MAJOR="${NODE_MAJOR:-22}"
+NODE_MAJOR="${NODE_MAJOR:-26}"
 PYTHON_SERIES="${PYTHON_SERIES:-3.12}"
 APP_VERSION="${APP_VERSION:-${GITHUB_REF_NAME:-}}"
 APP_VERSION="${APP_VERSION#v}"
