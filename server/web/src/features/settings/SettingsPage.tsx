@@ -1596,9 +1596,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                         fontSize: '0.85rem',
                       }}
                     >
-                      <span style={{ color: 'var(--text-secondary)' }}>
-                        LLM provider endpoint:
-                      </span>
+                      <span style={{ color: 'var(--text-secondary)' }}>LLM provider endpoint:</span>
                       <code>{formSettings.scorer_api_base || 'Not configured'}</code>
                     </div>
                   </div>
