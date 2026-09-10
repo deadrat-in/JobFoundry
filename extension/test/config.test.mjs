@@ -107,3 +107,142 @@ test('fetchSeedConfig retrieves config bundle from server', async () => {
   assert.equal(seed.apiKey, 'seed-token-123');
   assert.equal(seed.fitThreshold, 80);
 });
+
+test('syncConfigFromServer updates local config from server API', async () => {
+  const { syncConfigFromServer, getConfig } = await import('../src/shared/config.ts');
+  const store = {};
+  const mockStorage = {
+    async get(key) {
+      return { [key]: store[key] };
+    },
+    async set(obj) {
+      Object.assign(store, obj);
+    },
+  };
+
+  const mockFetch = async (url, options) => {
+    assert.ok(url.endsWith('/api/v1/extension/config'));
+    assert.equal(options.headers.Authorization, 'Bearer test-key');
+    return {
+      ok: true,
+      json: async () => ({
+        ok: true,
+        config: {
+          titleFilter: { positive: ['AI Engineer'], negative: ['junior'] },
+          portals: { himalayas: true, remoteok: true },
+          scanIntervalHours: 12,
+        },
+      }),
+    };
+  };
+
+  const updated = await syncConfigFromServer('http://127.0.0.1:8080', 'test-key', {
+    fetchImpl: mockFetch,
+    storageImpl: mockStorage,
+  });
+
+  assert.equal(updated.serverUrl, 'http://127.0.0.1:8080');
+  assert.equal(updated.apiKey, 'test-key');
+  assert.deepEqual(updated.titleFilter.positive, ['AI Engineer']);
+  assert.equal(updated.portals.remoteok, true);
+  assert.equal(updated.scanIntervalHours, 12);
+});
+
+test('syncConfigFromServer preserves cached local config if server fetch fails', async () => {
+  const { syncConfigFromServer, setConfig, getConfig } = await import('../src/shared/config.ts');
+  const store = {};
+  const mockStorage = {
+    async get(key) {
+      return { [key]: store[key] };
+    },
+    async set(obj) {
+      Object.assign(store, obj);
+    },
+  };
+
+  await setConfig({
+    serverUrl: 'http://cached-server:8080',
+    apiKey: 'cached-key',
+    scanIntervalHours: 4,
+  }, { storageImpl: mockStorage });
+
+  const failingFetch = async () => {
+    throw new Error('Network offline');
+  };
+
+  const config = await syncConfigFromServer('http://cached-server:8080', 'cached-key', {
+    fetchImpl: failingFetch,
+    storageImpl: mockStorage,
+  });
+
+  assert.equal(config.serverUrl, 'http://cached-server:8080');
+  assert.equal(config.scanIntervalHours, 4);
+});
+
+test('enqueueOfflineJobs and flushOfflineJobs manage queue and retry on connect', async () => {
+  const { enqueueOfflineJobs, getOfflineQueue, flushOfflineJobs, clearOfflineQueue } = await import('../src/shared/config.ts');
+  const store = {};
+  const mockStorage = {
+    async get(key) {
+      return { [key]: store[key] };
+    },
+    async set(obj) {
+      Object.assign(store, obj);
+    },
+    async remove(key) {
+      delete store[key];
+    },
+  };
+
+  await clearOfflineQueue({ storageImpl: mockStorage });
+  const initial = await getOfflineQueue({ storageImpl: mockStorage });
+  assert.equal(initial.length, 0);
+
+  const jobs = [
+    { title: 'Job 1', company: 'Acme', url: 'https://acme.com/1', fingerprint: 'fp1' },
+    { title: 'Job 2', company: 'Beta', url: 'https://beta.com/2', fingerprint: 'fp2' },
+  ];
+
+  await enqueueOfflineJobs(jobs, { storageImpl: mockStorage });
+  // Adding duplicates should deduplicate
+  await enqueueOfflineJobs([jobs[0]], { storageImpl: mockStorage });
+
+  const queued = await getOfflineQueue({ storageImpl: mockStorage });
+  assert.equal(queued.length, 2);
+
+  // When sendJobs fails (e.g. still offline), queue is preserved
+  const failedFlush = await flushOfflineJobs(
+    async () => {
+      throw new Error('Connection refused');
+    },
+    {
+      storageImpl: mockStorage,
+      getConfig: async () => ({ serverUrl: 'http://localhost:8080', apiKey: 'test' }),
+    }
+  );
+  assert.equal(failedFlush.flushed, 0);
+  assert.equal(failedFlush.remaining, 2);
+  const stillQueued = await getOfflineQueue({ storageImpl: mockStorage });
+  assert.equal(stillQueued.length, 2);
+
+  // When sendJobs succeeds, queue is cleared
+  const sent = [];
+  const successFlush = await flushOfflineJobs(
+    async ({ jobs }) => {
+      sent.push(...jobs);
+      return { ok: true };
+    },
+    {
+      storageImpl: mockStorage,
+      getConfig: async () => ({ serverUrl: 'http://localhost:8080', apiKey: 'test' }),
+    }
+  );
+
+  assert.equal(successFlush.flushed, 2);
+  assert.equal(successFlush.remaining, 0);
+  assert.equal(sent.length, 2);
+
+  const finalQueue = await getOfflineQueue({ storageImpl: mockStorage });
+  assert.equal(finalQueue.length, 0);
+});
+

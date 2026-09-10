@@ -389,6 +389,53 @@ export class ApiClient {
       body: JSON.stringify(payload),
     });
   }
+
+  async getExtensionConfig(): Promise<ExtensionConfig> {
+    return this.request<ExtensionConfig>('/api/v1/extension/config');
+  }
+
+  async updateExtensionConfig(
+    patch: Partial<ExtensionConfig>
+  ): Promise<{ ok: boolean; config: ExtensionConfig }> {
+    return this.request<{ ok: boolean; config: ExtensionConfig }>('/api/v1/extension/config', {
+      method: 'PUT',
+      body: JSON.stringify(patch),
+    });
+  }
+}
+
+export interface TitleFilterConfig {
+  positive: string[];
+  negative: string[];
+}
+
+export interface LocationFilterConfig {
+  allow: string[];
+  block: string[];
+}
+
+export interface TrackedCompany {
+  id: string;
+  name: string;
+  careers_url: string;
+  enabled: boolean;
+}
+
+export interface ExtensionConfig {
+  serverUrl?: string | null;
+  apiKey?: string | null;
+  userEmail?: string | null;
+  fitThreshold?: number;
+  scanIntervalHours: number;
+  passiveMode: boolean;
+  activeMode: boolean;
+  activeModeDelayMs?: number;
+  maxPostingAgeDays: number;
+  titleFilter: TitleFilterConfig;
+  locationFilter: LocationFilterConfig;
+  portals: Record<string, boolean | any>;
+  trackedCompanies: TrackedCompany[];
+  updatedAt?: number | null;
 }
 
 export interface SettingMeta {

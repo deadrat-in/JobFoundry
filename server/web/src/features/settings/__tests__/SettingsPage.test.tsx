@@ -64,6 +64,17 @@ describe('SettingsPage', () => {
       },
     });
 
+    vi.spyOn(api, 'getExtensionConfig').mockResolvedValue({
+      scanIntervalHours: 6,
+      passiveMode: true,
+      activeMode: false,
+      maxPostingAgeDays: 30,
+      titleFilter: { positive: [], negative: [] },
+      locationFilter: { allow: [], block: [] },
+      portals: {},
+      trackedCompanies: [],
+    });
+
     vi.spyOn(api, 'getDiagnostics').mockResolvedValue({
       status: 'healthy',
       uptime: 3600,

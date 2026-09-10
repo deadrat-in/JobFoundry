@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../api/client';
 import { loadSettings } from '../../lib/auth';
@@ -133,6 +134,38 @@ export const ExtensionSyncView: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Scrapers & Search Filters Promotion Banner */}
+      <div
+        style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '1.25rem 1.5rem',
+          marginBottom: '2rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '1rem',
+          flexWrap: 'wrap',
+        }}
+      >
+        <div>
+          <div style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '0.25rem' }}>
+            🎯 Unified Scrapers & Search Filters
+          </div>
+          <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+            Configure target role keywords, negative exclusion terms, location rules, and scraper portal feeds directly in your Web Dashboard.
+          </div>
+        </div>
+        <Link
+          to="/settings?tab=scrapers"
+          className="btn btn-secondary btn-sm"
+          style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+        >
+          Open Scraper Settings →
+        </Link>
       </div>
 
       {/* Connection Details (Manual fallback) */}

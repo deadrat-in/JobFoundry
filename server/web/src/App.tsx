@@ -169,7 +169,7 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
             style={{ width: 26, height: 26, borderRadius: 6, objectFit: 'contain' }}
           />
           <span>
-            Job<span className="brand-gradient">Foundry</span>
+            <span>Job</span><span className="brand-gradient">Foundry</span>
           </span>
         </div>
 

@@ -1,6 +1,12 @@
 import { defineBackground } from 'wxt/utils/define-background';
 import { onMessage } from '../shared/messaging.ts';
-import { getConfig, setConfig } from '../shared/config.ts';
+import {
+  getConfig,
+  setConfig,
+  syncConfigFromServer,
+  enqueueOfflineJobs,
+  flushOfflineJobs,
+} from '../shared/config.ts';
 import type { Config } from '../shared/config.ts';
 import { runScanPipeline } from '../background/scan.js';
 import { sendJobs } from '../shared/ingest-client.js';
@@ -49,11 +55,16 @@ export async function processDiscoveredJobs({
 
   const deduped = await dedupJobs(survivors, dedupCache, { now: now() });
   if (deduped.length > 0) {
-    await sendJobs({
-      serverUrl: config.serverUrl,
-      apiKey: config.apiKey,
-      jobs: deduped,
-    });
+    try {
+      await sendJobs({
+        serverUrl: config.serverUrl,
+        apiKey: config.apiKey,
+        jobs: deduped,
+      });
+    } catch (sendErr) {
+      await enqueueOfflineJobs(deduped);
+      console.warn('Network issue during job ingest; queued offline for retry:', sendErr);
+    }
   }
 
   return { ok: true, ingested: deduped.length };
@@ -73,6 +84,9 @@ export default defineBackground(() => {
   const syncAlarms = async () => {
     try {
       const config = await getConfig();
+      if (config.serverUrl && config.apiKey) {
+        await syncConfigFromServer(config.serverUrl, config.apiKey).catch(() => {});
+      }
       await api.alarms?.create(SCAN_ALARM_NAME, {
         periodInMinutes: Math.max(1, config.scanIntervalHours * 60),
       });
@@ -88,7 +102,24 @@ export default defineBackground(() => {
   api.alarms?.onAlarm?.addListener(async (alarm: any) => {
     if (alarm.name === SCAN_ALARM_NAME) {
       try {
-        await runScanPipeline({ getConfig, sendJobs });
+        const config = await getConfig();
+        if (config.serverUrl && config.apiKey) {
+          await syncConfigFromServer(config.serverUrl, config.apiKey).catch(() => {});
+          await flushOfflineJobs(sendJobs, { getConfig }).catch(() => {});
+        }
+        await runScanPipeline({
+          getConfig,
+          sendJobs: async (args) => {
+            try {
+              return await sendJobs(args);
+            } catch (err) {
+              if (args.jobs?.length) {
+                await enqueueOfflineJobs(args.jobs);
+              }
+              throw err;
+            }
+          },
+        });
       } catch (err) {
         console.error('Periodic scan error:', err);
       }
@@ -301,6 +332,10 @@ export default defineBackground(() => {
       }
 
       await setConfig(patch);
+      if (extracted.serverUrl && extracted.apiKey) {
+        await syncConfigFromServer(extracted.serverUrl, extracted.apiKey).catch(() => {});
+        await flushOfflineJobs(sendJobs, { getConfig }).catch(() => {});
+      }
 
       return {
         ok: true,
@@ -316,7 +351,24 @@ export default defineBackground(() => {
 
   onMessage('popup:scanNow', async () => {
     try {
-      const jobs = await runScanPipeline({ getConfig, sendJobs });
+      const config = await getConfig();
+      if (config.serverUrl && config.apiKey) {
+        await syncConfigFromServer(config.serverUrl, config.apiKey).catch(() => {});
+        await flushOfflineJobs(sendJobs, { getConfig }).catch(() => {});
+      }
+      const jobs = await runScanPipeline({
+        getConfig,
+        sendJobs: async (args) => {
+          try {
+            return await sendJobs(args);
+          } catch (err) {
+            if (args.jobs?.length) {
+              await enqueueOfflineJobs(args.jobs);
+            }
+            throw err;
+          }
+        },
+      });
       return { ok: true, scanned: Array.isArray(jobs) ? jobs.length : 0 };
     } catch (err: any) {
       return { ok: false, error: err?.message ?? String(err) };

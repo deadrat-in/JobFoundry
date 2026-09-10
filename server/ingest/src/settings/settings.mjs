@@ -464,3 +464,246 @@ export function updateSettings(db, newValues = {}, userId = null) {
   updateTx(newValues);
   return getAllSettings(db, { userId, maskSecrets: true });
 }
+
+export const DEFAULT_EXTENSION_CONFIG = {
+  scanIntervalHours: 6,
+  passiveMode: true,
+  activeMode: false,
+  activeModeDelayMs: 2000,
+  maxPostingAgeDays: 30,
+  titleFilter: {
+    positive: [],
+    negative: ['word:intern', 'junior', '.net', 'php', 'wordpress', 'embedded', 'firmware'],
+  },
+  locationFilter: {
+    allow: ['remote', 'worldwide', 'anywhere'],
+    block: [],
+  },
+  portals: {
+    // Global Remote — ON by default (except ✦ paid-post boards)
+    remoteok: false,
+    weworkremotely: false,
+    himalayas: true,
+    arbeitnow: true,
+    jobspresso: true,
+    '4dayweek': true,
+    remotive: true,
+    workingnomads: true,
+    hackernews: true,
+    cryptocurrencyjobs: true,
+    nodesk: true,
+    larajobs: true,
+    torre: true,
+    themuse: true,
+    landingjobs: true,
+    flowxtra: true,
+    thehub: true,
+    'agentic-jobs': true,
+    // Regional & Niche — ON by default
+    jobicy: true,
+    remotli: true,
+    getonbrd: true,
+    manfred: true,
+    wttj: true,
+    nofluffjobs: true,
+    justjoin: true,
+    solidjobs: true,
+    senjob: true,
+    jobbankca: true,
+    arbeitsagentur: true,
+    vdab: true,
+    higheredjobs: true,
+    glints: true,
+    jobstreet: true,
+    mycareersfuture: true,
+    careerviet: true,
+    itviec: true,
+    yourator: true,
+    // Company-Specific — ON by default
+    ibm: true,
+    amazon: true,
+    'a16z-speedrun-talent': true,
+  },
+  trackedCompanies: [],
+};
+
+/**
+ * Validates a partial or complete extension configuration payload.
+ */
+export function validateExtensionConfig(patch) {
+  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
+    throw new Error('Extension configuration must be an object');
+  }
+
+  if (patch.scanIntervalHours !== undefined) {
+    const num = Number(patch.scanIntervalHours);
+    if (isNaN(num) || num < 1) {
+      throw new Error('scanIntervalHours must be a number >= 1');
+    }
+  }
+
+  if (patch.maxPostingAgeDays !== undefined) {
+    const num = Number(patch.maxPostingAgeDays);
+    if (isNaN(num) || num < 0) {
+      throw new Error('maxPostingAgeDays must be a non-negative number');
+    }
+  }
+
+  if (patch.activeModeDelayMs !== undefined) {
+    const num = Number(patch.activeModeDelayMs);
+    if (isNaN(num) || num < 0) {
+      throw new Error('activeModeDelayMs must be a non-negative number');
+    }
+  }
+
+  if (patch.passiveMode !== undefined && typeof patch.passiveMode !== 'boolean') {
+    throw new Error('passiveMode must be a boolean');
+  }
+
+  if (patch.activeMode !== undefined && typeof patch.activeMode !== 'boolean') {
+    throw new Error('activeMode must be a boolean');
+  }
+
+  if (patch.titleFilter !== undefined) {
+    if (!patch.titleFilter || typeof patch.titleFilter !== 'object' || Array.isArray(patch.titleFilter)) {
+      throw new Error('titleFilter must be an object with positive and negative arrays');
+    }
+    if (patch.titleFilter.positive !== undefined && !Array.isArray(patch.titleFilter.positive)) {
+      throw new Error('titleFilter.positive must be an array of strings');
+    }
+    if (patch.titleFilter.negative !== undefined && !Array.isArray(patch.titleFilter.negative)) {
+      throw new Error('titleFilter.negative must be an array of strings');
+    }
+  }
+
+  if (patch.locationFilter !== undefined) {
+    if (!patch.locationFilter || typeof patch.locationFilter !== 'object' || Array.isArray(patch.locationFilter)) {
+      throw new Error('locationFilter must be an object with allow and block arrays');
+    }
+    if (patch.locationFilter.allow !== undefined && !Array.isArray(patch.locationFilter.allow)) {
+      throw new Error('locationFilter.allow must be an array of strings');
+    }
+    if (patch.locationFilter.block !== undefined && !Array.isArray(patch.locationFilter.block)) {
+      throw new Error('locationFilter.block must be an array of strings');
+    }
+  }
+
+  if (patch.portals !== undefined) {
+    if (!patch.portals || typeof patch.portals !== 'object' || Array.isArray(patch.portals)) {
+      throw new Error('portals must be a key-value object of portal identifiers');
+    }
+  }
+
+  if (patch.trackedCompanies !== undefined && !Array.isArray(patch.trackedCompanies)) {
+    throw new Error('trackedCompanies must be an array');
+  }
+}
+
+/**
+ * Returns the effective extension configuration for a user, falling back to system defaults.
+ */
+export function getExtensionConfig(db, userId = null) {
+  const registered = isRegisteredUser(db, userId);
+
+  let raw = null;
+  if (registered) {
+    try {
+      const row = db
+        .prepare("SELECT value FROM user_settings WHERE user_id = ? AND key = 'extension_config'")
+        .get(userId);
+      if (row?.value) raw = row.value;
+    } catch {
+      // user_settings table missing or query error
+    }
+  }
+
+  if (!raw) {
+    try {
+      const row = db
+        .prepare("SELECT value FROM system_settings WHERE key = 'extension_config'")
+        .get();
+      if (row?.value) raw = row.value;
+    } catch {
+      // system_settings table missing or query error
+    }
+  }
+
+  let stored = {};
+  if (raw) {
+    try {
+      stored = JSON.parse(raw);
+    } catch {
+      stored = {};
+    }
+  }
+
+  return {
+    ...DEFAULT_EXTENSION_CONFIG,
+    ...stored,
+    titleFilter: {
+      ...DEFAULT_EXTENSION_CONFIG.titleFilter,
+      ...(stored.titleFilter || {}),
+    },
+    locationFilter: {
+      ...DEFAULT_EXTENSION_CONFIG.locationFilter,
+      ...(stored.locationFilter || {}),
+    },
+    portals: {
+      ...DEFAULT_EXTENSION_CONFIG.portals,
+      ...(stored.portals || {}),
+    },
+    trackedCompanies: stored.trackedCompanies || DEFAULT_EXTENSION_CONFIG.trackedCompanies,
+  };
+}
+
+/**
+ * Updates extension configuration in SQLite.
+ * Scoped to user_settings for registered users, system_settings for operators/devs.
+ */
+export function updateExtensionConfig(db, userId, patch = {}) {
+  validateExtensionConfig(patch);
+
+  const current = getExtensionConfig(db, userId);
+  const next = {
+    ...current,
+    ...patch,
+    titleFilter: patch.titleFilter
+      ? {
+          positive: patch.titleFilter.positive ?? current.titleFilter.positive,
+          negative: patch.titleFilter.negative ?? current.titleFilter.negative,
+        }
+      : current.titleFilter,
+    locationFilter: patch.locationFilter
+      ? {
+          allow: patch.locationFilter.allow ?? current.locationFilter.allow,
+          block: patch.locationFilter.block ?? current.locationFilter.block,
+        }
+      : current.locationFilter,
+    portals: patch.portals ? { ...current.portals, ...patch.portals } : current.portals,
+    trackedCompanies: patch.trackedCompanies ?? current.trackedCompanies,
+  };
+
+  const now = Date.now();
+  const table = isRegisteredUser(db, userId) ? 'user_settings' : 'system_settings';
+
+  if (table === 'user_settings') {
+    db.prepare(`
+      INSERT INTO user_settings (user_id, key, value, updated_at)
+      VALUES (?, 'extension_config', ?, ?)
+      ON CONFLICT(user_id, key) DO UPDATE SET
+        value = excluded.value,
+        updated_at = excluded.updated_at
+    `).run(userId, JSON.stringify(next), now);
+  } else {
+    db.prepare(`
+      INSERT INTO system_settings (key, value, updated_at)
+      VALUES ('extension_config', ?, ?)
+      ON CONFLICT(key) DO UPDATE SET
+        value = excluded.value,
+        updated_at = excluded.updated_at
+    `).run(JSON.stringify(next), now);
+  }
+
+  return next;
+}
+

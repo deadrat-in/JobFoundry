@@ -330,13 +330,13 @@ export function init(opts: { doc?: Document; [key: string]: any } = {}) {
     setConfig({ activeMode: e.target.checked }).catch(() => {});
   });
 
-  $<HTMLButtonElement>(doc, DOM.openOptions)?.addEventListener('click', () => {
+  $<HTMLButtonElement>(doc, DOM.openOptions)?.addEventListener('click', async () => {
+    const config = await getConfig();
+    const serverUrl = config.serverUrl || 'http://localhost:8080';
+    const url = `${serverUrl.replace(/\/+$/, '')}/settings?tab=scrapers`;
     const api = (globalThis as any).browser ?? (globalThis as any).chrome;
-    const url = api?.runtime?.getURL ? api.runtime.getURL('options.html') : 'options.html';
     if (api?.tabs?.create) {
       api.tabs.create({ url });
-    } else if (api?.runtime?.openOptionsPage) {
-      api.runtime.openOptionsPage();
     } else {
       window.open(url, '_blank');
     }

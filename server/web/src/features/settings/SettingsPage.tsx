@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { AppSettings, DEFAULT_SETTINGS } from '../../lib/auth';
 import { useAuth } from '../../context/AuthContext';
-import { api, SystemSettings, SettingMeta, DiagnosticsInfo } from '../../api/client';
+import { api, SystemSettings, SettingMeta, DiagnosticsInfo, ExtensionConfig } from '../../api/client';
 import { useTheme, ACCENT_THEMES, ColorMode, AccentTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
+import { ScraperSettingsTab } from './ScraperSettingsTab';
+import { extractKeywordsFromResume } from '../../lib/resumeKeywords';
 import {
   Laptop,
   Moon,
@@ -23,6 +25,7 @@ import {
   Lock,
   Unlock,
   Sparkles,
+  Compass,
 } from 'lucide-react';
 
 interface SettingsPageProps {
@@ -30,17 +33,72 @@ interface SettingsPageProps {
   onSaveSettings: (settings: AppSettings) => void;
 }
 
-type SettingsTab = 'general' | 'scorer' | 'tailor' | 'observability' | 'sync' | 'system';
+type SettingsTab = 'general' | 'scorer' | 'tailor' | 'observability' | 'scrapers' | 'sync' | 'system';
+
+const VALID_TABS: SettingsTab[] = [
+  'general',
+  'scorer',
+  'tailor',
+  'observability',
+  'scrapers',
+  'sync',
+  'system',
+];
+
+function getInitialTab(): SettingsTab {
+  if (typeof window !== 'undefined') {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab') as SettingsTab;
+      if (tab && VALID_TABS.includes(tab)) return tab;
+      const hash = window.location.hash.replace('#', '') as SettingsTab;
+      if (hash && VALID_TABS.includes(hash)) return hash;
+    } catch {}
+  }
+  return 'general';
+}
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSettings }) => {
   const { user, refreshUser } = useAuth();
   const { colorMode, setColorMode, accentTheme, setAccentTheme } = useTheme();
   const toast = useToast();
 
-  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+  const [activeTab, setActiveTab] = useState<SettingsTab>(getInitialTab);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [diagnostics, setDiagnostics] = useState<DiagnosticsInfo | null>(null);
+
+  const handleTabChange = (tab: SettingsTab) => {
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tab);
+        window.history.replaceState({}, '', url.toString());
+      } catch {}
+    }
+  };
+
+  // Extension settings state
+  const [extensionConfig, setExtensionConfig] = useState<ExtensionConfig>({
+    scanIntervalHours: 6,
+    passiveMode: true,
+    activeMode: false,
+    activeModeDelayMs: 2000,
+    maxPostingAgeDays: 30,
+    titleFilter: {
+      positive: [],
+      negative: ['word:intern', 'junior', '.net', 'php', 'wordpress', 'embedded', 'firmware'],
+    },
+    locationFilter: {
+      allow: ['remote', 'worldwide', 'anywhere'],
+      block: [],
+    },
+    portals: {},
+    trackedCompanies: [],
+  });
+  const [savingScrapers, setSavingScrapers] = useState(false);
+  const [extractingResume, setExtractingResume] = useState(false);
 
   // System settings state
   const [formSettings, setFormSettings] = useState<SystemSettings>({
@@ -98,9 +156,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
     async function loadData() {
       setLoading(true);
       try {
-        const [settingsRes, diagRes] = await Promise.allSettled([
+        const [settingsRes, diagRes, extRes] = await Promise.allSettled([
           api.getSettings(),
           api.getDiagnostics(),
+          api.getExtensionConfig(),
         ]);
 
         if (settingsRes.status === 'fulfilled') {
@@ -114,6 +173,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
 
         if (diagRes.status === 'fulfilled') {
           setDiagnostics(diagRes.value);
+        }
+
+        if (extRes.status === 'fulfilled') {
+          setExtensionConfig(extRes.value);
         }
       } catch (err: any) {
         toast.error(`Failed to load system settings: ${err?.message || 'Unknown error'}`);
@@ -129,6 +192,51 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
   const handleFieldChange = (key: keyof SystemSettings, val: any) => {
     setFormSettings((prev) => ({ ...prev, [key]: val }));
     setIsDirty(true);
+  };
+
+  const handleSaveExtensionConfig = async () => {
+    setSavingScrapers(true);
+    try {
+      const res = await api.updateExtensionConfig(extensionConfig);
+      if (res.config) {
+        setExtensionConfig(res.config);
+      }
+      toast.success('Scrapers and search filters saved successfully');
+    } catch (err: any) {
+      toast.error(`Failed to save scrapers config: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setSavingScrapers(false);
+    }
+  };
+
+  const handleExtractFromResume = async () => {
+    setExtractingResume(true);
+    try {
+      const activeResume = await api.getActiveResume();
+      if (!activeResume?.resume) {
+        toast.error('No active master resume found. Please upload or activate a resume first.');
+        return;
+      }
+      const titles = extractKeywordsFromResume(activeResume.resume);
+      if (titles.length === 0) {
+        toast.info('No role keywords detected in active resume.');
+        return;
+      }
+      const existing = extensionConfig.titleFilter?.positive || [];
+      const combined = Array.from(new Set([...existing, ...titles]));
+      setExtensionConfig((prev) => ({
+        ...prev,
+        titleFilter: {
+          ...prev.titleFilter,
+          positive: combined,
+        },
+      }));
+      toast.success(`Fetched ${titles.length} role keyword(s) from master resume`);
+    } catch (err: any) {
+      toast.error(`Failed to fetch resume keywords: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setExtractingResume(false);
+    }
   };
 
   const handleSaveAll = async (e?: React.FormEvent) => {
@@ -154,7 +262,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
         payload.opik_api_key = newOpikKey.trim();
       }
 
-      const updated = await api.updateSettings(payload);
+      const [updated] = await Promise.all([
+        api.updateSettings(payload),
+        api.updateExtensionConfig(extensionConfig).catch(() => null),
+      ]);
       setFormSettings((prev) => ({ ...prev, ...updated.settings }));
       setMeta(updated.meta);
 
@@ -403,7 +514,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
       >
         <button
           type="button"
-          onClick={() => setActiveTab('general')}
+          onClick={() => handleTabChange('general')}
           className={`btn btn-sm ${activeTab === 'general' ? 'btn-primary' : 'btn-secondary'}`}
           style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
         >
@@ -411,7 +522,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('scorer')}
+          onClick={() => handleTabChange('scorer')}
           className={`btn btn-sm ${activeTab === 'scorer' ? 'btn-primary' : 'btn-secondary'}`}
           style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
         >
@@ -419,7 +530,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('tailor')}
+          onClick={() => handleTabChange('tailor')}
           className={`btn btn-sm ${activeTab === 'tailor' ? 'btn-primary' : 'btn-secondary'}`}
           style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
         >
@@ -427,7 +538,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('observability')}
+          onClick={() => handleTabChange('observability')}
           className={`btn btn-sm ${activeTab === 'observability' ? 'btn-primary' : 'btn-secondary'}`}
           style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
         >
@@ -435,7 +546,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('sync')}
+          onClick={() => handleTabChange('scrapers')}
+          className={`btn btn-sm ${activeTab === 'scrapers' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+        >
+          <Compass size={15} /> Scrapers & Search Filters
+        </button>
+        <button
+          type="button"
+          onClick={() => handleTabChange('sync')}
           className={`btn btn-sm ${activeTab === 'sync' ? 'btn-primary' : 'btn-secondary'}`}
           style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
         >
@@ -443,7 +562,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('system')}
+          onClick={() => handleTabChange('system')}
           className={`btn btn-sm ${activeTab === 'system' ? 'btn-primary' : 'btn-secondary'}`}
           style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
         >
@@ -1455,6 +1574,18 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                 </div>
               </div>
             </div>
+          )}
+
+          {/* TAB: SCRAPERS & SEARCH FILTERS */}
+          {activeTab === 'scrapers' && (
+            <ScraperSettingsTab
+              config={extensionConfig}
+              onChange={setExtensionConfig}
+              onSave={handleSaveExtensionConfig}
+              saving={savingScrapers}
+              onExtractFromResume={handleExtractFromResume}
+              extractingResume={extractingResume}
+            />
           )}
 
           {/* TAB 6: TELEMETRY & SYSTEM */}
