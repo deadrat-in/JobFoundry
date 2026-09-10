@@ -30,7 +30,7 @@ Within containers and production deployments, `supervisord` coordinates services
 - **Ingest API & SPA** (`:8080`, managed by Supervisor): Serves the React SPA, SQLite DB, auth, SimHash dedup, and the task relay queue.
 - **Fit Scorer** (`:8001`, internal only): Evaluates JDs against candidate resumes.
 - **Resume Tailor** (`:8081`, internal only): LangGraph section-by-section tailoring engine (`resume_ops_api`).
-- **Gatepass Proxy** (`:8318`, internal only): Go reverse proxy with token-bucket rate limiting (20 RPM) and SQLite prompt auditing (`/data/gatepass.db`). All backend LLM requests must route through `:8318`.
+- **LLM providers**: Scorer and tailor call the explicitly configured provider endpoint directly. Set `OPENROUTER_API_BASE`, `OPENAI_BASE_URL`, or an equivalent provider base in the environment.
 
 ### 2.2 Companion Task Relay & SSRF Guardrails
 

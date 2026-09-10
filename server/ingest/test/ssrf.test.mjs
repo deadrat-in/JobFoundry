@@ -64,8 +64,6 @@ test('isBlockedIp allows public IPs and IPv4-mapped public IPs', () => {
 });
 
 test('assertSafeOutboundUrl allows operator-trusted internal gateways', async () => {
-  await assertSafeOutboundUrl('http://127.0.0.1:8318/v1/chat/completions');
-  await assertSafeOutboundUrl('http://localhost:8318/path');
   await assertSafeOutboundUrl('http://127.0.0.1:11434/v1');
   await assertSafeOutboundUrl('http://localhost:11434/v1');
 

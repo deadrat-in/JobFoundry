@@ -111,7 +111,7 @@ test('updateSettings rejects non-string scorer_api_base and tailor_api_base valu
 
   // Verify nothing was stored
   const { settings } = getAllSettings(db, { env: {} });
-  assert.equal(settings.scorer_api_base, 'http://127.0.0.1:8318'); // default unchanged
+  assert.equal(settings.scorer_api_base, ''); // default unchanged
 });
 
 test('isRegisteredUser distinguishes real users from operator identities', () => {

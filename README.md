@@ -123,9 +123,8 @@ Notes:
 
 - The AppImage bundles its own Node.js 22, Python 3.12 and a headless Chromium
   for PDF export (~250–300 MB download).
-- Unlike the container, the AppImage does **not** include the Gatepass LLM
-  proxy: there is no local rate limiting or prompt audit log, and LLM traffic
-  goes straight to your provider.
+  There is no local rate limiting or prompt audit log, and LLM traffic goes
+  straight to your provider.
 - The dashboard port (`8080`) listens on all interfaces, same as
   `docker run -p 8080:8080`. Bindings for the internal services are
   localhost-only.

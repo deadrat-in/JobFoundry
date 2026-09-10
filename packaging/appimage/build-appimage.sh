@@ -10,8 +10,7 @@
 #   - App code: ingest API, scorer + tailor Python services, prebuilt web SPA
 #   - folio-export + puppeteer + resume themes (npm, no bundled Chromium)
 #
-# NOTE: the Gatepass LLM proxy is intentionally NOT bundled. The AppImage
-# talks to the configured LLM provider directly (set OPENROUTER_API_KEY or
+# The AppImage talks to the configured LLM provider directly (set OPENROUTER_API_KEY or
 # equivalent in ~/.local/share/jobfoundry/.env).
 #
 # Usage:

@@ -14,8 +14,6 @@ from src.ssrf_guard import (
 def test_trusted_origins_defaults_and_env(monkeypatch):
     origins = trusted_origins()
     for origin in (
-        "http://127.0.0.1:8318",
-        "http://localhost:8318",
         "http://127.0.0.1:11434",
         "http://localhost:11434",
         "http://127.0.0.1:8081",
@@ -88,8 +86,6 @@ def test_is_blocked_ip_allows_public(ip):
 
 
 def test_assert_safe_url_allows_trusted_gateways():
-    assert_safe_url("http://127.0.0.1:8318/v1/chat/completions")
-    assert_safe_url("http://localhost:8318/path")
     assert_safe_url("http://127.0.0.1:11434/v1")
     assert_safe_url("http://localhost:11434/v1")
     assert_safe_url("http://127.0.0.1:8081/v1")
@@ -159,7 +155,7 @@ def test_pin_request_leaves_ip_literals_untouched():
 
 
 def test_pin_request_leaves_trusted_origins_untouched():
-    request = httpx.Request("POST", "http://localhost:8318/v1/chat/completions")
+    request = httpx.Request("POST", "http://localhost:11434/v1/chat/completions")
     assert _pin_request(request) is request
 
 

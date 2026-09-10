@@ -5,7 +5,7 @@
  * allowlist is no longer viable. Instead we block any destination that resolves
  * to a private / loopback / link-local / reserved IP. Operator-trusted internal
  * gateways (see getTrustedApiBaseOrigins) are exempt so self-hosted deployments
- * (Gatepass on :8318, local Ollama on :11434) keep working.
+ * (local Ollama on :11434) keep working.
  *
  * Three layers, applied per request:
  *   1. assertSafeOutboundUrl() validates scheme/credentials/trusted-origin and

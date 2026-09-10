@@ -5,8 +5,8 @@
 # Usage: Called by AppRun (AppImage) — not meant to be invoked directly.
 #        Use jobfoundry-ctl.sh for user-facing commands.
 #
-# NOTE: The AppImage does NOT bundle the Gatepass LLM proxy. The tailor and
-# scorer services call the configured LLM provider directly. Set your provider
+# NOTE: The tailor and scorer services call the configured LLM provider directly.
+# Set your provider
 # API keys (e.g. OPENROUTER_API_KEY) in "$DATA_DIR/.env".
 # ==============================================================================
 
