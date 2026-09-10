@@ -132,6 +132,48 @@ test('assertSafeOutboundUrl blocks hostnames resolving to private IPs', async ()
   );
 });
 
+test('safeFetch strips bearer credentials on redirect hops', async () => {
+  const { createServer } = await import('node:http');
+
+  const interceptor = createServer((req, res) => {
+    assert.equal(req.headers.authorization, undefined, 'Authorization must be stripped');
+    assert.equal(req.headers.cookie, undefined, 'Cookie must be stripped');
+    assert.equal(req.headers['x-request-id'], 'abc-123', 'non-credential headers survive');
+    res.writeHead(200);
+    res.end('landed');
+  });
+  await new Promise((resolve) => interceptor.listen(0, '127.0.0.1', resolve));
+  const targetPort = interceptor.address().port;
+
+  const source = createServer((_req, res) => {
+    res.writeHead(302, { Location: `http://127.0.0.1:${targetPort}/land` });
+    res.end();
+  });
+  await new Promise((resolve) => source.listen(0, '127.0.0.1', resolve));
+  const sourcePort = source.address().port;
+
+  const env = {
+    ALLOWED_LLM_BASES: `http://127.0.0.1:${sourcePort},http://127.0.0.1:${targetPort}`,
+  };
+
+  const resp = await safeFetch(
+    `http://127.0.0.1:${sourcePort}/hop`,
+    {
+      headers: {
+        Authorization: 'Bearer sk-or-user-secret-999',
+        Cookie: 'session=topsecret',
+        'X-Request-Id': 'abc-123',
+      },
+    },
+    env
+  );
+  assert.equal(resp.status, 200);
+  assert.equal(await resp.text(), 'landed');
+
+  source.close();
+  interceptor.close();
+});
+
 test('safeFetch re-validates every redirect hop', async () => {
   const { createServer } = await import('node:http');
 

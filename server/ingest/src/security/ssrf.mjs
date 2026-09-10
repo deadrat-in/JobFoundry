@@ -280,19 +280,38 @@ function getPinnedAgent(env = process.env) {
   return pinnedAgent;
 }
 
+const CREDENTIAL_HEADERS = ['authorization', 'proxy-authorization', 'cookie', 'cookie2'];
+
+function withoutCredentialHeaders(headers) {
+  const filtered = new Headers(headers ?? {});
+  for (const name of CREDENTIAL_HEADERS) {
+    filtered.delete(name);
+  }
+  return filtered;
+}
+
 /**
  * fetch() with SSRF protection at every layer:
  *  - the target is asserted safe before sending,
  *  - automatic redirects are replaced with a bounded, per-hop-validated loop,
- *  - the connection is pinned to a connect-time re-validated DNS resolution.
+ *  - the connection is pinned to a connect-time re-validated DNS resolution,
+ *  - bearer credentials are stripped on every redirect hop so a provider that
+ *    redirects to another origin can never receive the caller's token.
  */
 export async function safeFetch(url, init = {}, env = process.env) {
   let current = url;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
     await assertSafeOutboundUrl(current, env);
 
+    const hopInit = { ...init };
+    if (hop > 0) {
+      // The redirect target never received the caller's trust: never forward
+      // credential-carrying headers across hops.
+      hopInit.headers = withoutCredentialHeaders(hopInit.headers);
+    }
+
     const response = await undiciFetch(current, {
-      ...init,
+      ...hopInit,
       redirect: 'manual',
       dispatcher: getPinnedAgent(env),
     });

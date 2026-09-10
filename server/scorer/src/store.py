@@ -154,7 +154,13 @@ class JobStore:
         operator's system settings (as scoring does). The api_key NEVER falls
         back to the operator's shared key — only the user's own tailor key, or
         (for backward compatibility with scorer-only setup) the user's own
-        scorer key, is ever forwarded to the tailoring service.
+        scorer key when the user has NOT overridden the tailor provider.
+
+        When a user configures their own tailor model/api_base (a custom
+        provider), the scorer key is NOT forwarded to it — mixing a provider
+        key with an unrelated endpoint is exactly what we must avoid. In that
+        case the tailor key must be explicit, so a missing one resolves to ""
+        and the worker surfaces the setup message instead.
         """
         fallback = fallback or {}
         user_settings = self.get_user_settings(user_id)
@@ -163,11 +169,18 @@ class JobStore:
         def pick(key: str) -> Any:
             return user_settings.get(key) or system.get(key) or ""
 
+        tailor_provider_override = any(
+            user_settings.get(k) for k in ("tailor_model", "tailor_api_base")
+        )
+        tailor_key = user_settings.get("tailor_api_key")
+        scorer_key = user_settings.get("scorer_api_key")
+
         return {
             "model": pick("tailor_model") or fallback.get("model"),
             "api_base": pick("tailor_api_base") or fallback.get("api_base"),
-            "api_key": user_settings.get("tailor_api_key") or fallback.get("api_key"),
-            "has_user_tailor_key": bool(user_settings.get("tailor_api_key")),
+            "api_key": tailor_key
+            or ("" if tailor_provider_override else (scorer_key or fallback.get("api_key"))),
+            "has_user_tailor_key": bool(tailor_key),
         }
 
 

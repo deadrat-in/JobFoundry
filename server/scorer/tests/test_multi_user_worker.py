@@ -309,6 +309,68 @@ async def test_multi_user_worker_scoring_and_isolation(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_get_user_effective_tailor_partial_provider_never_mixes_keys(tmp_path):
+    store = JobStore(db_path=str(tmp_path / "t.db"))
+    store.init_schema(SCHEMA_SQL)
+    now = 1700000000000
+
+    store.conn.execute(
+        "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ("u_custom", "custom@example.com", "hash", "Custom", "key_c", now, now),
+    )
+    store.conn.execute(
+        "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ("u_scorer_only", "scorer@example.com", "hash", "Scorer", "key_s", now, now),
+    )
+    store.conn.execute(
+        "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ("u_full", "full@example.com", "hash", "Full", "key_f", now, now),
+    )
+
+    # Partial custom provider: custom api_base/model but NO tailor key.
+    # The user's SCORER key must NOT be forwarded to that custom provider.
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_custom", "scorer_api_key", "sk-scorer-custom-1", now),
+    )
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_custom", "tailor_api_base", "https://tailor-custom.example.com/v1", now),
+    )
+    custom = store.get_user_effective_tailor(
+        "u_custom", fallback={"model": "m", "api_base": "b", "api_key": "sk-scorer-custom-1"}
+    )
+    assert custom["api_base"] == "https://tailor-custom.example.com/v1"
+    assert custom["api_key"] == ""
+    assert custom["has_user_tailor_key"] is False
+
+    # Scorer-only setup keeps backward-compatible key inheritance
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_scorer_only", "scorer_api_key", "sk-scorer-only-7", now),
+    )
+    scorer_only = store.get_user_effective_tailor("u_scorer_only", fallback={})
+    assert scorer_only["api_key"] == "sk-scorer-only-7"
+
+    # Full tailor trio uses the explicit tailor key
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_full", "tailor_model", "full/tailor/model", now),
+    )
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_full", "tailor_api_base", "https://tailor-full.example.com/v1", now),
+    )
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_full", "tailor_api_key", "sk-tailor-full-3", now),
+    )
+    full = store.get_user_effective_tailor("u_full", fallback={})
+    assert full["api_key"] == "sk-tailor-full-3"
+    assert full["has_user_tailor_key"] is True
+
+
+@pytest.mark.asyncio
 async def test_multi_user_worker_no_key_failure_never_falls_back_to_legacy(tmp_path):
     """
     All selected user jobs missing a BYOK key must be marked score_failed and
