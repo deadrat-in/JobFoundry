@@ -39,6 +39,21 @@ class JobStore:
         self._ensure_migrations()
 
     def _ensure_migrations(self) -> None:
+        # Keep in sync with the shared schema in server/ingest/src/db/schema.sql:
+        # user_settings must cascade with the users row so a deleted/re-created
+        # user id can never resurrect stale (potentially secret) settings.
+        self.conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_settings (
+              user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+              key TEXT NOT NULL,
+              value TEXT NOT NULL,
+              updated_at INTEGER NOT NULL,
+              PRIMARY KEY (user_id, key)
+            )
+            """
+        )
+        self.conn.commit()
         try:
             self.conn.execute("ALTER TABLE jobs ADD COLUMN attempt_count INTEGER NOT NULL DEFAULT 0")
             self.conn.commit()
@@ -46,21 +61,6 @@ class JobStore:
             pass
         try:
             self.conn.execute("ALTER TABLE user_jobs ADD COLUMN attempt_count INTEGER NOT NULL DEFAULT 0")
-            self.conn.commit()
-        except sqlite3.OperationalError:
-            pass
-        try:
-            self.conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS user_settings (
-                  user_id TEXT NOT NULL,
-                  key TEXT NOT NULL,
-                  value TEXT NOT NULL,
-                  updated_at INTEGER NOT NULL,
-                  PRIMARY KEY (user_id, key)
-                )
-                """
-            )
             self.conn.commit()
         except sqlite3.OperationalError:
             pass
@@ -140,6 +140,34 @@ class JobStore:
             "api_base": pick("scorer_api_base", defaults.get("api_base")),
             "api_key": user_settings.get("scorer_api_key", ""),
             "has_user_key": bool(user_settings.get("scorer_api_key")),
+        }
+
+    def get_user_effective_tailor(
+        self,
+        user_id: str,
+        fallback: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Resolves the LLM settings used for a single user's automated tailoring.
+
+        The user's tailor_* settings win; model/api_base may fall back to the
+        operator's system settings (as scoring does). The api_key NEVER falls
+        back to the operator's shared key — only the user's own tailor key, or
+        (for backward compatibility with scorer-only setup) the user's own
+        scorer key, is ever forwarded to the tailoring service.
+        """
+        fallback = fallback or {}
+        user_settings = self.get_user_settings(user_id)
+        system = self.get_system_settings()
+
+        def pick(key: str) -> Any:
+            return user_settings.get(key) or system.get(key) or ""
+
+        return {
+            "model": pick("tailor_model") or fallback.get("model"),
+            "api_base": pick("tailor_api_base") or fallback.get("api_base"),
+            "api_key": user_settings.get("tailor_api_key") or fallback.get("api_key"),
+            "has_user_tailor_key": bool(user_settings.get("tailor_api_key")),
         }
 
 

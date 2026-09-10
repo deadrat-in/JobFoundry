@@ -32,6 +32,7 @@ async def process_unscored_user_jobs(
     """
     unscored = store.get_unscored_user_jobs(limit=limit)
     processed = 0
+    handled = 0
     passed = 0
     rejected = 0
     tailored = 0
@@ -51,6 +52,7 @@ async def process_unscored_user_jobs(
             )
             continue
 
+        handled += 1
         try:
             job_dict = {
                 "id": job_id,
@@ -103,22 +105,25 @@ async def process_unscored_user_jobs(
                 passed += 1
 
                 if tailor_bridge and tailor_bridge.base_url:
+                    # Tailoring uses the user's tailor_* settings (own key only),
+                    # not the scorer settings used for scoring.
+                    tailor_llm = store.get_user_effective_tailor(user_id, fallback=user_llm)
                     try:
                         tailor_res = await tailor_bridge.tailor(
                             job=job_dict,
                             master_resume=resume,
                             theme="jsonresume-theme-folio",
-                            model=user_llm.get("model"),
-                            api_key=user_llm.get("api_key"),
-                            api_base=user_llm.get("api_base"),
+                            model=tailor_llm.get("model"),
+                            api_key=tailor_llm.get("api_key"),
+                            api_base=tailor_llm.get("api_base"),
                         )
                         concise_res = await tailor_bridge.tailor(
                             job=job_dict,
                             master_resume=resume,
                             theme="jsonresume-theme-folio-concise",
-                            model=user_llm.get("model"),
-                            api_key=user_llm.get("api_key"),
-                            api_base=user_llm.get("api_base"),
+                            model=tailor_llm.get("model"),
+                            api_key=tailor_llm.get("api_key"),
+                            api_base=tailor_llm.get("api_base"),
                         )
 
                         if tailor_res and tailor_res.status == "completed":
@@ -169,6 +174,7 @@ async def process_unscored_user_jobs(
 
     return {
         "processed": processed,
+        "handled": handled,
         "passed": passed,
         "rejected": rejected,
         "tailored": tailored,
@@ -198,7 +204,15 @@ async def process_unscored_jobs(
             default_master_resume=master_resume,
             limit=limit,
         )
-        if user_jobs_result["processed"] > 0:
+        # Fall back to the single-tenant jobs table only when the multi-user pass
+        # found nothing at all to work on. Rows that were present but failed
+        # (e.g. BYOK: user has no API key → score_failed) still count as handled,
+        # so those failures are reported and never cause the shared catalog to be
+        # re-scored on the operator's key by accident.
+        if (
+            user_jobs_result["processed"] > 0
+            or user_jobs_result["handled"] > 0
+        ):
             return user_jobs_result
 
     # Fallback to single-tenant jobs table
