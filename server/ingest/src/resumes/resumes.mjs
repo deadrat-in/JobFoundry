@@ -19,7 +19,7 @@ export function validateResumeJson(input) {
     try {
       parsed = JSON.parse(input);
     } catch (e) {
-      throw new Error(`Invalid JSON format: ${e.message}`);
+      throw new Error(`Invalid JSON format: ${e.message}`, { cause: e });
     }
   } else if (typeof input === 'object' && input !== null) {
     parsed = input;

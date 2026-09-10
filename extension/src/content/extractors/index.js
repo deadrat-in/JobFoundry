@@ -43,7 +43,7 @@ export function extractJobsFromDocument(doc) {
     return [];
   }
 
-  let results = [];
+  let results;
   switch (platform) {
     case 'linkedin':
       results = extractLinkedIn(doc);

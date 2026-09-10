@@ -11,7 +11,7 @@ const SCRATCH_CAREER_OPS = '/home/anu/Workspace/Public/Job/Scratch/career-ops';
 const fromExists = existsSync(join(SCRATCH_CAREER_OPS, 'providers'));
 
 function run(args, { ok } = {}) {
-  let out = '';
+  let out;
   try {
     out = execFileSync(process.execPath, args, { encoding: 'utf8' });
   } catch (err) {

@@ -196,7 +196,7 @@ export async function assertSafeOutboundUrl(
     return;
   }
 
-  let addresses = [];
+  let addresses;
   try {
     const res = await resolveHostname(hostname, { all: true, family: 0, verbatim: true });
     addresses = Array.isArray(res) ? res : [{ address: res.address }];

@@ -206,7 +206,7 @@ export async function assertSafeDestination(
   }
 
   // DNS resolution check
-  let addresses = [];
+  let addresses;
   if (typeof lookupImpl === 'function') {
     addresses = await lookupImpl(hostname);
   } else {

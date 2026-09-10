@@ -280,7 +280,7 @@ export function getAllSettings(db, { userId = null, maskSecrets = true, env = pr
     }
 
     let rawVal;
-    let source = 'default';
+    let source;
     let updatedAt = null;
 
     if (userSettings.has(key)) {

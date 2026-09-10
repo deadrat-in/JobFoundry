@@ -70,7 +70,7 @@ test('registry static index covers every provider with a unique id', async () =>
 test('every lifted provider test passes (93 files, failed === 0)', async () => {
   const failures = [];
   for (const f of liftedTests) {
-    let stdout = '';
+    let stdout;
     try {
       stdout = execFileSync(process.execPath, [join(TESTS, f)], {
         encoding: 'utf8',
