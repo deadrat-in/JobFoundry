@@ -32,6 +32,13 @@ app = build_app()
 
 def main():
     config = load_config()
+    if os.getenv("USE_STUB_LLM", "").lower() not in ("1", "true", "yes") and (
+        not config.scorer_api_base or not config.scorer_api_base.strip()
+    ):
+        raise RuntimeError(
+            "No LLM API base configured. Set OPENROUTER_API_BASE, "
+            "SCORER_API_BASE, or OPENAI_API_BASE in the environment."
+        )
     uvicorn.run("src.main:app", host=config.host, port=config.port, reload=False)
 
 

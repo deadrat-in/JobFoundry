@@ -11,7 +11,6 @@ JobFoundry is structured as an npm multi-workspace repository:
 ```
 JobFoundry/
 ├── bin/
-│   └── gatepass        # Local Go LLM rate limiting reverse proxy
 ├── extension/          # WXT-based Browser Extension (MV3 / Firefox)
 ├── server/
 │   ├── ingest/         # Fastify REST API, SQLite DB, multi-tenant auth, SimHash dedup
@@ -78,18 +77,7 @@ uv run python -m resume_ops_api
 
 - Runs by default on `http://localhost:8081`
 
-### 4. Gatepass Rate Limiter Proxy (`bin/gatepass`)
-
-Gatepass is a lightweight Go reverse proxy that sits between backend services and external LLMs, enforcing token bucket rate limiting (20 RPM) and logging usage into SQLite.
-
-```bash
-cd bin/gatepass
-go run main.go
-```
-
-- Runs on port `8318` by default
-
-### 5. Web Dashboard (`server/web`)
+### 4. Web Dashboard (`server/web`)
 
 The web UI is a React 19 Single Page Application built with Vite and Tailwind/Vanilla CSS.
 
@@ -101,7 +89,7 @@ npm run dev
 
 - Accessible at `http://localhost:5173`
 
-### 6. Browser Extension (`extension`)
+### 5. Browser Extension (`extension`)
 
 Built using the [WXT](https://wxt.dev/) framework for Manifest V3.
 

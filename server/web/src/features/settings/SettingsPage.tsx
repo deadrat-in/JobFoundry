@@ -47,13 +47,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
     scorer_model: 'openrouter/google/gemini-2.0-flash-exp:free',
     scorer_provider: 'openrouter',
     scorer_api_key: '',
-    scorer_api_base: 'http://127.0.0.1:8318',
+    scorer_api_base: '',
     scorer_threshold: settings.threshold || 75,
     worker_enabled: true,
     worker_poll_interval_seconds: 10,
     tailor_model: 'openrouter/google/gemini-2.0-flash-exp:free',
     tailor_api_key: '',
-    tailor_api_base: 'http://127.0.0.1:8318',
+    tailor_api_base: '',
     tailor_theme: 'jsonresume-theme-folio',
     tailor_timeout_seconds: 900,
     opik_enabled: false,
@@ -744,7 +744,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                     value={formSettings.scorer_api_base}
                     onChange={(e) => handleFieldChange('scorer_api_base', e.target.value)}
                     className="input-text"
-                    placeholder="http://127.0.0.1:8318 or https://openrouter.ai/api/v1"
+                    placeholder="https://openrouter.ai/api/v1"
                   />
                   <span
                     style={{
@@ -754,8 +754,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                       display: 'block',
                     }}
                   >
-                    Use <code>http://127.0.0.1:8318</code> for internal rate-limited Gatepass proxy,
-                    or direct provider URL.
+                    Set the direct provider URL, for example
+                    <code>https://openrouter.ai/api/v1</code>.
                   </span>
                 </div>
 
@@ -1072,7 +1072,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                         }}
                       >
                         <Lock size={14} style={{ color: 'var(--accent-primary)' }} />
-                        {formSettings.tailor_api_key || 'Inherited from Scorer / Gatepass proxy'}
+                        {formSettings.tailor_api_key || 'Inherited from the configured provider'}
                       </div>
                       <button
                         type="button"
@@ -1596,10 +1596,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                         fontSize: '0.85rem',
                       }}
                     >
-                      <span style={{ color: 'var(--text-secondary)' }}>
-                        Internal Gatepass Proxy:
-                      </span>
-                      <code>http://127.0.0.1:8318 (RPM: 20)</code>
+                      <span style={{ color: 'var(--text-secondary)' }}>LLM provider endpoint:</span>
+                      <code>{formSettings.scorer_api_base || 'Not configured'}</code>
                     </div>
                   </div>
                 </div>

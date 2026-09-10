@@ -24,7 +24,7 @@ export const SETTINGS_METADATA = {
   },
   scorer_api_base: {
     env: ['OPENROUTER_API_BASE', 'SCORER_API_BASE'],
-    default: 'http://127.0.0.1:8318',
+    default: '',
     type: 'string',
   },
   scorer_threshold: {
@@ -55,7 +55,7 @@ export const SETTINGS_METADATA = {
   },
   tailor_api_base: {
     env: ['OPENAI_BASE_URL', 'OPENAI_API_BASE', 'OPENROUTER_API_BASE'],
-    default: 'http://127.0.0.1:8318',
+    default: '',
     type: 'string',
   },
   tailor_theme: {
@@ -108,7 +108,7 @@ export const SETTINGS_METADATA = {
 
 /**
  * Operator-trusted origins for local/internal LLM gateways (e.g. the bundled
- * Gatepass proxy at :8318 or a local Ollama at :11434).
+ * a local Ollama at :11434).
  *
  * SSRF protection is now connection-time IP-range blocking (see
  * security/ssrf.mjs): any api_base host that resolves to a public IP is
@@ -121,8 +121,6 @@ export const SETTINGS_METADATA = {
  */
 export function getTrustedApiBaseOrigins(env = process.env) {
   const defaults = [
-    'http://127.0.0.1:8318',
-    'http://localhost:8318',
     'http://127.0.0.1:11434',
     'http://localhost:11434',
     'http://127.0.0.1:8081',

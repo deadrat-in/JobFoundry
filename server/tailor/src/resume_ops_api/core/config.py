@@ -111,6 +111,7 @@ class Settings(BaseSettings):
     max_concurrent_jobs: int = 2
     callback_timeout_seconds: int = 5
     openai_api_key: str | None = None
+    openrouter_api_base: str | None = None
     anthropic_api_key: str | None = None
     gemini_api_key: str | None = None
     openai_base_url: str | None = None
@@ -177,5 +178,7 @@ class Settings(BaseSettings):
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    return Settings()
-
+    settings = Settings()
+    if not settings.openai_base_url or not settings.openai_base_url.strip():
+        settings.openai_base_url = settings.openrouter_api_base
+    return settings

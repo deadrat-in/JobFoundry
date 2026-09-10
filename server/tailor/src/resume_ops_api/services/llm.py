@@ -17,7 +17,7 @@ ModelT = TypeVar("ModelT", bound=BaseModel)
 # API base URL SSRF guard (connection-time IP-range blocking)
 # Replaces the static provider allowlist: any public-host api_base is permitted
 # (BYOK), while private/loopback/link-local destinations are blocked unless the
-# origin is operator-trusted (Gatepass :8318, local Ollama :11434, or anything
+# origin is operator-trusted (local Ollama :11434, or anything
 # listed in ALLOWED_LLM_BASES). Wire-in happens at import for defense-in-depth.
 # ---------------------------------------------------------------------------
 
@@ -465,4 +465,3 @@ class StructuredLLMClient:
                 status_code=502,
                 details={"model": model, "error": str(exc)},
             ) from exc
-

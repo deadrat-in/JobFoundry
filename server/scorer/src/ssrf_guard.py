@@ -4,7 +4,7 @@ Connection-time SSRF guard for outbound LLM requests.
 BYOK lets users supply arbitrary api_base hostnames, so the static provider
 allowlist is no longer viable. We block any destination whose host resolves to a
 private / loopback / link-local / reserved IP, while exempting operator-trusted
-internal gateways (Gatepass :8318, local Ollama :11434, plus anything listed in
+internal gateways (local Ollama :11434, plus anything listed in
 the ALLOWED_LLM_BASES env var) so self-hosted deployments keep working.
 
 litellm does not expose a hook to inject a custom httpx transport per call, so we:
@@ -55,8 +55,6 @@ BLOCKED_V6 = [
 ]
 
 TRUSTED_DEFAULT_ORIGINS = {
-    "http://127.0.0.1:8318",
-    "http://localhost:8318",
     "http://127.0.0.1:11434",
     "http://localhost:11434",
     "http://127.0.0.1:8081",

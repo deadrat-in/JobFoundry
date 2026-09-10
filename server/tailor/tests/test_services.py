@@ -900,8 +900,7 @@ class TestApiBaseValidation:
         assert exc_info.value.status_code == 400
 
     def test_trusted_internal_gateways_allowed(self) -> None:
-        # Operator-trusted Gatepass / local Ollama remain usable
-        _validate_api_base("http://127.0.0.1:8318/v1")
+        # Operator-trusted local Ollama remains usable
         _validate_api_base("http://localhost:11434")
 
     def test_malformed_ports_rejected_as_app_error(self) -> None:
@@ -954,7 +953,6 @@ class TestApiBaseValidation:
             _validate_api_base("https://evil-attacker.invalid/v1")
         assert exc_info.value.code == "ssrf_api_base_blocked"
         assert exc_info.value.status_code == 400
-
 
 
 

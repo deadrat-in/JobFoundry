@@ -50,6 +50,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     TAILOR_TIMEOUT_SECONDS=900 \
     TAILOR_TIMEOUT_MS=1800000 \
     LLM_REQUEST_TIMEOUT=600 \
+    OPENROUTER_API_BASE="" \
+    OPENAI_API_BASE="" \
+    OPENAI_BASE_URL="" \
+    SCORER_API_BASE="" \
     OPENAI_API_KEY="" \
     OPENROUTER_API_KEY="" \
     LLM_RATE_LIMIT_REQUESTS=20 \
@@ -73,10 +77,6 @@ RUN apt-get update \
 
 # 2. Install uv for fast Python dependency installation
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
-
-# 2b. Install Gatepass LLM Proxy
-COPY bin/gatepass /usr/local/bin/gatepass
-RUN chmod +x /usr/local/bin/gatepass
 
 WORKDIR /app
 
