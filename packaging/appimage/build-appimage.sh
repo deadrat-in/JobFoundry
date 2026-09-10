@@ -19,7 +19,7 @@
 #
 # Env overrides:
 #   NODE_MAJOR=22  PYTHON_SERIES=3.12  APP_VERSION=0.1.0
-#   UV_VERSION=0.12.12  APPIMAGETOOL_VERSION=1.9.1
+#   UV_VERSION=0.12.12  APPIMAGETOOL_VERSION=1.9.1  CHROME_VERSION=153.0.8010.36
 #   BUILD_DIR=<workdir>  OUTPUT_DIR=<artifact dir>  SKIP_WEB_BUILD=1
 #
 # Requirements on the build host: curl, tar, unzip, xz, patchelf-free
@@ -101,12 +101,13 @@ UV_PY_HOME="$(find "$WORK/uvpython" -maxdepth 1 -type d -name "cpython-${PYTHON_
 [ -d "$UV_PY_HOME" ] || { echo "[appimage] ERROR: uv python install produced no interpreter" >&2; exit 1; }
 echo "[appimage] python: $(basename "$UV_PY_HOME")"
 
-# --- chrome-headless-shell: stable channel from chrome-for-testing ---
-CHROME_VERSION="$(curl -fsSL --retry 5 --retry-delay 10 https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions.json \
-  | pyjson "print(data['channels']['Stable']['version'])")"
+# --- chrome-headless-shell: pinned & SHA-verified from chrome-for-testing ---
+CHROME_VERSION="${CHROME_VERSION:-153.0.8010.36}"
+CHROME_SHA256="${CHROME_SHA256:-a0079df5617da34bcd1debad18196568b072ec3d8ec57944008972a4fc970580}"
 echo "[appimage] chrome-headless-shell: $CHROME_VERSION"
 CHROME_ZIP="chrome-headless-shell-linux64.zip"
 download "https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/${CHROME_ZIP}" "$WORK/$CHROME_ZIP"
+echo "${CHROME_SHA256}  $WORK/$CHROME_ZIP" | sha256sum -c -
 
 # ------------------------------------------------------------------------------
 # 2. Extract runtimes into the AppDir layout

@@ -140,6 +140,16 @@ done
 # ------------------------------------------------------------------------------
 PIDS=()
 
+_record_pid() {
+  local pid="$1" file="$2"
+  local starttime="0"
+  if [ -r "/proc/$pid/stat" ]; then
+    starttime="$(awk '{print $22}' "/proc/$pid/stat" 2>/dev/null || echo "0")"
+  fi
+  echo "$pid ${starttime:-0}" > "$file"
+  chmod 600 "$file"
+}
+
 _cleanup() {
   echo "[jobfoundry] Shutting down services..."
   for pid in "${PIDS[@]}"; do
@@ -196,8 +206,7 @@ LLM_MAX_CONCURRENCY=1 \
   "$PYTHON_BIN" -m resume_ops_api \
   >> "$LOGS_DIR/tailor.log" 2>&1 &
 PIDS+=($!)
-echo "$!" > "$RUNTIME_DIR/tailor.pid"
-chmod 600 "$RUNTIME_DIR/tailor.pid"
+_record_pid "$!" "$RUNTIME_DIR/tailor.pid"
 _wait_for_port "tailor" "$TAILOR_PORT" 60
 
 # --- 7b. Scorer (fit scoring, port 8001) ---
@@ -213,8 +222,7 @@ TAILOR_TIMEOUT_SECONDS="$TAILOR_TIMEOUT_SECONDS" \
   "$PYTHON_BIN" -m src.main \
   >> "$LOGS_DIR/scorer.log" 2>&1 &
 PIDS+=($!)
-echo "$!" > "$RUNTIME_DIR/scorer.pid"
-chmod 600 "$RUNTIME_DIR/scorer.pid"
+_record_pid "$!" "$RUNTIME_DIR/scorer.pid"
 _wait_for_port "scorer" "$SCORER_PORT" 60
 
 # --- 7c. Ingest (Fastify API + SPA, port 8080) ---
@@ -228,8 +236,7 @@ TAILOR_TIMEOUT_MS="$TAILOR_TIMEOUT_MS" \
   "$NODE_BIN" "$APP_SRC/server/ingest/src/index.mjs" \
   >> "$LOGS_DIR/ingest.log" 2>&1 &
 PIDS+=($!)
-echo "$!" > "$RUNTIME_DIR/ingest.pid"
-chmod 600 "$RUNTIME_DIR/ingest.pid"
+_record_pid "$!" "$RUNTIME_DIR/ingest.pid"
 _wait_for_port "ingest" "$INGEST_PORT" 30
 
 # ------------------------------------------------------------------------------

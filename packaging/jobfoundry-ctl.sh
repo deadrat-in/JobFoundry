@@ -47,10 +47,22 @@ _read_pid() {
   [ -f "$file" ] || return 1
   [ ! -L "$file" ] || return 1
   [ -O "$file" ] || return 1
-  local pid
-  pid="$(cat "$file" 2>/dev/null || true)"
+  local content pid starttime
+  content="$(cat "$file" 2>/dev/null || true)"
+  pid="$(awk '{print $1}' <<< "$content")"
+  starttime="$(awk '{print $2}' <<< "$content")"
   [[ "$pid" =~ ^[0-9]+$ ]] || return 1
-  echo "$pid"
+  echo "$pid ${starttime:-0}"
+}
+
+_record_pid() {
+  local pid="$1" file="$2"
+  local starttime="0"
+  if [ -r "/proc/$pid/stat" ]; then
+    starttime="$(awk '{print $22}' "/proc/$pid/stat" 2>/dev/null || echo "0")"
+  fi
+  echo "$pid ${starttime:-0}" > "$file"
+  chmod 600 "$file"
 }
 
 _proc_cmdline() {
@@ -74,23 +86,55 @@ _proc_owned_by_me() {
 }
 
 _is_expected_proc() {
-  local pid="$1" svc="$2"
+  local pid_info="$1" svc="$2"
+  local pid expected_starttime
+  pid="$(awk '{print $1}' <<< "$pid_info")"
+  expected_starttime="$(awk '{print $2}' <<< "$pid_info")"
   _alive "$pid" || return 1
   _proc_owned_by_me "$pid" || return 1
-  local cmd
-  cmd="$(_proc_cmdline "$pid")"
+
+  # Protect against PID recycling: verify process starttime matches recorded starttime
+  if [ -n "$expected_starttime" ] && [ "$expected_starttime" != "0" ] && [ -r "/proc/$pid/stat" ]; then
+    local current_starttime
+    current_starttime="$(awk '{print $22}' "/proc/$pid/stat" 2>/dev/null || true)"
+    if [ -n "$current_starttime" ] && [ "$current_starttime" != "$expected_starttime" ]; then
+      return 1
+    fi
+  fi
+
+  # Read argv from /proc/$pid/cmdline into array for strict executable/argument verification
+  local argv=()
+  if [ -r "/proc/$pid/cmdline" ]; then
+    while IFS= read -r -d '' arg; do
+      argv+=("$arg")
+    done < "/proc/$pid/cmdline"
+  else
+    return 1
+  fi
+
+  [ "${#argv[@]}" -gt 0 ] || return 1
+  local a0 a1
+  a0="$(basename -- "${argv[0]:-}")"
+  a1="$(basename -- "${argv[1]:-}")"
+
   case "$svc" in
     launcher)
-      [[ "$cmd" == *"jobfoundry-launcher"* || "$cmd" == *"launcher.sh"* ]]
+      # Must be direct execution of launcher or shell invocation of launcher
+      if [ "$a0" = "jobfoundry-launcher" ] || [ "$a0" = "launcher.sh" ]; then
+        return 0
+      elif [[ "$a0" =~ ^(bash|sh)$ ]] && { [ "$a1" = "jobfoundry-launcher" ] || [ "$a1" = "launcher.sh" ]; }; then
+        return 0
+      fi
+      return 1
       ;;
     tailor)
-      [[ "$cmd" == *"resume_ops_api"* ]]
+      [[ "$a0" =~ ^python[0-9.]*$ ]] && [ "${argv[1]:-}" = "-m" ] && [ "${argv[2]:-}" = "resume_ops_api" ]
       ;;
     scorer)
-      [[ "$cmd" == *"src.main"* ]]
+      [[ "$a0" =~ ^python[0-9.]*$ ]] && [ "${argv[1]:-}" = "-m" ] && [ "${argv[2]:-}" = "src.main" ]
       ;;
     ingest)
-      [[ "$cmd" == *"ingest"* ]]
+      [[ "$a0" =~ ^node$ ]] && [[ "${argv[1]:-}" == *"ingest"* ]]
       ;;
     *)
       return 1
@@ -124,14 +168,16 @@ _health_ok() {
 }
 
 _launcher_running() {
-  local pid
-  pid="$(_read_pid "$LAUNCHER_PIDFILE" || true)"
-  [ -n "$pid" ] && _is_expected_proc "$pid" "launcher"
+  local pid_info
+  pid_info="$(_read_pid "$LAUNCHER_PIDFILE" || true)"
+  [ -n "$pid_info" ] && _is_expected_proc "$pid_info" "launcher"
 }
 
 cmd_start() {
   if _launcher_running; then
-    echo "[jobfoundry] Already running (pid $(_read_pid "$LAUNCHER_PIDFILE"))."
+    local lpid
+    lpid="$(awk '{print $1}' <<< "$(_read_pid "$LAUNCHER_PIDFILE")")"
+    echo "[jobfoundry] Already running (pid $lpid)."
     echo "[jobfoundry] Dashboard: $DASHBOARD_URL"
     return 0
   fi
@@ -142,8 +188,7 @@ cmd_start() {
   echo "[jobfoundry] Starting services in the background..."
   # setsid detaches from the terminal; output goes to launcher.log.
   setsid nohup "$LAUNCHER" >> "$LOGS_DIR/launcher.log" 2>&1 < /dev/null &
-  echo "$!" > "$LAUNCHER_PIDFILE"
-  chmod 600 "$LAUNCHER_PIDFILE"
+  _record_pid "$!" "$LAUNCHER_PIDFILE"
   local elapsed=0
   while ! _health_ok; do
     sleep 2
@@ -164,10 +209,11 @@ cmd_start() {
 
 cmd_stop() {
   local stopped=0
-  local pid
-  pid="$(_read_pid "$LAUNCHER_PIDFILE" || true)"
-  if [ -n "$pid" ]; then
-    if _is_expected_proc "$pid" "launcher"; then
+  local pid_info pid
+  pid_info="$(_read_pid "$LAUNCHER_PIDFILE" || true)"
+  if [ -n "$pid_info" ]; then
+    pid="$(awk '{print $1}' <<< "$pid_info")"
+    if _is_expected_proc "$pid_info" "launcher"; then
       echo "[jobfoundry] Stopping launcher (pid $pid)..."
       kill -TERM "$pid" 2>/dev/null || true
       local elapsed=0
@@ -187,10 +233,11 @@ cmd_stop() {
   # Belt and braces: kill any leftover service processes from pidfiles.
   for svc in tailor scorer ingest; do
     local f="$RUNTIME_DIR/$svc.pid"
-    local svc_pid
-    svc_pid="$(_read_pid "$f" || true)"
-    if [ -n "$svc_pid" ]; then
-      if _is_expected_proc "$svc_pid" "$svc"; then
+    local svc_pid_info svc_pid
+    svc_pid_info="$(_read_pid "$f" || true)"
+    if [ -n "$svc_pid_info" ]; then
+      svc_pid="$(awk '{print $1}' <<< "$svc_pid_info")"
+      if _is_expected_proc "$svc_pid_info" "$svc"; then
         kill -KILL "$svc_pid" 2>/dev/null || true
         stopped=1
       else
@@ -208,18 +255,21 @@ cmd_stop() {
 
 cmd_status() {
   if _launcher_running; then
-    echo "[jobfoundry] launcher: running (pid $(_read_pid "$LAUNCHER_PIDFILE"))"
+    local lpid
+    lpid="$(awk '{print $1}' <<< "$(_read_pid "$LAUNCHER_PIDFILE")")"
+    echo "[jobfoundry] launcher: running (pid $lpid)"
   else
     echo "[jobfoundry] launcher: not running"
   fi
-  local svc port pidfile pid state
+  local svc port pidfile pid_info pid state
   for svc in tailor:8081 scorer:8001 ingest:8080; do
     port="${svc##*:}"
     svc="${svc%%:*}"
     pidfile="$RUNTIME_DIR/$svc.pid"
     state="stopped"
-    pid="$(_read_pid "$pidfile" || true)"
-    if [ -n "$pid" ] && _is_expected_proc "$pid" "$svc"; then
+    pid_info="$(_read_pid "$pidfile" || true)"
+    if [ -n "$pid_info" ] && _is_expected_proc "$pid_info" "$svc"; then
+      pid="$(awk '{print $1}' <<< "$pid_info")"
       if _port_open "$port"; then
         state="running (pid $pid, port $port)"
       else
