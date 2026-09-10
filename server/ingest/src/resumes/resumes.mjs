@@ -13,6 +13,13 @@ const ajv = new AjvClass({ strict: false, allErrors: true, validateSchema: false
 addFormatsFn(ajv);
 const schemaValidator = ajv.compile(resumeSchema);
 
+/**
+ * Validate a candidate resume against the JSON Resume v1.0.0 schema.
+ *
+ * @param {string|object} input - Raw JSON string or parsed object representing a resume.
+ * @returns {object} Validated and parsed resume object.
+ * @throws {Error} If input is malformed JSON or fails schema constraints.
+ */
 export function validateResumeJson(input) {
   let parsed;
   if (typeof input === 'string') {

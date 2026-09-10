@@ -148,6 +148,12 @@ export async function defaultDnsLookup(hostname, fetchImpl = globalThis.fetch) {
 /**
  * Validates a destination URL against private network policies.
  * Throws an Error if the URL points to a private or disallowed destination.
+ *
+ * @param {string} urlStr - Destination URL string to validate.
+ * @param {object} [options] - Resolution and fetch options.
+ * @param {Function|null} [options.lookupImpl=null] - Optional DNS lookup implementation.
+ * @param {typeof fetch} [options.fetchImpl=globalThis.fetch] - Optional fetch implementation.
+ * @returns {Promise<URL>} Parsed URL if destination is permitted.
  */
 export async function assertSafeDestination(
   urlStr,

@@ -23,6 +23,12 @@ export function detectPlatform(urlOrHostname) {
 
 import { isNoiseTitle } from './helpers.js';
 
+/**
+ * Extract job postings from a DOM Document object using platform-specific or generic extractors.
+ *
+ * @param {Document} doc - The DOM Document to extract job postings from.
+ * @returns {Array<object>} List of extracted and sanitized job postings.
+ */
 export function extractJobsFromDocument(doc) {
   if (!doc) return [];
   const href = doc.location?.href || '';
