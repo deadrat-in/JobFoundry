@@ -85,3 +85,27 @@ test('updateSettings writes to SQLite and overrides env', () => {
   assert.equal(preservedKey, 'sk-or-my-new-db-key-123456');
   assert.equal(getEffectiveSetting(db, 'scorer_threshold', fakeEnv), 95);
 });
+
+test('updateSettings rejects non-string scorer_api_base and tailor_api_base values', () => {
+  const db = new Database(':memory:');
+  migrate(db);
+
+  // Arrays must not be coerced to string and stored - they bypass validation
+  assert.throws(
+    () => updateSettings(db, { scorer_api_base: ['https://attacker.com'] }),
+    /must be a string/,
+  );
+  assert.throws(
+    () => updateSettings(db, { tailor_api_base: { href: 'https://attacker.com' } }),
+    /must be a string/,
+  );
+  assert.throws(
+    () => updateSettings(db, { scorer_api_base: 12345 }),
+    /must be a string/,
+  );
+
+  // Verify nothing was stored
+  const { settings } = getAllSettings(db, { env: {} });
+  assert.equal(settings.scorer_api_base, 'http://127.0.0.1:8318'); // default unchanged
+});
+

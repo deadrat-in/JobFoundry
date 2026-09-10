@@ -150,7 +150,11 @@ export function getAllowedApiBaseOrigins(env = process.env) {
  * @param {object} [env=process.env]
  */
 export function validateApiBase(val, env = process.env) {
-  if (!val || typeof val !== 'string') return;
+  if (val === undefined || val === null || val === '') return;
+  if (typeof val !== 'string') {
+    throw new Error('API base URL must be a string');
+  }
+  if (!val.trim()) return;
   let parsed;
   try {
     parsed = new URL(val.trim());
