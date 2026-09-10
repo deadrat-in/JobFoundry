@@ -13,7 +13,7 @@ test('GET & PUT /api/v1/extension/config with auth and validation', async () => 
   });
 
   try {
-    // 1. Unauthenticated GET returns default bundle with legacy key
+    // 1. Unauthenticated GET returns default bundle without exposing apiKey
     const seedRes = await app.inject({
       method: 'GET',
       url: '/api/v1/extension/config',
@@ -21,12 +21,21 @@ test('GET & PUT /api/v1/extension/config with auth and validation', async () => 
     assert.equal(seedRes.statusCode, 200);
     const seedData = JSON.parse(seedRes.payload);
     assert.equal(seedData.serverUrl, 'http://localhost:8080');
-    assert.equal(seedData.apiKey, 'test-api-key');
+    assert.equal(seedData.apiKey, null);
     assert.equal(seedData.scanIntervalHours, 6);
     assert.equal(seedData.maxPostingAgeDays, 30);
     assert.ok(Array.isArray(seedData.titleFilter.negative));
     assert.equal(seedData.portals.himalayas, true);
     assert.equal(seedData.portals.remoteok, false);
+
+    // 1b. Authenticated GET returns user's apiKey
+    const authGet = await app.inject({
+      method: 'GET',
+      url: '/api/v1/extension/config',
+      headers: { authorization: 'Bearer test-api-key' },
+    });
+    assert.equal(authGet.statusCode, 200);
+    assert.equal(authGet.json().apiKey, 'test-api-key');
 
     // 2. PUT without auth returns 401
     const unauthPut = await app.inject({

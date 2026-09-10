@@ -18,7 +18,9 @@
           </div>
         </div>
         <div class="header-actions">
-          <span id="conn-badge" class="badge badge-disconnected">Checking connection...</span>
+          <span id="conn-badge" class="badge badge-disconnected" role="status" aria-live="polite"
+            >Checking connection...</span
+          >
         </div>
       </header>
 
@@ -84,7 +86,9 @@
             </div>
             <div class="sync-stat-box">
               <span class="sync-stat-label">Last Sync Status</span>
-              <span id="display-sync-status" class="sync-stat-val">Up to date</span>
+              <span id="display-sync-status" class="sync-stat-val" role="status" aria-live="polite"
+                >Up to date</span
+              >
             </div>
           </div>
         </section>

@@ -104,6 +104,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
     portals: {},
     trackedCompanies: [],
   });
+  const [extensionLoaded, setExtensionLoaded] = useState(false);
+  const [isExtensionDirty, setIsExtensionDirty] = useState(false);
   const [savingScrapers, setSavingScrapers] = useState(false);
   const [extractingResume, setExtractingResume] = useState(false);
 
@@ -184,6 +186,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
 
         if (extRes.status === 'fulfilled') {
           setExtensionConfig(extRes.value);
+          setExtensionLoaded(true);
         }
       } catch (err: any) {
         toast.error(`Failed to load system settings: ${err?.message || 'Unknown error'}`);
@@ -201,6 +204,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
     setIsDirty(true);
   };
 
+  const handleExtensionChange = (updated: ExtensionConfig) => {
+    setExtensionConfig(updated);
+    setIsExtensionDirty(true);
+    setIsDirty(true);
+  };
+
   const handleSaveExtensionConfig = async () => {
     setSavingScrapers(true);
     try {
@@ -208,6 +217,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
       if (res.config) {
         setExtensionConfig(res.config);
       }
+      setIsExtensionDirty(false);
       toast.success('Scrapers and search filters saved successfully');
     } catch (err: any) {
       toast.error(`Failed to save scrapers config: ${err?.message || 'Unknown error'}`);
@@ -238,6 +248,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
           positive: combined,
         },
       }));
+      setIsExtensionDirty(true);
+      setIsDirty(true);
       toast.success(`Fetched ${titles.length} role keyword(s) from master resume`);
     } catch (err: any) {
       toast.error(`Failed to fetch resume keywords: ${err?.message || 'Unknown error'}`);
@@ -269,10 +281,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
         payload.opik_api_key = newOpikKey.trim();
       }
 
-      const [updated] = await Promise.all([
-        api.updateSettings(payload),
-        api.updateExtensionConfig(extensionConfig).catch(() => null),
-      ]);
+      const savePromises: Promise<any>[] = [api.updateSettings(payload)];
+      if (isExtensionDirty && extensionLoaded) {
+        savePromises.push(api.updateExtensionConfig(extensionConfig));
+      }
+
+      const [updated, extRes] = await Promise.all(savePromises);
+      if (extRes?.config) {
+        setExtensionConfig(extRes.config);
+      }
+      setIsExtensionDirty(false);
       setFormSettings((prev) => ({ ...prev, ...updated.settings }));
       setMeta(updated.meta);
 
@@ -1587,7 +1605,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
           {activeTab === 'scrapers' && (
             <ScraperSettingsTab
               config={extensionConfig}
-              onChange={setExtensionConfig}
+              onChange={handleExtensionChange}
               onSave={handleSaveExtensionConfig}
               saving={savingScrapers}
               onExtractFromResume={handleExtractFromResume}

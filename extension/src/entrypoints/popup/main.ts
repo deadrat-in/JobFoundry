@@ -332,9 +332,19 @@ export function init(opts: { doc?: Document; [key: string]: any } = {}) {
 
   $<HTMLButtonElement>(doc, DOM.openOptions)?.addEventListener('click', async () => {
     const config = await getConfig();
-    const serverUrl = config.serverUrl || 'http://localhost:8080';
-    const url = `${serverUrl.replace(/\/+$/, '')}/settings?tab=scrapers`;
     const api = (globalThis as any).browser ?? (globalThis as any).chrome;
+    if (!config.serverUrl || !config.apiKey) {
+      if (api?.runtime?.openOptionsPage) {
+        api.runtime.openOptionsPage();
+      } else if (api?.tabs?.create) {
+        api.tabs.create({ url: 'options.html' });
+      } else {
+        window.open('options.html', '_blank');
+      }
+      return;
+    }
+    const serverUrl = config.serverUrl;
+    const url = `${serverUrl.replace(/\/+$/, '')}/settings?tab=scrapers`;
     if (api?.tabs?.create) {
       api.tabs.create({ url });
     } else {

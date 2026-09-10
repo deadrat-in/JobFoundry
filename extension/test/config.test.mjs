@@ -143,6 +143,7 @@ test('syncConfigFromServer updates local config from server API', async () => {
 
   assert.equal(updated.serverUrl, 'http://127.0.0.1:8080');
   assert.equal(updated.apiKey, 'test-key');
+  assert.equal(updated.synced, true);
   assert.deepEqual(updated.titleFilter.positive, ['AI Engineer']);
   assert.equal(updated.portals.remoteok, true);
   assert.equal(updated.scanIntervalHours, 12);
@@ -180,6 +181,7 @@ test('syncConfigFromServer preserves cached local config if server fetch fails',
 
   assert.equal(config.serverUrl, 'http://cached-server:8080');
   assert.equal(config.scanIntervalHours, 4);
+  assert.equal(config.synced, false);
 });
 
 test('enqueueOfflineJobs and flushOfflineJobs manage queue and retry on connect', async () => {
@@ -248,4 +250,57 @@ test('enqueueOfflineJobs and flushOfflineJobs manage queue and retry on connect'
 
   const finalQueue = await getOfflineQueue({ storageImpl: mockStorage });
   assert.equal(finalQueue.length, 0);
+});
+
+test('flushOfflineJobs chunks batches and preserves un-flushed items on partial failure', async () => {
+  const { enqueueOfflineJobs, getOfflineQueue, flushOfflineJobs, clearOfflineQueue } =
+    await import('../src/shared/config.ts');
+  const store = {};
+  const mockStorage = {
+    async get(key) {
+      return { [key]: store[key] };
+    },
+    async set(obj) {
+      Object.assign(store, obj);
+    },
+    async remove(key) {
+      delete store[key];
+    },
+  };
+
+  await clearOfflineQueue({ storageImpl: mockStorage });
+  const testJobs = [
+    { fingerprint: 'j1', title: 'J1' },
+    { fingerprint: 'j2', title: 'J2' },
+    { fingerprint: 'j3', title: 'J3' },
+    { fingerprint: 'j4', title: 'J4' },
+    { fingerprint: 'j5', title: 'J5' },
+  ];
+  await enqueueOfflineJobs(testJobs, { storageImpl: mockStorage });
+
+  let callCount = 0;
+  const partialFlush = await flushOfflineJobs(
+    async ({ jobs }) => {
+      callCount++;
+      if (callCount === 2) {
+        throw new Error('Rate limit or network drop on batch 2');
+      }
+      return { ok: true, count: jobs.length };
+    },
+    {
+      storageImpl: mockStorage,
+      batchSize: 2,
+      getConfig: async () => ({ serverUrl: 'http://localhost:8080', apiKey: 'test' }),
+    }
+  );
+
+  // Batch 1 (2 jobs) flushed successfully. Batch 2 threw error.
+  assert.equal(partialFlush.flushed, 2);
+  assert.equal(partialFlush.remaining, 3);
+
+  const remainingQueue = await getOfflineQueue({ storageImpl: mockStorage });
+  assert.equal(remainingQueue.length, 3);
+  assert.equal(remainingQueue[0].fingerprint, 'j3');
+  assert.equal(remainingQueue[1].fingerprint, 'j4');
+  assert.equal(remainingQueue[2].fingerprint, 'j5');
 });

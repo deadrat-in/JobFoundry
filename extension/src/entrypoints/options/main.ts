@@ -141,11 +141,18 @@ async function triggerSync() {
   }
 
   try {
-    await syncConfigFromServer(currentConfig.serverUrl, currentConfig.apiKey);
+    const result = await syncConfigFromServer(currentConfig.serverUrl, currentConfig.apiKey);
     await hydrate();
-    if (syncStatus) {
-      syncStatus.textContent = `Synced at ${new Date().toLocaleTimeString()}`;
-      syncStatus.style.color = 'var(--green)';
+    if (result?.synced) {
+      if (syncStatus) {
+        syncStatus.textContent = `Synced at ${new Date().toLocaleTimeString()}`;
+        syncStatus.style.color = 'var(--green)';
+      }
+    } else {
+      if (syncStatus) {
+        syncStatus.textContent = 'Sync failed: could not fetch config from server';
+        syncStatus.style.color = 'var(--red)';
+      }
     }
   } catch (err: any) {
     if (syncStatus) {

@@ -219,7 +219,7 @@ export function buildApp({
 
     return {
       serverUrl: computedUrl,
-      apiKey: user?.apiKey || (legacyKeys.size > 0 ? Array.from(legacyKeys)[0] : ''),
+      apiKey: user?.apiKey || null,
       userEmail: user?.email || null,
       fitThreshold: threshold,
       ...extConfig,

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ExtensionConfig } from '../../api/client';
 import {
   Compass,
@@ -349,11 +349,48 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
 
   const positiveKeywords = config.titleFilter?.positive || [];
   const negativeKeywords = config.titleFilter?.negative || [];
-  const allowedLocations = config.locationFilter?.allow || [];
-  const blockedLocations = config.locationFilter?.block || [];
   const portals = config.portals || {};
 
+  const [positiveDraft, setPositiveDraft] = useState(() => joinList(config.titleFilter?.positive));
+  const [negativeDraft, setNegativeDraft] = useState(() => joinList(config.titleFilter?.negative));
+  const [allowedLocDraft, setAllowedLocDraft] = useState(() =>
+    joinList(config.locationFilter?.allow)
+  );
+  const [blockedLocDraft, setBlockedLocDraft] = useState(() =>
+    joinList(config.locationFilter?.block)
+  );
+
+  // Synchronize draft states if config changes externally (e.g. resume extraction or initial load)
+  useEffect(() => {
+    const incoming = (config.titleFilter?.positive || []).join(',');
+    if (splitList(positiveDraft).join(',') !== incoming) {
+      setPositiveDraft(joinList(config.titleFilter?.positive));
+    }
+  }, [config.titleFilter?.positive]);
+
+  useEffect(() => {
+    const incoming = (config.titleFilter?.negative || []).join(',');
+    if (splitList(negativeDraft).join(',') !== incoming) {
+      setNegativeDraft(joinList(config.titleFilter?.negative));
+    }
+  }, [config.titleFilter?.negative]);
+
+  useEffect(() => {
+    const incoming = (config.locationFilter?.allow || []).join(',');
+    if (splitList(allowedLocDraft).join(',') !== incoming) {
+      setAllowedLocDraft(joinList(config.locationFilter?.allow));
+    }
+  }, [config.locationFilter?.allow]);
+
+  useEffect(() => {
+    const incoming = (config.locationFilter?.block || []).join(',');
+    if (splitList(blockedLocDraft).join(',') !== incoming) {
+      setBlockedLocDraft(joinList(config.locationFilter?.block));
+    }
+  }, [config.locationFilter?.block]);
+
   const handlePositiveChange = (text: string) => {
+    setPositiveDraft(text);
     onChange({
       ...config,
       titleFilter: {
@@ -364,6 +401,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
   };
 
   const handleNegativeChange = (text: string) => {
+    setNegativeDraft(text);
     onChange({
       ...config,
       titleFilter: {
@@ -374,6 +412,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
   };
 
   const handleAllowedLocChange = (text: string) => {
+    setAllowedLocDraft(text);
     onChange({
       ...config,
       locationFilter: {
@@ -384,6 +423,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
   };
 
   const handleBlockedLocChange = (text: string) => {
+    setBlockedLocDraft(text);
     onChange({
       ...config,
       locationFilter: {
@@ -532,7 +572,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
           <textarea
             aria-label="Target Role Keywords"
             rows={3}
-            value={joinList(positiveKeywords)}
+            value={positiveDraft}
             onChange={(e) => handlePositiveChange(e.target.value)}
             placeholder="e.g. Software Engineer, Fullstack, Frontend, Backend, React, Python, AI Engineer"
             className="input-text"
@@ -565,6 +605,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
                   aria-label={`Remove positive keyword ${kw}`}
                   onClick={() => {
                     const next = positiveKeywords.filter((_, idx) => idx !== i);
+                    setPositiveDraft(joinList(next));
                     onChange({
                       ...config,
                       titleFilter: { ...config.titleFilter, positive: next },
@@ -615,7 +656,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
         <textarea
           aria-label="Negative Excluded Keywords"
           rows={2}
-          value={joinList(negativeKeywords)}
+          value={negativeDraft}
           onChange={(e) => handleNegativeChange(e.target.value)}
           placeholder="e.g. word:intern, junior, .net, php, wordpress, embedded, firmware"
           className="input-text"
@@ -649,6 +690,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
                   aria-label={`Remove negative keyword ${kw}`}
                   onClick={() => {
                     const next = negativeKeywords.filter((_, idx) => idx !== i);
+                    setNegativeDraft(joinList(next));
                     onChange({
                       ...config,
                       titleFilter: { ...config.titleFilter, negative: next },
@@ -739,7 +781,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
               </label>
               <input
                 type="text"
-                value={joinList(allowedLocations)}
+                value={allowedLocDraft}
                 onChange={(e) => handleAllowedLocChange(e.target.value)}
                 placeholder="e.g. remote, worldwide, united states, europe"
                 className="input-text"
@@ -762,7 +804,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
               </label>
               <input
                 type="text"
-                value={joinList(blockedLocations)}
+                value={blockedLocDraft}
                 onChange={(e) => handleBlockedLocChange(e.target.value)}
                 placeholder="e.g. on-site only, hybrid, confidential"
                 className="input-text"

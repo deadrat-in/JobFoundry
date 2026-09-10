@@ -61,13 +61,15 @@ export async function processDiscoveredJobs({
         apiKey: config.apiKey,
         jobs: deduped,
       });
+      return { ok: true, ingested: deduped.length, queued: 0 };
     } catch (sendErr) {
       await enqueueOfflineJobs(deduped);
       console.warn('Network issue during job ingest; queued offline for retry:', sendErr);
+      return { ok: true, ingested: 0, queued: deduped.length };
     }
   }
 
-  return { ok: true, ingested: deduped.length };
+  return { ok: true, ingested: 0, queued: 0 };
 }
 
 export default defineBackground(() => {

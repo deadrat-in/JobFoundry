@@ -673,14 +673,13 @@ export function updateExtensionConfig(db, userId, patch = {}) {
 
   const current = getExtensionConfig(db, userId);
   const next = {
-    ...current,
-    ...patch,
     titleFilter: patch.titleFilter
       ? {
           positive: patch.titleFilter.positive ?? current.titleFilter.positive,
           negative: patch.titleFilter.negative ?? current.titleFilter.negative,
         }
       : current.titleFilter,
+    maxPostingAgeDays: patch.maxPostingAgeDays ?? current.maxPostingAgeDays,
     locationFilter: patch.locationFilter
       ? {
           allow: patch.locationFilter.allow ?? current.locationFilter.allow,
@@ -688,6 +687,10 @@ export function updateExtensionConfig(db, userId, patch = {}) {
         }
       : current.locationFilter,
     portals: patch.portals ? { ...current.portals, ...patch.portals } : current.portals,
+    passiveMode: patch.passiveMode ?? current.passiveMode,
+    activeMode: patch.activeMode ?? current.activeMode,
+    activeModeDelayMs: patch.activeModeDelayMs ?? current.activeModeDelayMs,
+    scanIntervalHours: patch.scanIntervalHours ?? current.scanIntervalHours,
     trackedCompanies: patch.trackedCompanies ?? current.trackedCompanies,
   };
 

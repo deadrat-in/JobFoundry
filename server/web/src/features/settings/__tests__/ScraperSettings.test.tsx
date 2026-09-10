@@ -136,4 +136,32 @@ describe('ScraperSettingsTab', () => {
 
     expect(onExtract).toHaveBeenCalled();
   });
+
+  it('preserves trailing comma and space in draft text when typing keywords', () => {
+    const onChange = vi.fn();
+
+    render(
+      <ScraperSettingsTab
+        config={sampleConfig}
+        onChange={onChange}
+        onSave={vi.fn()}
+        saving={false}
+        onExtractFromResume={vi.fn()}
+        extractingResume={false}
+      />
+    );
+
+    const textarea = screen.getByLabelText('Target Role Keywords') as HTMLTextAreaElement;
+    expect(textarea.value).toBe('Software Engineer, Backend');
+
+    fireEvent.change(textarea, { target: { value: 'Software Engineer, Backend, ' } });
+    expect(textarea.value).toBe('Software Engineer, Backend, ');
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        titleFilter: expect.objectContaining({
+          positive: ['Software Engineer', 'Backend'],
+        }),
+      })
+    );
+  });
 });
