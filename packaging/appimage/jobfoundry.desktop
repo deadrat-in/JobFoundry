@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=JobFoundry
+GenericName=Job Search Dashboard
+Comment=Job search pipeline with fit scoring, resume tailoring and PDF export
+Exec=jobfoundry
+Icon=jobfoundry
+Categories=Office;
+Terminal=false
+StartupNotify=false

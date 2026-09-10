@@ -1,0 +1,12 @@
+#!/bin/sh
+# AppRun — entry point executed when the AppImage is launched.
+# With no arguments: start all services in the foreground and open the browser.
+# With arguments: forward to the control CLI, e.g. `./JobFoundry*.AppImage status`.
+set -e
+APPDIR="$(dirname "$(readlink -f "$0")")"
+export APPDIR
+if [ $# -eq 0 ]; then
+  exec "$APPDIR/usr/bin/jobfoundry-launcher"
+else
+  exec "$APPDIR/usr/bin/jobfoundry-ctl" "$@"
+fi
