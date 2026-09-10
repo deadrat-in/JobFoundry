@@ -8,6 +8,8 @@ import instructor
 import litellm
 from litellm import acompletion
 
+from src.ssrf_guard import assert_safe_url, install_transport_guard
+
 logger = logging.getLogger(__name__)
 
 
@@ -41,6 +43,9 @@ def setup_observability():
 
 setup_observability()
 
+# Defense-in-depth: every outbound httpx request in this process is SSRF-checked.
+install_transport_guard()
+
 
 class ScoreResult(BaseModel):
     score: int = Field(..., ge=0, le=100, description="Fit score from 0 to 100")
@@ -71,7 +76,12 @@ class ScoreResult(BaseModel):
 
 @runtime_checkable
 class LLMClient(Protocol):
-    async def score(self, job: dict[str, Any], resume: dict[str, Any]) -> ScoreResult:
+    async def score(
+        self,
+        job: dict[str, Any],
+        resume: dict[str, Any],
+        llm_settings: dict[str, Any] | None = None,
+    ) -> ScoreResult:
         ...
 
 
@@ -90,7 +100,12 @@ class StubLLM:
         )
         self.call_history: list[tuple[dict[str, Any], dict[str, Any]]] = []
 
-    async def score(self, job: dict[str, Any], resume: dict[str, Any]) -> ScoreResult:
+    async def score(
+        self,
+        job: dict[str, Any],
+        resume: dict[str, Any],
+        llm_settings: dict[str, Any] | None = None,
+    ) -> ScoreResult:
         self.call_history.append((job, resume))
         return self.default_result
 
@@ -102,7 +117,16 @@ class LiteLLMClient:
         self.api_base = api_base
         self.client = instructor.from_litellm(acompletion, mode=instructor.Mode.MD_JSON)
 
-    async def score(self, job: dict[str, Any], resume: dict[str, Any]) -> ScoreResult:
+    async def score(
+        self,
+        job: dict[str, Any],
+        resume: dict[str, Any],
+        llm_settings: dict[str, Any] | None = None,
+    ) -> ScoreResult:
+        settings = llm_settings or {}
+        model = settings.get("model") or self.model
+        api_key = settings.get("api_key") or self.api_key
+        api_base = settings.get("api_base") or self.api_base
         resume_str = format_resume_for_prompt(resume)
         prompt = (
             f"You are an expert technical recruiter, resume screener, and job analyst.\n"
@@ -123,7 +147,7 @@ class LiteLLMClient:
         )
 
         kwargs: dict[str, Any] = {
-            "model": self.model,
+            "model": model,
             "response_model": ScoreResult,
             "messages": [
                 {"role": "system", "content": "You evaluate resume-to-job fit and return structured scoring results including cleaned title, company, description, and job validity."},
@@ -131,14 +155,16 @@ class LiteLLMClient:
             ],
             "max_retries": 2,
         }
-        if self.api_key:
-            kwargs["api_key"] = self.api_key
-        if self.api_base:
-            kwargs["api_base"] = self.api_base
+        if api_key:
+            kwargs["api_key"] = api_key
+        if api_base:
+            # SSRF: block private/loopback/link-local destinations at connection time
+            assert_safe_url(api_base)
+            kwargs["api_base"] = api_base
 
         start_time = time.perf_counter()
         job_id = job.get("id", "unknown")
-        logger.info("Evaluating job %s with model %s", job_id, self.model)
+        logger.info("Evaluating job %s with model %s", job_id, model)
         try:
             result: ScoreResult = await self.client.chat.completions.create(**kwargs)
             duration_ms = (time.perf_counter() - start_time) * 1000

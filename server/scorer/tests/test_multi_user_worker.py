@@ -68,7 +68,10 @@ CREATE TABLE IF NOT EXISTS user_jobs (
 
 
 class DynamicScoreLLM(LLMClient):
-    async def score(self, job: dict, resume: dict) -> ScoreResult:
+    received_settings: list[dict | None] = []
+
+    async def score(self, job: dict, resume: dict, llm_settings: dict | None = None) -> ScoreResult:
+        self.received_settings.append(llm_settings)
         resume_name = resume.get("basics", {}).get("name", "")
         # Alice is Backend; Bob is Frontend
         if "Alice" in resume_name and "Go" in job.get("description", ""):
@@ -95,7 +98,15 @@ class DynamicScoreLLM(LLMClient):
 
 
 class MockTailorBridge(TailorBridge):
-    async def tailor(self, job: dict, master_resume: dict, theme: str = "jsonresume-theme-folio"):
+    async def tailor(
+        self,
+        job: dict,
+        master_resume: dict,
+        theme: str = "jsonresume-theme-folio",
+        model: str | None = None,
+        api_key: str | None = None,
+        api_base: str | None = None,
+    ):
         return TailorResult(
             resume=master_resume,
             pdf_base64="JVBERi0xLjQKJcTl8uXr",
@@ -146,7 +157,25 @@ async def test_multi_user_worker_scoring_and_isolation(tmp_path):
         ("j_react", "React Lead", "Beta", "Remote", "http://beta.test/react", "gh", now, "React web UI", "fp2", "ok", None, None, "new", None, 0, now, now),
     )
 
-    # 4. User Jobs: Alice has Go and React; Bob has Go and React
+    # 4. Per-user LLM settings (BYOK)
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_alice", "scorer_api_key", "sk-alice-own-key-123456", now),
+    )
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_alice", "scorer_api_base", "https://alice-llm.example.com/v1", now),
+    )
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_bob", "scorer_api_key", "sk-bob-own-key-123456", now),
+    )
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_bob", "scorer_model", "bob/provider/model", now),
+    )
+
+    # 5. User Jobs: Alice has Go and React; Bob has Go and React
     store.conn.execute(
         "INSERT INTO user_jobs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         ("uj_a_go", "u_alice", "j_go", None, None, "new", None, 0, now, now),
@@ -203,3 +232,12 @@ async def test_multi_user_worker_scoring_and_isolation(tmp_path):
     # Check artifact directory isolation
     assert (tmp_path / "artifacts" / "u_alice" / "j_go" / "resume.json").exists()
     assert (tmp_path / "artifacts" / "u_bob" / "j_react" / "resume.json").exists()
+
+    # Per-user LLM settings must reach the LLM client (BYOK hand-off)
+    by_key = {}
+    for s in DynamicScoreLLM.received_settings:
+        by_key[s.get("api_key")] = s
+
+    assert by_key["sk-alice-own-key-123456"]["api_base"] == "https://alice-llm.example.com/v1"
+    assert by_key["sk-bob-own-key-123456"]["model"] == "bob/provider/model"
+    assert len(by_key) == 2

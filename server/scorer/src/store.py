@@ -49,6 +49,21 @@ class JobStore:
             self.conn.commit()
         except sqlite3.OperationalError:
             pass
+        try:
+            self.conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS user_settings (
+                  user_id TEXT NOT NULL,
+                  key TEXT NOT NULL,
+                  value TEXT NOT NULL,
+                  updated_at INTEGER NOT NULL,
+                  PRIMARY KEY (user_id, key)
+                )
+                """
+            )
+            self.conn.commit()
+        except sqlite3.OperationalError:
+            pass
 
     def init_schema(self, schema_sql: str) -> None:
         self.conn.executescript(schema_sql)
@@ -80,6 +95,52 @@ class JobStore:
         if key in settings and settings[key] is not None and settings[key] != "":
             return settings[key]
         return default
+
+    def get_user_settings(self, user_id: str) -> dict[str, str]:
+        """
+        Loads all key-value pairs from user_settings table for a single user.
+        Returns {} if the table is absent (pre-migration DBs).
+        """
+        try:
+            cursor = self.conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='user_settings'"
+            )
+            if not cursor.fetchone():
+                return {}
+            rows = self.conn.execute(
+                "SELECT key, value FROM user_settings WHERE user_id = ? AND value != ''",
+                (user_id,),
+            ).fetchall()
+            return {row["key"]: row["value"] for row in rows}
+        except Exception:
+            return {}
+
+    def get_user_effective_llm(
+        self,
+        user_id: str,
+        defaults: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Resolves the LLM settings for a single user's scoring job.
+
+        BYOK policy: model and api_base may fall back to operator system
+        settings / instance defaults, but the api_key comes ONLY from the
+        user's own user_settings row — a shared platform key is never used.
+        """
+        defaults = defaults or {}
+        user_settings = self.get_user_settings(user_id)
+        system = self.get_system_settings()
+
+        def pick(key: str, fallback: Any = None) -> Any:
+            value = user_settings.get(key) or system.get(key) or fallback
+            return value
+
+        return {
+            "model": pick("scorer_model", defaults.get("model")),
+            "api_base": pick("scorer_api_base", defaults.get("api_base")),
+            "api_key": user_settings.get("scorer_api_key", ""),
+            "has_user_key": bool(user_settings.get("scorer_api_key")),
+        }
 
 
     def reset_in_flight_jobs(self) -> int:

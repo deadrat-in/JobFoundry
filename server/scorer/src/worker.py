@@ -4,11 +4,15 @@ import time
 import uuid
 from typing import Any
 from src.artifacts import ArtifactManager
+from src.llm import LiteLLMClient
 from src.screener import Screener
 from src.store import JobStore
 from src.tailor_bridge import TailorBridge
 
 logger = logging.getLogger(__name__)
+
+# User-facing message surfaced via user_jobs.fit_notes so the web UI can show it.
+NO_API_KEY_MESSAGE = "No API key configured — go to Settings to add your LLM key."
 
 
 async def process_unscored_user_jobs(
@@ -57,7 +61,27 @@ async def process_unscored_user_jobs(
                 "url": item.get("url"),
                 "source": item.get("source"),
             }
-            result = await screener.score(job=job_dict, master_resume=resume)
+
+            # BYOK: resolve this user's LLM settings. A real LLM client requires the
+            # user's own api_key — a shared platform key is never used as a fallback.
+            user_llm = store.get_user_effective_llm(
+                user_id,
+                defaults={
+                    "model": getattr(screener.llm_client, "model", ""),
+                    "api_base": getattr(screener.llm_client, "api_base", ""),
+                },
+            )
+            if isinstance(screener.llm_client, LiteLLMClient) and not user_llm.get("api_key"):
+                logger.warning(
+                    "Skipping user_job %s (user %s): no user LLM API key configured",
+                    user_job_id,
+                    user_id,
+                )
+                failed_uj = store.mark_user_job_failed(user_job_id=user_job_id, error_message=NO_API_KEY_MESSAGE)
+                scored_jobs.append(failed_uj)
+                continue
+
+            result = await screener.score(job=job_dict, master_resume=resume, llm_settings=user_llm)
             updated_uj = store.score_user_job(user_job_id=user_job_id, result=result)
             processed += 1
 
@@ -84,11 +108,17 @@ async def process_unscored_user_jobs(
                             job=job_dict,
                             master_resume=resume,
                             theme="jsonresume-theme-folio",
+                            model=user_llm.get("model"),
+                            api_key=user_llm.get("api_key"),
+                            api_base=user_llm.get("api_base"),
                         )
                         concise_res = await tailor_bridge.tailor(
                             job=job_dict,
                             master_resume=resume,
                             theme="jsonresume-theme-folio-concise",
+                            model=user_llm.get("model"),
+                            api_key=user_llm.get("api_key"),
+                            api_base=user_llm.get("api_base"),
                         )
 
                         if tailor_res and tailor_res.status == "completed":

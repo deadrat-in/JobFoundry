@@ -31,6 +31,9 @@ class TailorBridge:
         job: dict[str, Any],
         master_resume: dict[str, Any],
         theme: str = "jsonresume-theme-folio",
+        model: str | None = None,
+        api_key: str | None = None,
+        api_base: str | None = None,
     ) -> TailorResult | None:
         """
         Send a job description and master resume to resume-ops for tailoring.
@@ -46,6 +49,12 @@ class TailorBridge:
             "resume": master_resume,
             "theme": theme,
         }
+        if model:
+            payload["model"] = model
+        if api_key:
+            payload["api_key"] = api_key
+        if api_base:
+            payload["api_base"] = api_base
 
         try:
             if self._client:
