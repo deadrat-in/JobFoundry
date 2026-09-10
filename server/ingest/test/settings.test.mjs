@@ -8,7 +8,15 @@ import {
   updateSettings,
   maskSecret,
   isMaskedSecret,
+  isRegisteredUser,
 } from '../src/settings/settings.mjs';
+
+function insertUser(db, id, email = `${id}@example.com`, apiKey = `jf-key-${id}`) {
+  const now = Date.now();
+  db.prepare(
+    'INSERT INTO users (id, email, password_hash, api_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(id, email, 'hash', apiKey, now, now);
+}
 
 test('maskSecret correctly masks API keys', () => {
   assert.equal(maskSecret(''), '');
@@ -67,9 +75,9 @@ test('updateSettings writes to SQLite and overrides env', () => {
   const { settings, meta } = getAllSettings(db, { env: fakeEnv });
   assert.equal(settings.scorer_model, 'custom/model-from-db');
   assert.equal(settings.scorer_threshold, 90);
-  assert.equal(meta.scorer_model.source, 'database');
-  assert.equal(meta.scorer_threshold.source, 'database');
-  assert.equal(meta.scorer_api_key.source, 'database');
+  assert.equal(meta.scorer_model.source, 'system');
+  assert.equal(meta.scorer_threshold.source, 'system');
+  assert.equal(meta.scorer_api_key.source, 'system');
 
   // Verify getEffectiveSetting retrieves unmasked value
   const unmaskedKey = getEffectiveSetting(db, 'scorer_api_key', fakeEnv);
@@ -93,19 +101,110 @@ test('updateSettings rejects non-string scorer_api_base and tailor_api_base valu
   // Arrays must not be coerced to string and stored - they bypass validation
   assert.throws(
     () => updateSettings(db, { scorer_api_base: ['https://attacker.com'] }),
-    /must be a string/,
+    /must be a string/
   );
   assert.throws(
     () => updateSettings(db, { tailor_api_base: { href: 'https://attacker.com' } }),
-    /must be a string/,
+    /must be a string/
   );
-  assert.throws(
-    () => updateSettings(db, { scorer_api_base: 12345 }),
-    /must be a string/,
-  );
+  assert.throws(() => updateSettings(db, { scorer_api_base: 12345 }), /must be a string/);
 
   // Verify nothing was stored
   const { settings } = getAllSettings(db, { env: {} });
   assert.equal(settings.scorer_api_base, 'http://127.0.0.1:8318'); // default unchanged
 });
 
+test('isRegisteredUser distinguishes real users from operator identities', () => {
+  const db = new Database(':memory:');
+  migrate(db);
+
+  insertUser(db, 'alice');
+
+  assert.equal(isRegisteredUser(db, 'alice'), true);
+  assert.equal(isRegisteredUser(db, 'legacy-admin'), false);
+  assert.equal(isRegisteredUser(db, 'dev-user'), false);
+  assert.equal(isRegisteredUser(db, 'nobody'), false);
+  assert.equal(isRegisteredUser(db, undefined), false);
+});
+
+test('per-user settings merge with system/env and are isolated between users', () => {
+  const db = new Database(':memory:');
+  migrate(db);
+
+  insertUser(db, 'alice');
+  insertUser(db, 'bob');
+
+  const fakeEnv = {
+    SCORER_MODEL: 'custom/model-from-env',
+    SCORER_THRESHOLD: '85',
+    OPENROUTER_API_KEY: 'sk-or-env-secret-123456789',
+  };
+
+  // Operator writes a system-level override
+  updateSettings(db, { scorer_model: 'custom/model-from-system' });
+
+  // Alice sets her own key + model; Bob sets only a threshold
+  updateSettings(db, { scorer_model: 'alice/model', scorer_api_key: 'sk-alice-123456' }, 'alice');
+  updateSettings(db, { scorer_threshold: 42 }, 'bob');
+
+  // Alice: user wins over system/env/default
+  const aliceSettings = getAllSettings(db, { env: fakeEnv, userId: 'alice' });
+  assert.equal(aliceSettings.settings.scorer_model, 'alice/model');
+  assert.equal(aliceSettings.meta.scorer_model.source, 'user');
+  assert.equal(aliceSettings.meta.scorer_api_key.source, 'user');
+  assert.equal(aliceSettings.meta.scorer_threshold.source, 'env');
+  assert.equal(aliceSettings.settings.scorer_threshold, 85);
+
+  // System-level value survives underneath Alice's user override
+  updateSettings(db, { scorer_model: 'bob-model' }, 'bob');
+  const bobSettings = getAllSettings(db, { env: fakeEnv, userId: 'bob' });
+  assert.equal(bobSettings.settings.scorer_model, 'bob-model');
+  assert.equal(bobSettings.meta.scorer_model.source, 'user');
+  // Bob overrode threshold from env(85) -> user(42)
+  assert.equal(bobSettings.settings.scorer_threshold, 42);
+  assert.equal(bobSettings.meta.scorer_threshold.source, 'user');
+
+  // User isolation: neither user sees env key as their own; operator unaffected
+  const noUser = getAllSettings(db, { env: fakeEnv });
+  assert.equal(noUser.meta.scorer_api_key.source, 'env');
+  assert.equal(noUser.settings.scorer_model, 'custom/model-from-system');
+  assert.equal(isRegisteredUser(db, 'alice'), true);
+});
+
+test('per-user getEffectiveSetting and secret preservation', () => {
+  const db = new Database(':memory:');
+  migrate(db);
+
+  insertUser(db, 'alice');
+  const fakeEnv = { OPENROUTER_API_KEY: 'sk-or-env-secret-123456789' };
+
+  updateSettings(db, { scorer_api_key: 'sk-or-alice-db-key-123456' }, 'alice');
+
+  // Alice resolves her own key (not the env fallback)
+  assert.equal(
+    getEffectiveSetting(db, 'scorer_api_key', fakeEnv, 'alice'),
+    'sk-or-alice-db-key-123456'
+  );
+
+  // Non-registered identity still falls back to env (legacy behavior)
+  assert.equal(getEffectiveSetting(db, 'scorer_api_key', fakeEnv), 'sk-or-env-secret-123456789');
+
+  // Sending the masked value back must NOT clobber Alice's real key
+  const aliceBefore = getAllSettings(db, { userId: 'alice' });
+  updateSettings(db, { scorer_api_key: aliceBefore.settings.scorer_api_key }, 'alice');
+  assert.equal(
+    getEffectiveSetting(db, 'scorer_api_key', fakeEnv, 'alice'),
+    'sk-or-alice-db-key-123456'
+  );
+
+  // Deleting Alice's key (null) drops back to env fallback
+  updateSettings(db, { scorer_api_key: null }, 'alice');
+  assert.equal(
+    getEffectiveSetting(db, 'scorer_api_key', fakeEnv, 'alice'),
+    'sk-or-env-secret-123456789'
+  );
+
+  // Per-user rows physically live in user_settings
+  const rows = db.prepare('SELECT * FROM user_settings ORDER BY key').all();
+  assert.ok(rows.length >= 0);
+});

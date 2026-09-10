@@ -107,18 +107,18 @@ export const SETTINGS_METADATA = {
 };
 
 /**
- * Permitted origins for LLM API base URLs.
- * Prevents SSRF and credential exfiltration to attacker-controlled hosts.
- * Extend at runtime via the ALLOWED_LLM_BASES env var (comma-separated origins,
- * e.g. "https://my-proxy.internal,http://localhost:11434").
+ * Operator-trusted origins for local/internal LLM gateways (e.g. the bundled
+ * Gatepass proxy at :8318 or a local Ollama at :11434).
+ *
+ * SSRF protection is now connection-time IP-range blocking (see
+ * security/ssrf.mjs): any api_base host that resolves to a public IP is
+ * allowed, and only these explicitly operator-configured origins are exempt
+ * from the private/loopback/link-local blocklist so self-hosted deployments
+ * keep working. Extend at runtime via the ALLOWED_LLM_BASES env var
+ * (comma-separated origins, e.g. "https://my-proxy.internal,http://localhost:11434").
  */
-export function getAllowedApiBaseOrigins(env = process.env) {
+export function getTrustedApiBaseOrigins(env = process.env) {
   const defaults = [
-    'https://openrouter.ai',
-    'https://api.openai.com',
-    'https://openai.com',
-    'https://api.anthropic.com',
-    'https://generativelanguage.googleapis.com',
     'http://127.0.0.1:8318',
     'http://localhost:8318',
     'http://127.0.0.1:11434',
@@ -132,7 +132,6 @@ export function getAllowedApiBaseOrigins(env = process.env) {
       if (!trimmed) return null;
       try {
         // Parse through URL so default ports are canonicalized (e.g. :443 → dropped)
-        // matching what validateApiBase() extracts via parsed.origin.
         return new URL(trimmed).origin;
       } catch {
         return null; // skip malformed entries silently
@@ -144,12 +143,17 @@ export function getAllowedApiBaseOrigins(env = process.env) {
 }
 
 /**
- * Validates that an API base URL belongs to an allowed origin.
- * Throws an error if the URL is not permitted.
+ * Validates the shape of an API base URL at write time:
+ * must be a string, http/https scheme, and free of embedded credentials.
+ *
+ * Note: IP-range / SSRF enforcement happens at connection time
+ * (security/ssrf.mjs::assertSafeOutboundUrl) to avoid a DNS-rebinding window
+ * between validation and request. scheme + credentials are still rejected here
+ * because they are structural and can never be valid for any deployment.
+ *
  * @param {string} val - The URL to validate.
- * @param {object} [env=process.env]
  */
-export function validateApiBase(val, env = process.env) {
+export function validateApiBase(val) {
   if (val === undefined || val === null || val === '') return;
   if (typeof val !== 'string') {
     throw new Error('API base URL must be a string');
@@ -161,21 +165,11 @@ export function validateApiBase(val, env = process.env) {
   } catch {
     throw new Error(`Invalid URL: "${val}"`);
   }
-  // Normalize: only allow http/https schemes, reject credentials in URL
   if (!['http:', 'https:'].includes(parsed.protocol)) {
     throw new Error(`API base URL must use http or https scheme, got "${parsed.protocol}"`);
   }
   if (parsed.username || parsed.password) {
     throw new Error('API base URL must not contain credentials (user:pass@host)');
-  }
-  const origin = parsed.origin;
-  const allowed = getAllowedApiBaseOrigins(env);
-  if (!allowed.has(origin)) {
-    throw new Error(
-      `API base URL "${origin}" is not in the allowed origins list. ` +
-        `Permitted origins: ${[...allowed].join(', ')}. ` +
-        `Add custom origins via the ALLOWED_LLM_BASES environment variable.`
-    );
   }
 }
 
@@ -231,15 +225,37 @@ function coerceValue(val, type) {
 }
 
 /**
+ * Reads all key/value rows for a single user.
+ * @param {import('better-sqlite3').Database} db
+ * @param {string|null} userId
+ */
+function getUserSettings(db, userId) {
+  if (!userId) return new Map();
+  try {
+    const rows = db
+      .prepare('SELECT key, value, updated_at FROM user_settings WHERE user_id = ?')
+      .all(userId);
+    return new Map(rows.map((r) => [r.key, r]));
+  } catch (err) {
+    // user_settings table may be absent on very old DBs before migration
+    if (String(err?.message || '').includes('no such table')) return new Map();
+    throw err;
+  }
+}
+
+/**
  * Reads all effective settings from SQLite, falling back to process.env and defaults.
+ * Precedence for an authenticated user: user_settings → system_settings → env → default.
  * @param {import('better-sqlite3').Database} db
  * @param {object} [options]
+ * @param {string} [options.userId] - authenticated user id to resolve per-user settings
  * @param {boolean} [options.maskSecrets=true]
  * @param {object} [options.env=process.env]
  */
-export function getAllSettings(db, { maskSecrets = true, env = process.env } = {}) {
+export function getAllSettings(db, { userId = null, maskSecrets = true, env = process.env } = {}) {
   const dbRows = db.prepare('SELECT key, value, updated_at FROM system_settings').all();
   const dbMap = new Map(dbRows.map((r) => [r.key, r]));
+  const userSettings = getUserSettings(db, userId);
 
   const result = {};
   const meta = {};
@@ -249,10 +265,14 @@ export function getAllSettings(db, { maskSecrets = true, env = process.env } = {
     let source = 'default';
     let updatedAt = null;
 
-    if (dbMap.has(key)) {
+    if (userSettings.has(key)) {
+      rawVal = userSettings.get(key).value;
+      updatedAt = userSettings.get(key).updated_at;
+      source = 'user';
+    } else if (dbMap.has(key)) {
       rawVal = dbMap.get(key).value;
       updatedAt = dbMap.get(key).updated_at;
-      source = 'database';
+      source = 'system';
     } else {
       const envVal = getEnvValue(spec.env, env);
       if (envVal !== undefined && envVal !== '') {
@@ -286,41 +306,89 @@ export function getAllSettings(db, { maskSecrets = true, env = process.env } = {
 }
 
 /**
- * Returns a single effective setting value (unmasked) for internal service execution.
+ * Resolves a single effective setting and the layer it came from.
+ * Precedence: user_settings → system_settings → env → default.
+ * Used by call sites that need to distinguish operator-trusted values from
+ * user-supplied ones (e.g. SSRF strictness for api_base).
+ * @returns {{ value: any, source: 'user'|'system'|'env'|'default' }}
  */
-export function getEffectiveSetting(db, key, env = process.env) {
+export function getEffectiveSettingWithSource(db, key, { userId = null, env = process.env } = {}) {
   const spec = SETTINGS_METADATA[key];
-  if (!spec) return undefined;
+  if (!spec) return { value: undefined, source: 'default' };
+
+  const userSettings = getUserSettings(db, userId);
+  if (userSettings.has(key)) {
+    const row = userSettings.get(key);
+    if (row.value !== undefined && row.value !== '') {
+      return { value: coerceValue(row.value, spec.type), source: 'user' };
+    }
+  }
 
   const row = db.prepare('SELECT value FROM system_settings WHERE key = ?').get(key);
   if (row && row.value !== undefined && row.value !== '') {
-    return coerceValue(row.value, spec.type);
+    return { value: coerceValue(row.value, spec.type), source: 'system' };
   }
 
   const envVal = getEnvValue(spec.env, env);
   if (envVal !== undefined && envVal !== '') {
-    return coerceValue(envVal, spec.type);
+    return { value: coerceValue(envVal, spec.type), source: 'env' };
   }
 
-  return spec.default;
+  return { value: spec.default, source: 'default' };
 }
 
 /**
- * Updates settings in SQLite system_settings.
+ * Returns a single effective setting value (unmasked) for internal service execution.
+ * @param {import('better-sqlite3').Database} db
+ * @param {string} key
+ * @param {object} [env=process.env]
+ * @param {string} [userId] - authenticated user id; per-user value wins when present
+ */
+export function getEffectiveSetting(db, key, env = process.env, userId = null) {
+  return getEffectiveSettingWithSource(db, key, { userId, env }).value;
+}
+
+/**
+ * Returns true when the given userId refers to a real registered user row.
+ * Synthetic identities (legacy-admin, dev-user) are treated as operators and
+ * continue to manage operator-level system_settings.
+ */
+export function isRegisteredUser(db, userId) {
+  if (!userId) return false;
+  return Boolean(db.prepare('SELECT id FROM users WHERE id = ?').get(userId));
+}
+
+/**
+ * Updates settings in SQLite.
+ * Real (registered) users write to user_settings; operator identities
+ * (legacy-admin/dev-user) write to system_settings.
  * Preserves existing secrets if user passes masked value or empty string.
  */
-export function updateSettings(db, newValues = {}) {
+export function updateSettings(db, newValues = {}, userId = null) {
   const now = Date.now();
+  const table = isRegisteredUser(db, userId) ? 'user_settings' : 'system_settings';
 
-  const insertOrUpdate = db.prepare(`
-    INSERT INTO system_settings (key, value, updated_at)
-    VALUES (?, ?, ?)
-    ON CONFLICT(key) DO UPDATE SET
-      value = excluded.value,
-      updated_at = excluded.updated_at
-  `);
+  const insertOrUpdate =
+    table === 'user_settings'
+      ? db.prepare(`
+          INSERT INTO user_settings (user_id, key, value, updated_at)
+          VALUES (?, ?, ?, ?)
+          ON CONFLICT(user_id, key) DO UPDATE SET
+            value = excluded.value,
+            updated_at = excluded.updated_at
+        `)
+      : db.prepare(`
+          INSERT INTO system_settings (key, value, updated_at)
+          VALUES (?, ?, ?)
+          ON CONFLICT(key) DO UPDATE SET
+            value = excluded.value,
+            updated_at = excluded.updated_at
+        `);
 
-  const deleteKey = db.prepare('DELETE FROM system_settings WHERE key = ?');
+  const deleteKey =
+    table === 'user_settings'
+      ? db.prepare('DELETE FROM user_settings WHERE user_id = ? AND key = ?')
+      : db.prepare('DELETE FROM system_settings WHERE key = ?');
 
   const updateTx = db.transaction((entries) => {
     for (const [key, val] of Object.entries(entries)) {
@@ -329,7 +397,11 @@ export function updateSettings(db, newValues = {}) {
 
       // Handle resetting to default
       if (val === null) {
-        deleteKey.run(key);
+        if (table === 'user_settings') {
+          deleteKey.run(userId, key);
+        } else {
+          deleteKey.run(key);
+        }
         continue;
       }
 
@@ -348,17 +420,22 @@ export function updateSettings(db, newValues = {}) {
         }
       }
 
-      // Validate API base URLs against allowlist to prevent SSRF / credential leakage
+      // Validate API base URL shape (scheme + embedded credentials).
+      // SSRF IP-range enforcement happens at connection time.
       if (key === 'scorer_api_base' || key === 'tailor_api_base') {
         validateApiBase(val);
       }
 
       // Coerce & store as string
       const coerced = coerceValue(val, spec.type);
-      insertOrUpdate.run(key, String(coerced), now);
+      if (table === 'user_settings') {
+        insertOrUpdate.run(userId, key, String(coerced), now);
+      } else {
+        insertOrUpdate.run(key, String(coerced), now);
+      }
     }
   });
 
   updateTx(newValues);
-  return getAllSettings(db, { maskSecrets: true });
+  return getAllSettings(db, { userId, maskSecrets: true });
 }
