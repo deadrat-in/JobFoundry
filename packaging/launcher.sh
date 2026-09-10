@@ -142,11 +142,15 @@ PIDS=()
 
 _record_pid() {
   local pid="$1" file="$2"
-  local starttime="0"
+  local starttime=""
   if [ -r "/proc/$pid/stat" ]; then
-    starttime="$(awk '{print $22}' "/proc/$pid/stat" 2>/dev/null || echo "0")"
+    starttime="$(awk '{print $22}' "/proc/$pid/stat" 2>/dev/null || true)"
   fi
-  echo "$pid ${starttime:-0}" > "$file"
+  if [ -z "$starttime" ] || [ "$starttime" = "0" ]; then
+    echo "[jobfoundry] ERROR: could not determine process starttime for PID $pid" >&2
+    return 1
+  fi
+  echo "$pid $starttime" > "$file"
   chmod 600 "$file"
 }
 

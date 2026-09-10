@@ -52,16 +52,22 @@ _read_pid() {
   pid="$(awk '{print $1}' <<< "$content")"
   starttime="$(awk '{print $2}' <<< "$content")"
   [[ "$pid" =~ ^[0-9]+$ ]] || return 1
-  echo "$pid ${starttime:-0}"
+  [[ "$starttime" =~ ^[0-9]+$ ]] || return 1
+  [ "$starttime" -gt 0 ] || return 1
+  echo "$pid $starttime"
 }
 
 _record_pid() {
   local pid="$1" file="$2"
-  local starttime="0"
+  local starttime=""
   if [ -r "/proc/$pid/stat" ]; then
-    starttime="$(awk '{print $22}' "/proc/$pid/stat" 2>/dev/null || echo "0")"
+    starttime="$(awk '{print $22}' "/proc/$pid/stat" 2>/dev/null || true)"
   fi
-  echo "$pid ${starttime:-0}" > "$file"
+  if [ -z "$starttime" ] || [ "$starttime" = "0" ]; then
+    echo "[jobfoundry] ERROR: could not determine process starttime for PID $pid" >&2
+    return 1
+  fi
+  echo "$pid $starttime" > "$file"
   chmod 600 "$file"
 }
 
@@ -93,14 +99,12 @@ _is_expected_proc() {
   _alive "$pid" || return 1
   _proc_owned_by_me "$pid" || return 1
 
-  # Protect against PID recycling: verify process starttime matches recorded starttime
-  if [ -n "$expected_starttime" ] && [ "$expected_starttime" != "0" ] && [ -r "/proc/$pid/stat" ]; then
-    local current_starttime
-    current_starttime="$(awk '{print $22}' "/proc/$pid/stat" 2>/dev/null || true)"
-    if [ -n "$current_starttime" ] && [ "$current_starttime" != "$expected_starttime" ]; then
-      return 1
-    fi
-  fi
+  # Protect against PID recycling: strictly require non-zero matching starttime
+  [ -n "$expected_starttime" ] && [[ "$expected_starttime" =~ ^[0-9]+$ ]] && [ "$expected_starttime" -gt 0 ] || return 1
+  [ -r "/proc/$pid/stat" ] || return 1
+  local current_starttime
+  current_starttime="$(awk '{print $22}' "/proc/$pid/stat" 2>/dev/null || true)"
+  [ -n "$current_starttime" ] && [ "$current_starttime" = "$expected_starttime" ] || return 1
 
   # Read argv from /proc/$pid/cmdline into array for strict executable/argument verification
   local argv=()
@@ -113,17 +117,23 @@ _is_expected_proc() {
   fi
 
   [ "${#argv[@]}" -gt 0 ] || return 1
-  local a0 a1
+  local a0
   a0="$(basename -- "${argv[0]:-}")"
-  a1="$(basename -- "${argv[1]:-}")"
 
   case "$svc" in
     launcher)
-      # Must be direct execution of launcher or shell invocation of launcher
-      if [ "$a0" = "jobfoundry-launcher" ] || [ "$a0" = "launcher.sh" ]; then
+      # Must match the exact canonical launcher path
+      local canon_launcher canon_script
+      canon_launcher="$(readlink -f "$LAUNCHER" 2>/dev/null || echo "$LAUNCHER")"
+      canon_script="$(readlink -f "${argv[0]}" 2>/dev/null || true)"
+      if [ "$canon_script" = "$canon_launcher" ]; then
         return 0
-      elif [[ "$a0" =~ ^(bash|sh)$ ]] && { [ "$a1" = "jobfoundry-launcher" ] || [ "$a1" = "launcher.sh" ]; }; then
-        return 0
+      fi
+      if [[ "$a0" =~ ^(bash|sh)$ ]] && [ "${#argv[@]}" -gt 1 ]; then
+        canon_script="$(readlink -f "${argv[1]}" 2>/dev/null || true)"
+        if [ "$canon_script" = "$canon_launcher" ]; then
+          return 0
+        fi
       fi
       return 1
       ;;
