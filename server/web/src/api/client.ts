@@ -392,7 +392,7 @@ export class ApiClient {
 }
 
 export interface SettingMeta {
-  source: 'database' | 'env' | 'default';
+  source: 'user' | 'system' | 'env' | 'default';
   hasCustomKey: boolean;
   updatedAt: number | null;
   type: 'string' | 'number' | 'boolean';

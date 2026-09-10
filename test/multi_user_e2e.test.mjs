@@ -142,7 +142,7 @@ from src.tailor_bridge import TailorBridge, TailorResult
 from src.worker import process_unscored_jobs
 
 class E2ELLM(LLMClient):
-    async def score(self, job: dict, resume: dict) -> ScoreResult:
+    async def score(self, job: dict, resume: dict, llm_settings: dict | None = None) -> ScoreResult:
         candidate = resume.get("basics", {}).get("name", "")
         desc = job.get("description", "")
         if "Alice" in candidate and "Go" in desc:
@@ -153,7 +153,15 @@ class E2ELLM(LLMClient):
             return ScoreResult(score=35, reasoning="Mismatch in tech stack", matching_skills=[], missing_skills=["Required skill"])
 
 class MockTailorBridge(TailorBridge):
-    async def tailor(self, job, master_resume, theme="jsonresume-theme-folio"):
+    async def tailor(
+        self,
+        job,
+        master_resume,
+        theme="jsonresume-theme-folio",
+        model=None,
+        api_key=None,
+        api_base=None,
+    ):
         sample_pdf = b"%PDF-1.4 Tailored Resume for " + master_resume["basics"]["name"].encode()
         return TailorResult(
             resume=master_resume,

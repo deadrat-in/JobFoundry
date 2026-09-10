@@ -78,7 +78,10 @@ async def test_process_unscored_jobs_batch_without_tailor():
 
 
 @pytest.mark.asyncio
-async def test_process_unscored_jobs_batch_with_tailoring_and_artifacts(tmp_path: Path):
+async def test_process_unscored_jobs_batch_with_tailoring_and_artifacts(tmp_path: Path, monkeypatch):
+    # The bridge destination is operator config; trust it the way
+    # RESUME_OPS_URL/ALLOWED_LLM_BASES would in production.
+    monkeypatch.setenv("ALLOWED_LLM_BASES", "http://resume-ops:8081")
     store = JobStore(db_path=":memory:", threshold=75)
     store.init_schema(SCHEMA_SQL)
 

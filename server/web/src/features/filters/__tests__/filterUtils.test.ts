@@ -109,6 +109,26 @@ describe('parseFitNotes', () => {
     });
   });
 
+  it('parses the score_failed error message from JSON fit_notes', () => {
+    const raw = JSON.stringify({
+      error: 'No API key configured — go to Settings to add your LLM key.',
+    });
+    expect(parseFitNotes(raw)).toEqual({
+      error: 'No API key configured — go to Settings to add your LLM key.',
+    });
+  });
+
+  it('parses reasoning alongside the score_failed error', () => {
+    const raw = JSON.stringify({
+      error: 'No API key configured — go to Settings to add your LLM key.',
+      reasoning: 'Scoring skipped',
+    });
+    expect(parseFitNotes(raw)).toEqual({
+      error: 'No API key configured — go to Settings to add your LLM key.',
+      reasoning: 'Scoring skipped',
+    });
+  });
+
   it('falls back to { reasoning: raw } when input is raw non-JSON text', () => {
     const raw = 'Great role, requires 5 years experience.';
     expect(parseFitNotes(raw)).toEqual({ reasoning: raw });

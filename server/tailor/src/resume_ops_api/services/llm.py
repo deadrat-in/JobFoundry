@@ -9,55 +9,23 @@ from litellm import acompletion
 from pydantic import BaseModel
 
 from resume_ops_api.core.exceptions import AppError
+from resume_ops_api.services.ssrf_guard import SSRFBlockedError, assert_safe_url, install_transport_guard
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
 # ---------------------------------------------------------------------------
-# API base URL allowlist (defense-in-depth)
-# Mirrors the allowlist enforced at the ingest settings layer.
-# The tailor service should never forward credentials to an arbitrary host.
-# Operators can extend via ALLOWED_LLM_BASES env var (comma-separated origins).
+# API base URL SSRF guard (connection-time IP-range blocking)
+# Replaces the static provider allowlist: any public-host api_base is permitted
+# (BYOK), while private/loopback/link-local destinations are blocked unless the
+# origin is operator-trusted (Gatepass :8318, local Ollama :11434, or anything
+# listed in ALLOWED_LLM_BASES). Wire-in happens at import for defense-in-depth.
 # ---------------------------------------------------------------------------
 
-def _get_allowed_api_base_origins() -> set[str]:
-    import os
-    defaults = {
-        "https://openrouter.ai",
-        "https://api.openai.com",
-        "https://openai.com",
-        "https://api.anthropic.com",
-        "https://generativelanguage.googleapis.com",
-        "http://127.0.0.1:8318",
-        "http://localhost:8318",
-        "http://127.0.0.1:11434",
-        "http://localhost:11434",
-    }
-    def _normalize_origin(s: str) -> str | None:
-        from urllib.parse import urlparse
-        try:
-            p = urlparse(s.strip())
-            if p.scheme not in ("http", "https") or not p.hostname:
-                return None
-            # Canonicalize: omit port when it is the scheme default
-            default_port = {"http": 80, "https": 443}.get(p.scheme)
-            if p.port and p.port != default_port:
-                return f"{p.scheme}://{p.hostname}:{p.port}"
-            return f"{p.scheme}://{p.hostname}"
-        except Exception:
-            return None
-
-    extra = {
-        origin
-        for s in os.environ.get("ALLOWED_LLM_BASES", "").split(",")
-        if s.strip()
-        for origin in [_normalize_origin(s)]
-        if origin
-    }
-    return defaults | extra
+install_transport_guard()
 
 
 def _validate_api_base(api_base: str | None) -> None:
-    """Raise AppError if api_base is not in the permitted origins allowlist."""
+    """Validate api_base structurally and block SSRF-eligible destinations."""
     if not api_base or not api_base.strip():
         return
     from urllib.parse import urlparse
@@ -82,24 +50,19 @@ def _validate_api_base(api_base: str | None) -> None:
             status_code=400,
         )
     try:
-        port = parsed.port
+        parsed.port
     except ValueError:
         raise AppError(
             f'Invalid port in api_base URL: "{api_base}"',
             code="invalid_api_base",
             status_code=400,
         )
-    # Build origin from scheme + hostname + optional port (omit default ports like :443 for https, :80 for http)
-    default_port = {"http": 80, "https": 443}.get(parsed.scheme)
-    if port and port != default_port:
-        origin = f"{parsed.scheme}://{parsed.hostname}:{port}"
-    else:
-        origin = f"{parsed.scheme}://{parsed.hostname}"
-    allowed = _get_allowed_api_base_origins()
-    if origin not in allowed:
+    # Connection-time IP-range enforcement (BYOK-safe: public hosts pass, private blocked)
+    try:
+        assert_safe_url(stripped)
+    except SSRFBlockedError as e:
         raise AppError(
-            f'api_base origin "{origin}" is not in the allowed origins list. '
-            f"Add it via the ALLOWED_LLM_BASES environment variable.",
+            str(e),
             code="ssrf_api_base_blocked",
             status_code=400,
         )

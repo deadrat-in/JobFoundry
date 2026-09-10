@@ -4,11 +4,15 @@ import time
 import uuid
 from typing import Any
 from src.artifacts import ArtifactManager
+from src.llm import LiteLLMClient
 from src.screener import Screener
 from src.store import JobStore
 from src.tailor_bridge import TailorBridge
 
 logger = logging.getLogger(__name__)
+
+# User-facing message surfaced via user_jobs.fit_notes so the web UI can show it.
+NO_API_KEY_MESSAGE = "No API key configured — go to Settings to add your LLM key."
 
 
 async def process_unscored_user_jobs(
@@ -28,6 +32,7 @@ async def process_unscored_user_jobs(
     """
     unscored = store.get_unscored_user_jobs(limit=limit)
     processed = 0
+    handled = 0
     passed = 0
     rejected = 0
     tailored = 0
@@ -47,6 +52,7 @@ async def process_unscored_user_jobs(
             )
             continue
 
+        handled += 1
         try:
             job_dict = {
                 "id": job_id,
@@ -57,7 +63,27 @@ async def process_unscored_user_jobs(
                 "url": item.get("url"),
                 "source": item.get("source"),
             }
-            result = await screener.score(job=job_dict, master_resume=resume)
+
+            # BYOK: resolve this user's LLM settings. A real LLM client requires the
+            # user's own api_key — a shared platform key is never used as a fallback.
+            user_llm = store.get_user_effective_llm(
+                user_id,
+                defaults={
+                    "model": getattr(screener.llm_client, "model", ""),
+                    "api_base": getattr(screener.llm_client, "api_base", ""),
+                },
+            )
+            if isinstance(screener.llm_client, LiteLLMClient) and not user_llm.get("api_key"):
+                logger.warning(
+                    "Skipping user_job %s (user %s): no user LLM API key configured",
+                    user_job_id,
+                    user_id,
+                )
+                failed_uj = store.mark_user_job_failed(user_job_id=user_job_id, error_message=NO_API_KEY_MESSAGE)
+                scored_jobs.append(failed_uj)
+                continue
+
+            result = await screener.score(job=job_dict, master_resume=resume, llm_settings=user_llm)
             updated_uj = store.score_user_job(user_job_id=user_job_id, result=result)
             processed += 1
 
@@ -79,16 +105,25 @@ async def process_unscored_user_jobs(
                 passed += 1
 
                 if tailor_bridge and tailor_bridge.base_url:
+                    # Tailoring uses the user's tailor_* settings (own key only),
+                    # not the scorer settings used for scoring.
+                    tailor_llm = store.get_user_effective_tailor(user_id, fallback=user_llm)
                     try:
                         tailor_res = await tailor_bridge.tailor(
                             job=job_dict,
                             master_resume=resume,
                             theme="jsonresume-theme-folio",
+                            model=tailor_llm.get("model"),
+                            api_key=tailor_llm.get("api_key"),
+                            api_base=tailor_llm.get("api_base"),
                         )
                         concise_res = await tailor_bridge.tailor(
                             job=job_dict,
                             master_resume=resume,
                             theme="jsonresume-theme-folio-concise",
+                            model=tailor_llm.get("model"),
+                            api_key=tailor_llm.get("api_key"),
+                            api_base=tailor_llm.get("api_base"),
                         )
 
                         if tailor_res and tailor_res.status == "completed":
@@ -139,6 +174,7 @@ async def process_unscored_user_jobs(
 
     return {
         "processed": processed,
+        "handled": handled,
         "passed": passed,
         "rejected": rejected,
         "tailored": tailored,
@@ -168,7 +204,15 @@ async def process_unscored_jobs(
             default_master_resume=master_resume,
             limit=limit,
         )
-        if user_jobs_result["processed"] > 0:
+        # Fall back to the single-tenant jobs table only when the multi-user pass
+        # found nothing at all to work on. Rows that were present but failed
+        # (e.g. BYOK: user has no API key → score_failed) still count as handled,
+        # so those failures are reported and never cause the shared catalog to be
+        # re-scored on the operator's key by accident.
+        if (
+            user_jobs_result["processed"] > 0
+            or user_jobs_result["handled"] > 0
+        ):
             return user_jobs_result
 
     # Fallback to single-tenant jobs table

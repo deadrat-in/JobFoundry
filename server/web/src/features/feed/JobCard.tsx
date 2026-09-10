@@ -78,6 +78,20 @@ export const JobCard: React.FC<JobCardProps> = ({ job, threshold = 75, onSelect,
           </div>
         )}
 
+        {fitNotes.error || job.status === 'score_failed' ? (
+          <p
+            style={{
+              fontSize: '0.8rem',
+              color: 'var(--color-danger, #e5484d)',
+              marginTop: '0.5rem',
+              fontWeight: 600,
+            }}
+            title="Scoring failed — check your LLM settings"
+          >
+            {fitNotes.error || 'No API key configured — go to Settings to add your LLM key.'}
+          </p>
+        ) : null}
+
         {fitNotes.reasoning && (
           <p
             style={{

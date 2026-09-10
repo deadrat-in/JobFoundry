@@ -875,7 +875,7 @@ class TestResumeGraphPipeline:
 
 
 # ---------------------------------------------------------------------------
-# API base allowlist & validation tests
+# API base SSRF validation tests (connection-time IP-range blocking, BYOK)
 # ---------------------------------------------------------------------------
 
 
@@ -887,15 +887,22 @@ class TestApiBaseValidation:
         _validate_api_base("")
         _validate_api_base("   ")
 
-    def test_default_allowed_origins(self) -> None:
-        _validate_api_base("https://api.openai.com/v1")
-        _validate_api_base("https://openrouter.ai/api/v1")
-        _validate_api_base("http://127.0.0.1:8318")
+    def test_public_api_bases_allowed(self) -> None:
+        # Public IP literals require no DNS and must pass under BYOK (https)
+        _validate_api_base("https://8.8.8.8/v1")
+        _validate_api_base("https://1.1.1.1:8080/v1")
 
-    def test_default_ports_accepted(self) -> None:
-        # Explicit :443 on https or :80 on http must canonicalize to default origins
-        _validate_api_base("https://api.openai.com:443/v1")
-        _validate_api_base("https://openrouter.ai:443")
+    def test_public_http_rejected(self) -> None:
+        # Public http endpoints could leak the BYOK api_key in cleartext
+        with pytest.raises(AppError) as exc_info:
+            _validate_api_base("http://1.1.1.1:8080/v1")
+        assert exc_info.value.code == "ssrf_api_base_blocked"
+        assert exc_info.value.status_code == 400
+
+    def test_trusted_internal_gateways_allowed(self) -> None:
+        # Operator-trusted Gatepass / local Ollama remain usable
+        _validate_api_base("http://127.0.0.1:8318/v1")
+        _validate_api_base("http://localhost:11434")
 
     def test_malformed_ports_rejected_as_app_error(self) -> None:
         # Non-numeric port
@@ -922,9 +929,29 @@ class TestApiBaseValidation:
         assert exc_info.value.code == "invalid_api_base"
         assert exc_info.value.status_code == 400
 
-    def test_blocked_origin_rejected(self) -> None:
+    def test_private_loopback_ip_rejected(self) -> None:
         with pytest.raises(AppError) as exc_info:
-            _validate_api_base("https://evil-attacker.com/v1")
+            _validate_api_base("http://10.0.0.1/v1")
+        assert exc_info.value.code == "ssrf_api_base_blocked"
+        assert exc_info.value.status_code == 400
+
+    def test_cloud_metadata_ip_rejected(self) -> None:
+        with pytest.raises(AppError) as exc_info:
+            _validate_api_base("http://169.254.169.254/latest/meta-data/")
+        assert exc_info.value.code == "ssrf_api_base_blocked"
+        assert exc_info.value.status_code == 400
+
+    def test_non_trusted_loopback_ip_rejected(self) -> None:
+        # Loopback is only allowed on operator-trusted origins
+        with pytest.raises(AppError) as exc_info:
+            _validate_api_base("http://127.0.0.1:9999/v1")
+        assert exc_info.value.code == "ssrf_api_base_blocked"
+        assert exc_info.value.status_code == 400
+
+    def test_unresolvable_host_rejected(self) -> None:
+        # .invalid TLD is guaranteed not to resolve (RFC 6761)
+        with pytest.raises(AppError) as exc_info:
+            _validate_api_base("https://evil-attacker.invalid/v1")
         assert exc_info.value.code == "ssrf_api_base_blocked"
         assert exc_info.value.status_code == 400
 

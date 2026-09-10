@@ -3,6 +3,8 @@
  * Zero server-side web scraping: operates strictly on client-provided raw text or Markdown.
  */
 
+import { safeFetch } from '../security/ssrf.mjs';
+
 function cleanText(text) {
   if (!text || typeof text !== 'string') return '';
   return text.replace(/[\r\t]+/g, ' ').trim();
@@ -145,7 +147,7 @@ ${text.slice(0, 20000)}
   const endpoint = `${apiBase.replace(/\/$/, '')}/chat/completions`;
   const cleanModel = model.startsWith('openrouter/') ? model.replace('openrouter/', '') : model;
 
-  const res = await fetch(endpoint, {
+  const res = await safeFetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -202,7 +204,15 @@ ${text.slice(0, 20000)}
 /**
  * Primary Parse JD handler: Uses LLM when key exists, otherwise gracefully falls back to heuristic.
  */
-export async function parseJobDescription({ text, markdown, url = '', model, apiKey, apiBase }) {
+export async function parseJobDescription({
+  text,
+  markdown,
+  url = '',
+  model,
+  apiKey,
+  apiBase,
+  suppressEnvKeyFallback = false,
+}) {
   const content = (markdown || text || '').trim();
   if (!content || content.length < 15) {
     throw new Error('Content is too short or empty to parse a job description');
@@ -210,9 +220,9 @@ export async function parseJobDescription({ text, markdown, url = '', model, api
 
   const effectiveKey =
     apiKey ||
-    process.env.OPENROUTER_API_KEY ||
-    process.env.OPENAI_API_KEY ||
-    process.env.GEMINI_API_KEY;
+    (suppressEnvKeyFallback
+      ? ''
+      : process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY);
 
   if (effectiveKey) {
     try {

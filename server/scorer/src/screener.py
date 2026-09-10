@@ -6,7 +6,12 @@ class Screener:
     def __init__(self, llm_client: LLMClient | None = None):
         self.llm_client = llm_client or StubLLM()
 
-    async def score(self, job: dict[str, Any], master_resume: dict[str, Any]) -> ScoreResult:
+    async def score(
+        self,
+        job: dict[str, Any],
+        master_resume: dict[str, Any],
+        llm_settings: dict[str, Any] | None = None,
+    ) -> ScoreResult:
         """
         Evaluate a single job against the master resume.
         Returns a validated ScoreResult with score (0-100), reasoning, matching_skills, and missing_skills.
@@ -21,7 +26,10 @@ class Screener:
             "source": job.get("source", ""),
         }
         
-        result = await self.llm_client.score(job=normalized_job, resume=master_resume)
+        llm_kwargs = {} if llm_settings is None else {"llm_settings": llm_settings}
+        result = await self.llm_client.score(
+            job=normalized_job, resume=master_resume, **llm_kwargs
+        )
 
         # Validate score boundaries (0-100)
         if not isinstance(result.score, int) or result.score < 0 or result.score > 100:

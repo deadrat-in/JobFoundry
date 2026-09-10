@@ -42,7 +42,14 @@ import {
   setActiveResume,
   deleteUserResume,
 } from './resumes/resumes.mjs';
-import { getAllSettings, getEffectiveSetting, updateSettings } from './settings/settings.mjs';
+import {
+  getAllSettings,
+  getEffectiveSetting,
+  getEffectiveSettingWithSource,
+  isRegisteredUser,
+  updateSettings,
+} from './settings/settings.mjs';
+import { safeFetch } from './security/ssrf.mjs';
 
 function bearerToken(header) {
   if (typeof header !== 'string') return '';
@@ -205,7 +212,7 @@ export function buildApp({
       serverUrl || (hostHeader ? `${protocol}://${hostHeader}` : 'http://localhost:8080');
 
     const user = resolveUser(request);
-    const threshold = getEffectiveSetting(db, 'scorer_threshold') ?? 75;
+    const threshold = getEffectiveSetting(db, 'scorer_threshold', process.env, user?.id) ?? 75;
     return {
       serverUrl: computedUrl,
       apiKey: user?.apiKey || (legacyKeys.size > 0 ? Array.from(legacyKeys)[0] : ''),
@@ -253,11 +260,11 @@ export function buildApp({
     async (request, reply) => {
       if (!checkRateLimit(request, reply, 60)) return;
       if (!authenticate(request, reply)) return;
-      return getAllSettings(db, { maskSecrets: true });
+      return getAllSettings(db, { userId: request.user.id, maskSecrets: true });
     }
   );
 
-  // PUT /api/v1/settings - Update settings in SQLite
+  // PUT /api/v1/settings - Update settings (per-user for registered users, system-level for operators)
   app.put(
     '/api/v1/settings',
     {
@@ -277,7 +284,7 @@ export function buildApp({
       if (!authenticate(request, reply)) return;
       const body = request.body || {};
       try {
-        const updated = updateSettings(db, body);
+        const updated = updateSettings(db, body, request.user.id);
         return { ok: true, ...updated };
       } catch (err) {
         return reply.code(400).send({ error: err.message });
@@ -305,27 +312,33 @@ export function buildApp({
       if (!authenticate(request, reply)) return;
       const { model, apiKey } = request.body || {};
 
-      // Strictly use the server-configured API base URL from database or defaults to prevent SSRF
-      const configuredBase =
-        getEffectiveSetting(db, 'scorer_api_base') || 'https://openrouter.ai/api/v1';
-      const effectiveBase = configuredBase.replace(/\/$/, '');
+      const userId = request.user.id;
+      const registered = isRegisteredUser(db, userId);
+
+      // Per-user effective settings (BYOK): a registered user may only test with
+      // their own key — the platform/shared key is never used as a fallback.
+      const base = getEffectiveSettingWithSource(db, 'scorer_api_base', { userId });
+      const modelSetting = getEffectiveSettingWithSource(db, 'scorer_model', { userId });
+      const keySetting = getEffectiveSettingWithSource(db, 'scorer_api_key', { userId });
 
       const hasExplicitKey = Boolean(apiKey && !apiKey.includes('••••'));
+      const fallbackKeyAllowed = !registered || keySetting.source === 'user';
+      const effectiveKey = hasExplicitKey ? apiKey : fallbackKeyAllowed ? keySetting.value : '';
       const effectiveModel =
-        model ||
-        getEffectiveSetting(db, 'scorer_model') ||
-        'openrouter/google/gemini-2.0-flash-exp:free';
-      const effectiveKey = hasExplicitKey ? apiKey : getEffectiveSetting(db, 'scorer_api_key');
+        model || modelSetting.value || 'openrouter/google/gemini-2.0-flash-exp:free';
+      const effectiveBase = (base.value || 'https://openrouter.ai/api/v1').replace(/\/$/, '');
 
       if (!effectiveKey) {
         return reply.code(400).send({
           success: false,
-          error: 'No API key provided or configured. Please enter an API key to test.',
+          error: registered
+            ? 'No API key configured — go to Settings to add your LLM key.'
+            : 'No API key provided or configured. Please enter an API key to test.',
         });
       }
       const startTime = Date.now();
       try {
-        const resp = await fetch(`${effectiveBase}/chat/completions`, {
+        const resp = await safeFetch(`${effectiveBase}/chat/completions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -552,10 +565,26 @@ export function buildApp({
     }
 
     try {
-      const model = getEffectiveSetting(db, 'scorer_model');
-      const apiKey = getEffectiveSetting(db, 'scorer_api_key');
-      const apiBase = getEffectiveSetting(db, 'scorer_api_base');
-      const parsed = await parseJobDescription({ text, markdown, url, model, apiKey, apiBase });
+      const userId = request.user.id;
+      const registered = isRegisteredUser(db, userId);
+      const keySetting = getEffectiveSettingWithSource(db, 'scorer_api_key', { userId });
+      // BYOK: a registered user may only parse with their own key — never a shared one.
+      const apiKey = registered
+        ? keySetting.source === 'user'
+          ? keySetting.value
+          : ''
+        : keySetting.value;
+      const model = getEffectiveSetting(db, 'scorer_model', process.env, userId);
+      const apiBase = getEffectiveSetting(db, 'scorer_api_base', process.env, userId);
+      const parsed = await parseJobDescription({
+        text,
+        markdown,
+        url,
+        model,
+        apiKey,
+        apiBase,
+        suppressEnvKeyFallback: registered,
+      });
       return { ok: true, job: parsed };
     } catch (err) {
       request.log.error(err, 'Failed to parse job description');
@@ -1100,6 +1129,19 @@ export function buildApp({
       });
     }
 
+    // BYOK: a registered user may only tailor with their own key — never a shared one.
+    const tailorKeySetting = getEffectiveSettingWithSource(db, 'tailor_api_key', { userId });
+    const tailorKey = isRegisteredUser(db, userId)
+      ? tailorKeySetting.source === 'user'
+        ? tailorKeySetting.value
+        : ''
+      : tailorKeySetting.value;
+    if (isRegisteredUser(db, userId) && !tailorKey) {
+      return reply.code(400).send({
+        error: 'No API key configured — go to Settings to add your LLM key.',
+      });
+    }
+
     // 3. Perform Tailoring & Artifact Persistence
     const jobDir = resolve(artifactsDir, userId || 'dev-user', id);
     mkdirSync(jobDir, { recursive: true });
@@ -1143,16 +1185,17 @@ export function buildApp({
     const resumeOpsUrl = process.env.RESUME_OPS_URL || 'http://127.0.0.1:8081';
     let tailorSuccess = false;
     let tailorError = null;
-    const tailorTheme = getEffectiveSetting(db, 'tailor_theme') || 'jsonresume-theme-folio';
+    const tailorTheme =
+      getEffectiveSetting(db, 'tailor_theme', process.env, userId) || 'jsonresume-theme-folio';
     const tailorTimeoutMs =
-      (Number(getEffectiveSetting(db, 'tailor_timeout_seconds')) || 900) * 1000;
-    const tailorModel = getEffectiveSetting(db, 'tailor_model');
-    const tailorKey = getEffectiveSetting(db, 'tailor_api_key');
-    const tailorBase = getEffectiveSetting(db, 'tailor_api_base');
+      (Number(getEffectiveSetting(db, 'tailor_timeout_seconds', process.env, userId)) || 900) *
+      1000;
+    const tailorModel = getEffectiveSetting(db, 'tailor_model', process.env, userId);
+    const tailorBase = getEffectiveSetting(db, 'tailor_api_base', process.env, userId);
 
     if (resumeOpsUrl) {
       try {
-        const resp = await fetch(`${resumeOpsUrl.replace(/\/$/, '')}/api/v1/tailor`, {
+        const resp = await safeFetch(`${resumeOpsUrl.replace(/\/$/, '')}/api/v1/tailor`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: AbortSignal.timeout(tailorTimeoutMs),

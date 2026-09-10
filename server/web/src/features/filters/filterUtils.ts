@@ -73,12 +73,13 @@ export function parseFitNotes(raw?: string | null): FitNotes {
     const parsed = JSON.parse(raw);
     if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
       const reasoningValid = parsed.reasoning === undefined || typeof parsed.reasoning === 'string';
+      const errorValid = parsed.error === undefined || typeof parsed.error === 'string';
       const matchingValid =
         parsed.matching_skills === undefined || Array.isArray(parsed.matching_skills);
       const missingValid =
         parsed.missing_skills === undefined || Array.isArray(parsed.missing_skills);
 
-      if (reasoningValid && matchingValid && missingValid) {
+      if (reasoningValid && errorValid && matchingValid && missingValid) {
         return parsed as FitNotes;
       }
     }

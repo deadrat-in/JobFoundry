@@ -438,6 +438,7 @@ export const JobFeed: React.FC<JobFeedProps> = ({
           <option value="rejected">Rejected</option>
           <option value="rejected_by_score">Rejected By Score</option>
           <option value="invalid_job">Invalid / Non-Job</option>
+          <option value="score_failed">Score Failed (Setup Required)</option>
         </select>
 
         <select

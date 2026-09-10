@@ -55,7 +55,7 @@ describe('SettingsPage', () => {
           secret: false,
         },
         scorer_api_key: {
-          source: 'database',
+          source: 'system',
           hasCustomKey: true,
           updatedAt: 12345,
           type: 'string',

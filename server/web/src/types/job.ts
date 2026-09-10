@@ -1,5 +1,6 @@
 export interface FitNotes {
   reasoning?: string;
+  error?: string;
   matching_skills?: string[];
   missing_skills?: string[];
 }
@@ -14,7 +15,8 @@ export type JobStatus =
   | 'offer'
   | 'rejected'
   | 'archived'
-  | 'invalid_job';
+  | 'invalid_job'
+  | 'score_failed';
 
 export interface Job {
   id: string;

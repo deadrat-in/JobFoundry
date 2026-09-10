@@ -3,7 +3,7 @@ import json
 import os
 import pytest
 from src.artifacts import ArtifactManager
-from src.llm import LLMClient, ScoreResult
+from src.llm import LLMClient, LiteLLMClient, ScoreResult
 from src.screener import Screener
 from src.store import JobStore
 from src.tailor_bridge import TailorBridge, TailorResult
@@ -68,7 +68,11 @@ CREATE TABLE IF NOT EXISTS user_jobs (
 
 
 class DynamicScoreLLM(LLMClient):
-    async def score(self, job: dict, resume: dict) -> ScoreResult:
+    def __init__(self):
+        self.received_settings: list[dict | None] = []
+
+    async def score(self, job: dict, resume: dict, llm_settings: dict | None = None) -> ScoreResult:
+        self.received_settings.append(llm_settings)
         resume_name = resume.get("basics", {}).get("name", "")
         # Alice is Backend; Bob is Frontend
         if "Alice" in resume_name and "Go" in job.get("description", ""):
@@ -95,7 +99,28 @@ class DynamicScoreLLM(LLMClient):
 
 
 class MockTailorBridge(TailorBridge):
-    async def tailor(self, job: dict, master_resume: dict, theme: str = "jsonresume-theme-folio"):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.calls: list[dict] = []
+
+    async def tailor(
+        self,
+        job: dict,
+        master_resume: dict,
+        theme: str = "jsonresume-theme-folio",
+        model: str | None = None,
+        api_key: str | None = None,
+        api_base: str | None = None,
+    ):
+        self.calls.append(
+            {
+                "theme": theme,
+                "model": model,
+                "api_key": api_key,
+                "api_base": api_base,
+                "user_id": master_resume.get("basics", {}).get("name", ""),
+            }
+        )
         return TailorResult(
             resume=master_resume,
             pdf_base64="JVBERi0xLjQKJcTl8uXr",
@@ -146,7 +171,52 @@ async def test_multi_user_worker_scoring_and_isolation(tmp_path):
         ("j_react", "React Lead", "Beta", "Remote", "http://beta.test/react", "gh", now, "React web UI", "fp2", "ok", None, None, "new", None, 0, now, now),
     )
 
-    # 4. User Jobs: Alice has Go and React; Bob has Go and React
+    # 4. Per-user LLM settings (BYOK)
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_alice", "scorer_api_key", "sk-alice-own-key-123456", now),
+    )
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_alice", "scorer_api_base", "https://alice-llm.example.com/v1", now),
+    )
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_bob", "scorer_api_key", "sk-bob-own-key-123456", now),
+    )
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_bob", "scorer_model", "bob/provider/model", now),
+    )
+
+    # Distinct per-user TAILOR settings: the worker must forward these (not the
+    # scorer settings) to the tailoring service.
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_alice", "tailor_model", "alice/tailor/model", now),
+    )
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_alice", "tailor_api_base", "https://tailor-alice.example.com/v1", now),
+    )
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_alice", "tailor_api_key", "sk-tailor-alice-999", now),
+    )
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_bob", "tailor_model", "bob/tailor/model", now),
+    )
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_bob", "tailor_api_base", "https://tailor-bob.example.com/v1", now),
+    )
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_bob", "tailor_api_key", "sk-tailor-bob-999", now),
+    )
+
+    # 5. User Jobs: Alice has Go and React; Bob has Go and React
     store.conn.execute(
         "INSERT INTO user_jobs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         ("uj_a_go", "u_alice", "j_go", None, None, "new", None, 0, now, now),
@@ -165,7 +235,8 @@ async def test_multi_user_worker_scoring_and_isolation(tmp_path):
     )
     store.conn.commit()
 
-    screener = Screener(llm_client=DynamicScoreLLM())
+    llm = DynamicScoreLLM()
+    screener = Screener(llm_client=llm)
     artifact_mgr = ArtifactManager(base_dir=tmp_path / "artifacts")
     tailor = MockTailorBridge(base_url="http://mock-tailor")
 
@@ -178,6 +249,7 @@ async def test_multi_user_worker_scoring_and_isolation(tmp_path):
     )
 
     assert result["processed"] == 4
+    assert result["handled"] == 4
     assert result["passed"] == 2 # Alice on Go, Bob on React
     assert result["rejected"] == 2 # Alice on React, Bob on Go
     assert result["tailored"] == 2
@@ -203,3 +275,154 @@ async def test_multi_user_worker_scoring_and_isolation(tmp_path):
     # Check artifact directory isolation
     assert (tmp_path / "artifacts" / "u_alice" / "j_go" / "resume.json").exists()
     assert (tmp_path / "artifacts" / "u_bob" / "j_react" / "resume.json").exists()
+
+    # Per-user LLM settings must reach the LLM client (BYOK hand-off)
+    by_key = {}
+    for s in llm.received_settings:
+        by_key[s.get("api_key")] = s
+
+    assert by_key["sk-alice-own-key-123456"]["api_base"] == "https://alice-llm.example.com/v1"
+    assert by_key["sk-bob-own-key-123456"]["model"] == "bob/provider/model"
+    assert len(by_key) == 2
+
+    # Tailoring must receive the user's TAILOR settings, not the scorer ones
+    alice_tailor_calls = [
+        c for c in tailor.calls if c["user_id"] == "Alice Backend"
+    ]
+    bob_tailor_calls = [c for c in tailor.calls if c["user_id"] == "Bob Frontend"]
+    assert len(alice_tailor_calls) == 2  # folio + folio-concise
+    assert len(bob_tailor_calls) == 2
+
+    for call in alice_tailor_calls:
+        assert call["model"] == "alice/tailor/model"
+        assert call["api_key"] == "sk-tailor-alice-999"
+        assert call["api_base"] == "https://tailor-alice.example.com/v1"
+    assert {c["theme"] for c in alice_tailor_calls} == {
+        "jsonresume-theme-folio",
+        "jsonresume-theme-folio-concise",
+    }
+
+    for call in bob_tailor_calls:
+        assert call["model"] == "bob/tailor/model"
+        assert call["api_key"] == "sk-tailor-bob-999"
+        assert call["api_base"] == "https://tailor-bob.example.com/v1"
+
+
+@pytest.mark.asyncio
+async def test_get_user_effective_tailor_partial_provider_never_mixes_keys(tmp_path):
+    store = JobStore(db_path=str(tmp_path / "t.db"))
+    store.init_schema(SCHEMA_SQL)
+    now = 1700000000000
+
+    store.conn.execute(
+        "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ("u_custom", "custom@example.com", "hash", "Custom", "key_c", now, now),
+    )
+    store.conn.execute(
+        "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ("u_scorer_only", "scorer@example.com", "hash", "Scorer", "key_s", now, now),
+    )
+    store.conn.execute(
+        "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ("u_full", "full@example.com", "hash", "Full", "key_f", now, now),
+    )
+
+    # Partial custom provider: custom api_base/model but NO tailor key.
+    # The user's SCORER key must NOT be forwarded to that custom provider.
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_custom", "scorer_api_key", "sk-scorer-custom-1", now),
+    )
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_custom", "tailor_api_base", "https://tailor-custom.example.com/v1", now),
+    )
+    custom = store.get_user_effective_tailor(
+        "u_custom", fallback={"model": "m", "api_base": "b", "api_key": "sk-scorer-custom-1"}
+    )
+    assert custom["api_base"] == "https://tailor-custom.example.com/v1"
+    assert custom["api_key"] == ""
+    assert custom["has_user_tailor_key"] is False
+
+    # Scorer-only setup keeps backward-compatible key inheritance
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_scorer_only", "scorer_api_key", "sk-scorer-only-7", now),
+    )
+    scorer_only = store.get_user_effective_tailor("u_scorer_only", fallback={})
+    assert scorer_only["api_key"] == "sk-scorer-only-7"
+
+    # Full tailor trio uses the explicit tailor key
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_full", "tailor_model", "full/tailor/model", now),
+    )
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_full", "tailor_api_base", "https://tailor-full.example.com/v1", now),
+    )
+    store.conn.execute(
+        "INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)",
+        ("u_full", "tailor_api_key", "sk-tailor-full-3", now),
+    )
+    full = store.get_user_effective_tailor("u_full", fallback={})
+    assert full["api_key"] == "sk-tailor-full-3"
+    assert full["has_user_tailor_key"] is True
+
+
+@pytest.mark.asyncio
+async def test_multi_user_worker_no_key_failure_never_falls_back_to_legacy(tmp_path):
+    """
+    All selected user jobs missing a BYOK key must be marked score_failed and
+    reported — and the worker must NOT drop through to the single-tenant path
+    that could re-score the shared catalog on the operator's key.
+    """
+    db_path = str(tmp_path / "test.db")
+    store = JobStore(db_path=db_path, threshold=75)
+    store.init_schema(SCHEMA_SQL)
+
+    now = 1700000000000
+    store.conn.execute(
+        "INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ("u_alice", "alice@example.com", "hash", "Alice", "key_a", now, now),
+    )
+    store.conn.execute(
+        "INSERT INTO user_resumes VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ("r_alice", "u_alice", "Alice Resume",
+         json.dumps({"basics": {"name": "Alice Backend", "label": "Go Architect"}}),
+         1, now, now),
+    )
+    # Shared catalog job, deliberately still unscored
+    store.conn.execute(
+        "INSERT INTO jobs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ("j_go", "Go Lead", "Alpha", "Remote", "http://alpha.test/go", "gh", now,
+         "Go backend microservices", "fp1", "ok", None, None, "new", None, 0, now, now),
+    )
+    store.conn.execute(
+        "INSERT INTO user_jobs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        ("uj_a_go", "u_alice", "j_go", None, None, "new", None, 0, now, now),
+    )
+    store.conn.commit()
+
+    # Real LLM client with NO api_key anywhere: worker must fail the row, not score
+    screener = Screener(llm_client=LiteLLMClient(model="gpt-4o-mini"))
+
+    result = await process_unscored_jobs(
+        store=store,
+        screener=screener,
+        master_resume={"basics": {"name": "Alice Backend"}},
+    )
+
+    assert result["processed"] == 0
+    assert result["handled"] == 1
+    assert len(result["jobs"]) == 1
+    assert result["jobs"][0]["status"] == "score_failed"
+
+    uj_row = store.conn.execute("SELECT status, fit_notes FROM user_jobs WHERE id = 'uj_a_go'").fetchone()
+    assert uj_row["status"] == "score_failed"
+    assert "No API key configured" in uj_row["fit_notes"]
+
+    # The shared catalog job was NOT re-scored with a shared/operator key
+    job_row = store.conn.execute("SELECT fit_score, status FROM jobs WHERE id = 'j_go'").fetchone()
+    assert job_row["fit_score"] is None
+    assert job_row["status"] == "new"

@@ -39,6 +39,21 @@ class JobStore:
         self._ensure_migrations()
 
     def _ensure_migrations(self) -> None:
+        # Keep in sync with the shared schema in server/ingest/src/db/schema.sql:
+        # user_settings must cascade with the users row so a deleted/re-created
+        # user id can never resurrect stale (potentially secret) settings.
+        self.conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_settings (
+              user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+              key TEXT NOT NULL,
+              value TEXT NOT NULL,
+              updated_at INTEGER NOT NULL,
+              PRIMARY KEY (user_id, key)
+            )
+            """
+        )
+        self.conn.commit()
         try:
             self.conn.execute("ALTER TABLE jobs ADD COLUMN attempt_count INTEGER NOT NULL DEFAULT 0")
             self.conn.commit()
@@ -80,6 +95,93 @@ class JobStore:
         if key in settings and settings[key] is not None and settings[key] != "":
             return settings[key]
         return default
+
+    def get_user_settings(self, user_id: str) -> dict[str, str]:
+        """
+        Loads all key-value pairs from user_settings table for a single user.
+        Returns {} if the table is absent (pre-migration DBs).
+        """
+        try:
+            cursor = self.conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='user_settings'"
+            )
+            if not cursor.fetchone():
+                return {}
+            rows = self.conn.execute(
+                "SELECT key, value FROM user_settings WHERE user_id = ? AND value != ''",
+                (user_id,),
+            ).fetchall()
+            return {row["key"]: row["value"] for row in rows}
+        except Exception:
+            return {}
+
+    def get_user_effective_llm(
+        self,
+        user_id: str,
+        defaults: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Resolves the LLM settings for a single user's scoring job.
+
+        BYOK policy: model and api_base may fall back to operator system
+        settings / instance defaults, but the api_key comes ONLY from the
+        user's own user_settings row — a shared platform key is never used.
+        """
+        defaults = defaults or {}
+        user_settings = self.get_user_settings(user_id)
+        system = self.get_system_settings()
+
+        def pick(key: str, fallback: Any = None) -> Any:
+            value = user_settings.get(key) or system.get(key) or fallback
+            return value
+
+        return {
+            "model": pick("scorer_model", defaults.get("model")),
+            "api_base": pick("scorer_api_base", defaults.get("api_base")),
+            "api_key": user_settings.get("scorer_api_key", ""),
+            "has_user_key": bool(user_settings.get("scorer_api_key")),
+        }
+
+    def get_user_effective_tailor(
+        self,
+        user_id: str,
+        fallback: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Resolves the LLM settings used for a single user's automated tailoring.
+
+        The user's tailor_* settings win; model/api_base may fall back to the
+        operator's system settings (as scoring does). The api_key NEVER falls
+        back to the operator's shared key — only the user's own tailor key, or
+        (for backward compatibility with scorer-only setup) the user's own
+        scorer key when the user has NOT overridden the tailor provider.
+
+        When a user configures their own tailor model/api_base (a custom
+        provider), the scorer key is NOT forwarded to it — mixing a provider
+        key with an unrelated endpoint is exactly what we must avoid. In that
+        case the tailor key must be explicit, so a missing one resolves to ""
+        and the worker surfaces the setup message instead.
+        """
+        fallback = fallback or {}
+        user_settings = self.get_user_settings(user_id)
+        system = self.get_system_settings()
+
+        def pick(key: str) -> Any:
+            return user_settings.get(key) or system.get(key) or ""
+
+        tailor_provider_override = any(
+            user_settings.get(k) for k in ("tailor_model", "tailor_api_base")
+        )
+        tailor_key = user_settings.get("tailor_api_key")
+        scorer_key = user_settings.get("scorer_api_key")
+
+        return {
+            "model": pick("tailor_model") or fallback.get("model"),
+            "api_base": pick("tailor_api_base") or fallback.get("api_base"),
+            "api_key": tailor_key
+            or ("" if tailor_provider_override else (scorer_key or fallback.get("api_key"))),
+            "has_user_tailor_key": bool(tailor_key),
+        }
 
 
     def reset_in_flight_jobs(self) -> int:

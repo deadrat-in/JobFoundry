@@ -14,7 +14,15 @@ test('openDb migrates an in-memory DB to the full multi-tenant schema', () => {
       .sort();
     assert.deepEqual(
       tables,
-      ['jobs', 'relay_tasks', 'system_settings', 'user_jobs', 'user_resumes', 'users'].sort()
+      [
+        'jobs',
+        'relay_tasks',
+        'system_settings',
+        'user_jobs',
+        'user_resumes',
+        'user_settings',
+        'users',
+      ].sort()
     );
 
     // Verify relay_tasks table
@@ -50,6 +58,21 @@ test('openDb migrates an in-memory DB to the full multi-tenant schema', () => {
     assert.ok(userJobCols.find((c) => c.name === 'job_id' && c.notnull === 1));
     assert.ok(userJobCols.find((c) => c.name === 'status' && c.notnull === 1));
 
+    // Verify user_settings table (per-user BYOK overrides)
+    const userSettingCols = db.prepare('PRAGMA table_info(user_settings)').all();
+    assert.ok(userSettingCols.find((c) => c.name === 'user_id' && c.notnull === 1));
+    assert.ok(userSettingCols.find((c) => c.name === 'key' && c.notnull === 1));
+    assert.ok(userSettingCols.find((c) => c.name === 'value' && c.notnull === 1));
+    assert.ok(userSettingCols.find((c) => c.name === 'updated_at' && c.notnull === 1));
+
+    // Verify the composite unique index on (user_id, key)
+    const userSettingsIdx = db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_user_settings_user_key'"
+      )
+      .all();
+    assert.equal(userSettingsIdx.length, 1);
+
     // Verify idx_jobs_fingerprint index
     const indices = db
       .prepare(
@@ -82,13 +105,19 @@ test('foreign key cascade deletes user_jobs and user_resumes on user delete', ()
       'INSERT INTO user_jobs (id, user_id, job_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
     ).run('uj1', 'u1', 'j1', 'new', now, now);
 
+    db.prepare(
+      'INSERT INTO user_settings (user_id, key, value, updated_at) VALUES (?, ?, ?, ?)'
+    ).run('u1', 'scorer_api_key', 'sk-user-1', now);
+
     assert.equal(db.prepare('SELECT COUNT(*) as n FROM user_resumes').get().n, 1);
     assert.equal(db.prepare('SELECT COUNT(*) as n FROM user_jobs').get().n, 1);
+    assert.equal(db.prepare('SELECT COUNT(*) as n FROM user_settings').get().n, 1);
 
     // Delete user -> should cascade
     db.prepare('DELETE FROM users WHERE id = ?').run('u1');
     assert.equal(db.prepare('SELECT COUNT(*) as n FROM user_resumes').get().n, 0);
     assert.equal(db.prepare('SELECT COUNT(*) as n FROM user_jobs').get().n, 0);
+    assert.equal(db.prepare('SELECT COUNT(*) as n FROM user_settings').get().n, 0);
     // Job in catalog remains
     assert.equal(db.prepare('SELECT COUNT(*) as n FROM jobs').get().n, 1);
   } finally {
@@ -106,7 +135,7 @@ test('migrate is idempotent', () => {
         "SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
       )
       .get();
-    assert.equal(count.n, 6);
+    assert.equal(count.n, 7);
   } finally {
     db.close();
   }

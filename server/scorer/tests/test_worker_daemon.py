@@ -119,7 +119,7 @@ async def test_worker_daemon_lifecycle_and_tick(store: JobStore, screener: Scree
 async def test_worker_daemon_overlap_lock(store: JobStore):
     # Screener with simulated latency
     class SlowStubLLM(StubLLM):
-        async def score(self, job, resume):
+        async def score(self, job, resume, llm_settings=None):
             await asyncio.sleep(0.2)
             return ScoreResult(score=80, reasoning="slow score", missing_skills=[], matching_skills=[])
 
@@ -194,7 +194,7 @@ async def test_worker_daemon_background_loop_overlap_with_tick(store: JobStore):
     returns 'already_running' and does NOT start a second concurrent pass.
     """
     class SlowStubLLM(StubLLM):
-        async def score(self, job, resume):
+        async def score(self, job, resume, llm_settings=None):
             await asyncio.sleep(0.3)
             return ScoreResult(score=80, reasoning="slow score", missing_skills=[], matching_skills=[])
 
@@ -247,7 +247,7 @@ async def test_worker_retry_cap_terminal_state(store: JobStore):
     by the worker loop.
     """
     class FailingLLM(StubLLM):
-        async def score(self, job, resume):
+        async def score(self, job, resume, llm_settings=None):
             raise RuntimeError("LLM provider unavailable or timeout")
 
     failing_screener = Screener(llm_client=FailingLLM())

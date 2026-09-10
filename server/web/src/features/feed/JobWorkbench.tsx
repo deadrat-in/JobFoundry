@@ -18,6 +18,7 @@ import {
   Layers,
   Edit3,
   Save,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface JobWorkbenchProps {
@@ -398,6 +399,30 @@ export const JobWorkbench: React.FC<JobWorkbenchProps> = ({
                   <span className="score-badge score-unscored">Unscored</span>
                 )}
               </div>
+
+              {fitNotes.error || job.status === 'score_failed' ? (
+                <div
+                  className="error-banner"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '0.5rem',
+                    padding: '0.65rem 0.8rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--danger-border, rgba(229,72,77,0.35))',
+                    background: 'var(--danger-bg, rgba(229,72,77,0.08))',
+                    fontSize: '0.85rem',
+                    color: 'var(--color-danger, #e5484d)',
+                    marginTop: '0.35rem',
+                  }}
+                >
+                  <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: '1px' }} />
+                  <span>
+                    {fitNotes.error ||
+                      'No API key configured — go to Settings to add your LLM key.'}
+                  </span>
+                </div>
+              ) : null}
 
               {fitNotes.reasoning ? (
                 <p

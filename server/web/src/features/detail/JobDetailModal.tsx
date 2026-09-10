@@ -249,6 +249,24 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                     )}
                   </div>
 
+                  {fitNotes.error || job.status === 'score_failed' ? (
+                    <p
+                      style={{
+                        fontSize: '0.9rem',
+                        color: 'var(--color-danger, #e5484d)',
+                        background: 'var(--danger-bg, rgba(229,72,77,0.08))',
+                        border: '1px solid rgba(229,72,77,0.3)',
+                        borderRadius: '8px',
+                        padding: '0.6rem 0.8rem',
+                        marginBottom: '0.75rem',
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {fitNotes.error ||
+                        'No API key configured — go to Settings to add your LLM key.'}
+                    </p>
+                  ) : null}
+
                   {fitNotes.reasoning && (
                     <p
                       style={{

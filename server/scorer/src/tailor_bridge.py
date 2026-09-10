@@ -3,6 +3,8 @@ from typing import Any
 import httpx
 from pydantic import BaseModel, Field
 
+from src.ssrf_guard import assert_safe_url
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,6 +33,9 @@ class TailorBridge:
         job: dict[str, Any],
         master_resume: dict[str, Any],
         theme: str = "jsonresume-theme-folio",
+        model: str | None = None,
+        api_key: str | None = None,
+        api_base: str | None = None,
     ) -> TailorResult | None:
         """
         Send a job description and master resume to resume-ops for tailoring.
@@ -41,11 +46,25 @@ class TailorBridge:
             return None
 
         url = f"{self.base_url}/api/v1/tailor"
+        # SSRF: never send the (possibly BYOK) api_key to an unvalidated endpoint.
+        # The transport guard already re-checks at connect time; assert here too
+        # so a blocked destination fails before the payload is even built.
+        try:
+            assert_safe_url(url)
+        except Exception as e:
+            logger.error("Tailor bridge destination blocked by SSRF guard: %s (%s)", url, e)
+            return None
         payload = {
             "job_description": job.get("description", ""),
             "resume": master_resume,
             "theme": theme,
         }
+        if model:
+            payload["model"] = model
+        if api_key:
+            payload["api_key"] = api_key
+        if api_base:
+            payload["api_base"] = api_base
 
         try:
             if self._client:
