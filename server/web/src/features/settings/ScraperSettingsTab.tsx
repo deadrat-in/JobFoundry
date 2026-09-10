@@ -35,50 +35,292 @@ interface PortalMetadata {
 
 export const PORTAL_CATALOG: PortalMetadata[] = [
   // Global Remote
-  { id: 'remoteok', name: 'RemoteOK', category: 'global', description: 'Global remote developer jobs', isPaidBoard: true, recommended: false },
-  { id: 'weworkremotely', name: 'We Work Remotely', category: 'global', description: 'Top remote tech postings & RSS', isPaidBoard: true, recommended: false },
-  { id: 'himalayas', name: 'Himalayas', category: 'global', description: 'Curated remote engineering roles', recommended: true },
-  { id: 'arbeitnow', name: 'Arbeitnow', category: 'global', description: 'European & remote tech roles', recommended: true },
-  { id: 'jobspresso', name: 'Jobspresso', category: 'global', description: 'Expertly reviewed tech & dev jobs', recommended: true },
-  { id: '4dayweek', name: '4 Day Week', category: 'global', description: '4-day workweek software roles', recommended: true },
-  { id: 'remotive', name: 'Remotive', category: 'global', description: 'Remote jobs in tech & engineering', recommended: true },
-  { id: 'workingnomads', name: 'Working Nomads', category: 'global', description: 'Curated remote jobs for digital nomads', recommended: true },
-  { id: 'hackernews', name: 'Hacker News', category: 'global', description: "Monthly HN 'Who is hiring?' threads", recommended: true },
-  { id: 'cryptocurrencyjobs', name: 'CryptocurrencyJobs', category: 'global', description: 'Web3 & crypto remote roles', recommended: true },
-  { id: 'nodesk', name: 'Nodesk', category: 'global', description: 'Remote-first job listings & feeds', recommended: true },
-  { id: 'larajobs', name: 'LaraJobs', category: 'global', description: 'Laravel, PHP & full-stack jobs', recommended: true },
-  { id: 'torre', name: 'Torre', category: 'global', description: 'AI-matched global tech listings', recommended: true },
-  { id: 'themuse', name: 'The Muse', category: 'global', description: 'Company profiles & job discovery', recommended: true },
-  { id: 'landingjobs', name: 'Landing.jobs', category: 'global', description: 'European tech careers marketplace', recommended: true },
-  { id: 'flowxtra', name: 'FlowXtra', category: 'global', description: 'Developer & technology postings', recommended: true },
-  { id: 'thehub', name: 'The Hub', category: 'global', description: 'Nordic & European tech startups', recommended: true },
-  { id: 'agentic-jobs', name: 'Agentic Jobs', category: 'global', description: 'AI agents, LLM & tooling roles', recommended: true },
+  {
+    id: 'remoteok',
+    name: 'RemoteOK',
+    category: 'global',
+    description: 'Global remote developer jobs',
+    isPaidBoard: true,
+    recommended: false,
+  },
+  {
+    id: 'weworkremotely',
+    name: 'We Work Remotely',
+    category: 'global',
+    description: 'Top remote tech postings & RSS',
+    isPaidBoard: true,
+    recommended: false,
+  },
+  {
+    id: 'himalayas',
+    name: 'Himalayas',
+    category: 'global',
+    description: 'Curated remote engineering roles',
+    recommended: true,
+  },
+  {
+    id: 'arbeitnow',
+    name: 'Arbeitnow',
+    category: 'global',
+    description: 'European & remote tech roles',
+    recommended: true,
+  },
+  {
+    id: 'jobspresso',
+    name: 'Jobspresso',
+    category: 'global',
+    description: 'Expertly reviewed tech & dev jobs',
+    recommended: true,
+  },
+  {
+    id: '4dayweek',
+    name: '4 Day Week',
+    category: 'global',
+    description: '4-day workweek software roles',
+    recommended: true,
+  },
+  {
+    id: 'remotive',
+    name: 'Remotive',
+    category: 'global',
+    description: 'Remote jobs in tech & engineering',
+    recommended: true,
+  },
+  {
+    id: 'workingnomads',
+    name: 'Working Nomads',
+    category: 'global',
+    description: 'Curated remote jobs for digital nomads',
+    recommended: true,
+  },
+  {
+    id: 'hackernews',
+    name: 'Hacker News',
+    category: 'global',
+    description: "Monthly HN 'Who is hiring?' threads",
+    recommended: true,
+  },
+  {
+    id: 'cryptocurrencyjobs',
+    name: 'CryptocurrencyJobs',
+    category: 'global',
+    description: 'Web3 & crypto remote roles',
+    recommended: true,
+  },
+  {
+    id: 'nodesk',
+    name: 'Nodesk',
+    category: 'global',
+    description: 'Remote-first job listings & feeds',
+    recommended: true,
+  },
+  {
+    id: 'larajobs',
+    name: 'LaraJobs',
+    category: 'global',
+    description: 'Laravel, PHP & full-stack jobs',
+    recommended: true,
+  },
+  {
+    id: 'torre',
+    name: 'Torre',
+    category: 'global',
+    description: 'AI-matched global tech listings',
+    recommended: true,
+  },
+  {
+    id: 'themuse',
+    name: 'The Muse',
+    category: 'global',
+    description: 'Company profiles & job discovery',
+    recommended: true,
+  },
+  {
+    id: 'landingjobs',
+    name: 'Landing.jobs',
+    category: 'global',
+    description: 'European tech careers marketplace',
+    recommended: true,
+  },
+  {
+    id: 'flowxtra',
+    name: 'FlowXtra',
+    category: 'global',
+    description: 'Developer & technology postings',
+    recommended: true,
+  },
+  {
+    id: 'thehub',
+    name: 'The Hub',
+    category: 'global',
+    description: 'Nordic & European tech startups',
+    recommended: true,
+  },
+  {
+    id: 'agentic-jobs',
+    name: 'Agentic Jobs',
+    category: 'global',
+    description: 'AI agents, LLM & tooling roles',
+    recommended: true,
+  },
 
   // Regional & Niche
-  { id: 'jobicy', name: 'Jobicy', category: 'regional', description: 'Worldwide remote & regional tech', recommended: true },
-  { id: 'remotli', name: 'Remotli', category: 'regional', description: 'Modern tech & developer feed', recommended: true },
-  { id: 'getonbrd', name: 'Get on Board', category: 'regional', description: 'Latin America technology roles', recommended: true },
-  { id: 'manfred', name: 'Manfred', category: 'regional', description: 'Spain & European tech careers', recommended: true },
-  { id: 'wttj', name: 'Welcome to the Jungle', category: 'regional', description: 'France & European tech ecosystem', recommended: true },
-  { id: 'nofluffjobs', name: 'No Fluff Jobs', category: 'regional', description: 'Transparent salary IT jobs in CEE', recommended: true },
-  { id: 'justjoin', name: 'Just Join IT', category: 'regional', description: 'Leading Central European tech board', recommended: true },
-  { id: 'solidjobs', name: 'Solid.Jobs', category: 'regional', description: 'Poland IT job offers with salary', recommended: true },
-  { id: 'senjob', name: 'SenJob', category: 'regional', description: 'Francophone Africa & Senegal jobs', recommended: true },
-  { id: 'jobbankca', name: 'Job Bank Canada', category: 'regional', description: 'Official Government of Canada job board', recommended: true },
-  { id: 'arbeitsagentur', name: 'Bundesagentur für Arbeit', category: 'regional', description: 'Official German federal job portal', recommended: true },
-  { id: 'vdab', name: 'VDAB', category: 'regional', description: 'Flanders public employment service', recommended: true },
-  { id: 'higheredjobs', name: 'HigherEdJobs', category: 'regional', description: 'Academic & research tech positions', recommended: true },
-  { id: 'glints', name: 'Glints', category: 'regional', description: 'Southeast Asia tech & developer roles', recommended: true },
-  { id: 'jobstreet', name: 'JobStreet', category: 'regional', description: 'Southeast Asia major job portal', recommended: true },
-  { id: 'mycareersfuture', name: 'MyCareersFuture', category: 'regional', description: 'Singapore government career portal', recommended: true },
-  { id: 'careerviet', name: 'CareerViet', category: 'regional', description: 'Vietnam technology & enterprise jobs', recommended: true },
-  { id: 'itviec', name: 'ITviec', category: 'regional', description: 'Vietnam top developer job board', recommended: true },
-  { id: 'yourator', name: 'Yourator', category: 'regional', description: 'Taiwan tech & startup job marketplace', recommended: true },
+  {
+    id: 'jobicy',
+    name: 'Jobicy',
+    category: 'regional',
+    description: 'Worldwide remote & regional tech',
+    recommended: true,
+  },
+  {
+    id: 'remotli',
+    name: 'Remotli',
+    category: 'regional',
+    description: 'Modern tech & developer feed',
+    recommended: true,
+  },
+  {
+    id: 'getonbrd',
+    name: 'Get on Board',
+    category: 'regional',
+    description: 'Latin America technology roles',
+    recommended: true,
+  },
+  {
+    id: 'manfred',
+    name: 'Manfred',
+    category: 'regional',
+    description: 'Spain & European tech careers',
+    recommended: true,
+  },
+  {
+    id: 'wttj',
+    name: 'Welcome to the Jungle',
+    category: 'regional',
+    description: 'France & European tech ecosystem',
+    recommended: true,
+  },
+  {
+    id: 'nofluffjobs',
+    name: 'No Fluff Jobs',
+    category: 'regional',
+    description: 'Transparent salary IT jobs in CEE',
+    recommended: true,
+  },
+  {
+    id: 'justjoin',
+    name: 'Just Join IT',
+    category: 'regional',
+    description: 'Leading Central European tech board',
+    recommended: true,
+  },
+  {
+    id: 'solidjobs',
+    name: 'Solid.Jobs',
+    category: 'regional',
+    description: 'Poland IT job offers with salary',
+    recommended: true,
+  },
+  {
+    id: 'senjob',
+    name: 'SenJob',
+    category: 'regional',
+    description: 'Francophone Africa & Senegal jobs',
+    recommended: true,
+  },
+  {
+    id: 'jobbankca',
+    name: 'Job Bank Canada',
+    category: 'regional',
+    description: 'Official Government of Canada job board',
+    recommended: true,
+  },
+  {
+    id: 'arbeitsagentur',
+    name: 'Bundesagentur für Arbeit',
+    category: 'regional',
+    description: 'Official German federal job portal',
+    recommended: true,
+  },
+  {
+    id: 'vdab',
+    name: 'VDAB',
+    category: 'regional',
+    description: 'Flanders public employment service',
+    recommended: true,
+  },
+  {
+    id: 'higheredjobs',
+    name: 'HigherEdJobs',
+    category: 'regional',
+    description: 'Academic & research tech positions',
+    recommended: true,
+  },
+  {
+    id: 'glints',
+    name: 'Glints',
+    category: 'regional',
+    description: 'Southeast Asia tech & developer roles',
+    recommended: true,
+  },
+  {
+    id: 'jobstreet',
+    name: 'JobStreet',
+    category: 'regional',
+    description: 'Southeast Asia major job portal',
+    recommended: true,
+  },
+  {
+    id: 'mycareersfuture',
+    name: 'MyCareersFuture',
+    category: 'regional',
+    description: 'Singapore government career portal',
+    recommended: true,
+  },
+  {
+    id: 'careerviet',
+    name: 'CareerViet',
+    category: 'regional',
+    description: 'Vietnam technology & enterprise jobs',
+    recommended: true,
+  },
+  {
+    id: 'itviec',
+    name: 'ITviec',
+    category: 'regional',
+    description: 'Vietnam top developer job board',
+    recommended: true,
+  },
+  {
+    id: 'yourator',
+    name: 'Yourator',
+    category: 'regional',
+    description: 'Taiwan tech & startup job marketplace',
+    recommended: true,
+  },
 
   // Company & ATS
-  { id: 'ibm', name: 'IBM Careers', category: 'company', description: 'Global enterprise positions', recommended: true },
-  { id: 'amazon', name: 'Amazon Jobs', category: 'company', description: 'Global AWS & retail engineering', recommended: true },
-  { id: 'a16z-speedrun-talent', name: 'a16z Speedrun Talent', category: 'company', description: 'Andreessen Horowitz gaming/AI portfolio', recommended: true },
+  {
+    id: 'ibm',
+    name: 'IBM Careers',
+    category: 'company',
+    description: 'Global enterprise positions',
+    recommended: true,
+  },
+  {
+    id: 'amazon',
+    name: 'Amazon Jobs',
+    category: 'company',
+    description: 'Global AWS & retail engineering',
+    recommended: true,
+  },
+  {
+    id: 'a16z-speedrun-talent',
+    name: 'a16z Speedrun Talent',
+    category: 'company',
+    description: 'Andreessen Horowitz gaming/AI portfolio',
+    recommended: true,
+  },
 ];
 
 function splitList(val: string): string[] {
@@ -101,7 +343,9 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
   extractingResume,
 }) => {
   const [portalSearch, setPortalSearch] = useState('');
-  const [portalCategory, setPortalCategory] = useState<'all' | 'global' | 'regional' | 'company'>('all');
+  const [portalCategory, setPortalCategory] = useState<'all' | 'global' | 'regional' | 'company'>(
+    'all'
+  );
 
   const positiveKeywords = config.titleFilter?.positive || [];
   const negativeKeywords = config.titleFilter?.negative || [];
@@ -206,7 +450,8 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
       {/* Tab Banner / Description */}
       <div
         style={{
-          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.08) 100%)',
+          background:
+            'linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.08) 100%)',
           border: '1px solid rgba(99, 102, 241, 0.25)',
           borderRadius: 'var(--radius-lg)',
           padding: '1.5rem',
@@ -233,8 +478,9 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
             Scrapers & Search Filters
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', maxWidth: '650px' }}>
-            Configure target keywords, negative exclusion terms, location rules, and scraper portal feeds.
-            Changes persist directly to SQLite and sync automatically to your paired browser companion extension.
+            Configure target keywords, negative exclusion terms, location rules, and scraper portal
+            feeds. Changes persist directly to SQLite and sync automatically to your paired browser
+            companion extension.
           </p>
         </div>
         <button
@@ -266,8 +512,8 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
               Target Role Keywords (Positive Matches)
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Only jobs matching at least one of these keywords will be ingested. Leave empty to allow all
-              detected software roles.
+              Only jobs matching at least one of these keywords will be ingested. Leave empty to
+              allow all detected software roles.
             </p>
           </div>
           <button
@@ -296,7 +542,9 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
 
         {/* Chips preview */}
         {positiveKeywords.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.75rem' }}>
+          <div
+            style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.75rem' }}
+          >
             {positiveKeywords.map((kw, i) => (
               <span
                 key={i}
@@ -349,9 +597,9 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
             border: '1px solid var(--border-subtle)',
           }}
         >
-          <strong>Advanced syntax:</strong> Use <code>word:intern</code> for exact whole-word matching,{' '}
-          <code>stem:agent</code> for word-prefix matching, and <code>director + engineering</code> for
-          multi-word conjunctions.
+          <strong>Advanced syntax:</strong> Use <code>word:intern</code> for exact whole-word
+          matching, <code>stem:agent</code> for word-prefix matching, and{' '}
+          <code>director + engineering</code> for multi-word conjunctions.
         </div>
       </div>
 
@@ -371,7 +619,12 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
           onChange={(e) => handleNegativeChange(e.target.value)}
           placeholder="e.g. word:intern, junior, .net, php, wordpress, embedded, firmware"
           className="input-text"
-          style={{ width: '100%', fontFamily: 'inherit', resize: 'vertical', marginBottom: '0.75rem' }}
+          style={{
+            width: '100%',
+            fontFamily: 'inherit',
+            resize: 'vertical',
+            marginBottom: '0.75rem',
+          }}
         />
 
         {negativeKeywords.length > 0 && (
@@ -429,12 +682,15 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
       >
         {/* Max Posting Age */}
         <div className="stat-card" style={{ padding: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}
+          >
             <Clock size={18} style={{ color: 'var(--color-indigo)' }} />
             <h3 style={{ fontSize: '1.05rem', fontWeight: 600 }}>Max Posting Age</h3>
           </div>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-            Discard listings older than N days (jobs without explicit published dates are always preserved).
+            Discard listings older than N days (jobs without explicit published dates are always
+            preserved).
           </p>
           <select
             value={String(config.maxPostingAgeDays ?? 30)}
@@ -457,7 +713,9 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
 
         {/* Location Filtering */}
         <div className="stat-card" style={{ padding: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}
+          >
             <MapPin size={18} style={{ color: 'var(--color-indigo)' }} />
             <h3 style={{ fontSize: '1.05rem', fontWeight: 600 }}>Location Filtering</h3>
           </div>
@@ -517,12 +775,15 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
 
       {/* 4. Background Automation & Companion Sync */}
       <div className="stat-card" style={{ padding: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}
+        >
           <Sliders size={18} style={{ color: 'var(--color-indigo)' }} />
           <h3 style={{ fontSize: '1.05rem', fontWeight: 600 }}>Extension Background Automation</h3>
         </div>
         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-          Tune how the browser companion extension executes passive captures and periodic portal scans.
+          Tune how the browser companion extension executes passive captures and periodic portal
+          scans.
         </p>
 
         <div
@@ -560,7 +821,14 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
               className="input-text"
               style={{ width: '100%' }}
             />
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'block' }}>
+            <span
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--text-muted)',
+                marginTop: '0.25rem',
+                display: 'block',
+              }}
+            >
               Extension alarms trigger periodic runs every {config.scanIntervalHours || 6}h.
             </span>
           </div>
@@ -587,7 +855,12 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
               type="checkbox"
               checked={Boolean(config.passiveMode)}
               onChange={(e) => onChange({ ...config, passiveMode: e.target.checked })}
-              style={{ width: '1.2rem', height: '1.2rem', accentColor: 'var(--color-indigo)', cursor: 'pointer' }}
+              style={{
+                width: '1.2rem',
+                height: '1.2rem',
+                accentColor: 'var(--color-indigo)',
+                cursor: 'pointer',
+              }}
             />
           </div>
 
@@ -613,7 +886,12 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
               type="checkbox"
               checked={Boolean(config.activeMode)}
               onChange={(e) => onChange({ ...config, activeMode: e.target.checked })}
-              style={{ width: '1.2rem', height: '1.2rem', accentColor: 'var(--color-indigo)', cursor: 'pointer' }}
+              style={{
+                width: '1.2rem',
+                height: '1.2rem',
+                accentColor: 'var(--color-indigo)',
+                cursor: 'pointer',
+              }}
             />
           </div>
         </div>
@@ -632,13 +910,23 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
           }}
         >
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                marginBottom: '0.25rem',
+              }}
+            >
               <Globe size={18} style={{ color: 'var(--color-indigo)' }} />
               <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Scraper & Feed Portal Catalog</h3>
-              <span className="badge badge-primary">{activePortalsCount} / {PORTAL_CATALOG.length} Active</span>
+              <span className="badge badge-primary">
+                {activePortalsCount} / {PORTAL_CATALOG.length} Active
+              </span>
             </div>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Toggle automated feeds and scrapers. Providers marked with ✦ charge fees to employers (free to browse).
+              Toggle automated feeds and scrapers. Providers marked with ✦ charge fees to employers
+              (free to browse).
             </p>
           </div>
 
@@ -703,7 +991,15 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
           </div>
 
           {/* Category Tabs */}
-          <div style={{ display: 'flex', gap: '0.35rem', background: 'var(--bg-primary)', padding: '0.25rem', borderRadius: 'var(--radius-md)' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '0.35rem',
+              background: 'var(--bg-primary)',
+              padding: '0.25rem',
+              borderRadius: 'var(--radius-md)',
+            }}
+          >
             {(
               [
                 ['all', 'All'],
@@ -777,8 +1073,15 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
                       marginBottom: '0.2rem',
                     }}
                   >
-                    <span style={{ fontWeight: 600, fontSize: '0.9rem', color: isEnabled ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                      {portal.name} {portal.isPaidBoard && <span title="Paid posting board">✦</span>}
+                    <span
+                      style={{
+                        fontWeight: 600,
+                        fontSize: '0.9rem',
+                        color: isEnabled ? 'var(--text-primary)' : 'var(--text-muted)',
+                      }}
+                    >
+                      {portal.name}{' '}
+                      {portal.isPaidBoard && <span title="Paid posting board">✦</span>}
                     </span>
                     <span
                       style={{

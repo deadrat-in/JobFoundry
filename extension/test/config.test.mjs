@@ -109,7 +109,7 @@ test('fetchSeedConfig retrieves config bundle from server', async () => {
 });
 
 test('syncConfigFromServer updates local config from server API', async () => {
-  const { syncConfigFromServer, getConfig } = await import('../src/shared/config.ts');
+  const { syncConfigFromServer } = await import('../src/shared/config.ts');
   const store = {};
   const mockStorage = {
     async get(key) {
@@ -149,7 +149,7 @@ test('syncConfigFromServer updates local config from server API', async () => {
 });
 
 test('syncConfigFromServer preserves cached local config if server fetch fails', async () => {
-  const { syncConfigFromServer, setConfig, getConfig } = await import('../src/shared/config.ts');
+  const { syncConfigFromServer, setConfig } = await import('../src/shared/config.ts');
   const store = {};
   const mockStorage = {
     async get(key) {
@@ -160,11 +160,14 @@ test('syncConfigFromServer preserves cached local config if server fetch fails',
     },
   };
 
-  await setConfig({
-    serverUrl: 'http://cached-server:8080',
-    apiKey: 'cached-key',
-    scanIntervalHours: 4,
-  }, { storageImpl: mockStorage });
+  await setConfig(
+    {
+      serverUrl: 'http://cached-server:8080',
+      apiKey: 'cached-key',
+      scanIntervalHours: 4,
+    },
+    { storageImpl: mockStorage }
+  );
 
   const failingFetch = async () => {
     throw new Error('Network offline');
@@ -180,7 +183,8 @@ test('syncConfigFromServer preserves cached local config if server fetch fails',
 });
 
 test('enqueueOfflineJobs and flushOfflineJobs manage queue and retry on connect', async () => {
-  const { enqueueOfflineJobs, getOfflineQueue, flushOfflineJobs, clearOfflineQueue } = await import('../src/shared/config.ts');
+  const { enqueueOfflineJobs, getOfflineQueue, flushOfflineJobs, clearOfflineQueue } =
+    await import('../src/shared/config.ts');
   const store = {};
   const mockStorage = {
     async get(key) {
@@ -245,4 +249,3 @@ test('enqueueOfflineJobs and flushOfflineJobs manage queue and retry on connect'
   const finalQueue = await getOfflineQueue({ storageImpl: mockStorage });
   assert.equal(finalQueue.length, 0);
 });
-

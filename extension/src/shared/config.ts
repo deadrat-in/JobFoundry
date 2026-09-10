@@ -236,15 +236,19 @@ export async function syncConfigFromServer(
           apiKey,
         };
         if (serverConfig.titleFilter) patch.titleFilter = serverConfig.titleFilter;
-        if (serverConfig.maxPostingAgeDays !== undefined) patch.maxPostingAgeDays = serverConfig.maxPostingAgeDays;
+        if (serverConfig.maxPostingAgeDays !== undefined)
+          patch.maxPostingAgeDays = serverConfig.maxPostingAgeDays;
         if (serverConfig.locationFilter) patch.locationFilter = serverConfig.locationFilter;
         if (serverConfig.portals) patch.portals = serverConfig.portals;
         if (serverConfig.passiveMode !== undefined) patch.passiveMode = serverConfig.passiveMode;
         if (serverConfig.activeMode !== undefined) patch.activeMode = serverConfig.activeMode;
-        if (serverConfig.activeModeDelayMs !== undefined) patch.activeModeDelayMs = serverConfig.activeModeDelayMs;
+        if (serverConfig.activeModeDelayMs !== undefined)
+          patch.activeModeDelayMs = serverConfig.activeModeDelayMs;
         if (serverConfig.fitThreshold !== undefined) patch.fitThreshold = serverConfig.fitThreshold;
-        if (serverConfig.scanIntervalHours !== undefined) patch.scanIntervalHours = serverConfig.scanIntervalHours;
-        if (Array.isArray(serverConfig.trackedCompanies)) patch.trackedCompanies = serverConfig.trackedCompanies;
+        if (serverConfig.scanIntervalHours !== undefined)
+          patch.scanIntervalHours = serverConfig.scanIntervalHours;
+        if (Array.isArray(serverConfig.trackedCompanies))
+          patch.trackedCompanies = serverConfig.trackedCompanies;
         return await setConfig(patch, opts);
       }
     }
@@ -346,4 +350,3 @@ export async function flushOfflineJobs(
     return { flushed: 0, remaining: queue.length };
   }
 }
-

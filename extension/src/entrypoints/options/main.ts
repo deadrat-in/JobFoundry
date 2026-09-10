@@ -1,9 +1,4 @@
-import {
-  getConfig,
-  setConfig,
-  syncConfigFromServer,
-  DEFAULT_CONFIG,
-} from '../../shared/config.ts';
+import { getConfig, setConfig, syncConfigFromServer, DEFAULT_CONFIG } from '../../shared/config.ts';
 import type { Config } from '../../shared/config.ts';
 import { sendMessage } from '../../shared/messaging.ts';
 
@@ -56,7 +51,9 @@ async function hydrate() {
   const displayScrapers = $('#display-scrapers-count');
   if (displayScrapers) {
     const activePortals = Object.values(currentConfig.portals || {}).filter(Boolean).length;
-    const trackedCo = (currentConfig.trackedCompanies || []).filter((c) => c.enabled !== false).length;
+    const trackedCo = (currentConfig.trackedCompanies || []).filter(
+      (c) => c.enabled !== false
+    ).length;
     displayScrapers.textContent = `${activePortals + trackedCo} feeds active`;
   }
 

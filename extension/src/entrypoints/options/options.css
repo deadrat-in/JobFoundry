@@ -553,7 +553,9 @@ tr:last-child td {
 /* ── Modern Pointer Hero & Sync Overview ─────────────────────────── */
 
 .pointer-hero-card {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(16, 185, 129, 0.04) 100%), var(--bg-card);
+  background:
+    linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(16, 185, 129, 0.04) 100%),
+    var(--bg-card);
   border: 1px solid rgba(99, 102, 241, 0.25);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   margin-bottom: 1.5rem;
@@ -694,4 +696,3 @@ tr:last-child td {
   gap: 1rem;
   margin-top: 1.25rem;
 }
-

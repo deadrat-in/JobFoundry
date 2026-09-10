@@ -156,13 +156,19 @@ export const ExtensionSyncView: React.FC = () => {
             🎯 Unified Scrapers & Search Filters
           </div>
           <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-            Configure target role keywords, negative exclusion terms, location rules, and scraper portal feeds directly in your Web Dashboard.
+            Configure target role keywords, negative exclusion terms, location rules, and scraper
+            portal feeds directly in your Web Dashboard.
           </div>
         </div>
         <Link
           to="/settings?tab=scrapers"
           className="btn btn-secondary btn-sm"
-          style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+          style={{
+            textDecoration: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35rem',
+          }}
         >
           Open Scraper Settings →
         </Link>

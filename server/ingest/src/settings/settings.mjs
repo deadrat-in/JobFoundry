@@ -565,7 +565,11 @@ export function validateExtensionConfig(patch) {
   }
 
   if (patch.titleFilter !== undefined) {
-    if (!patch.titleFilter || typeof patch.titleFilter !== 'object' || Array.isArray(patch.titleFilter)) {
+    if (
+      !patch.titleFilter ||
+      typeof patch.titleFilter !== 'object' ||
+      Array.isArray(patch.titleFilter)
+    ) {
       throw new Error('titleFilter must be an object with positive and negative arrays');
     }
     if (patch.titleFilter.positive !== undefined && !Array.isArray(patch.titleFilter.positive)) {
@@ -577,7 +581,11 @@ export function validateExtensionConfig(patch) {
   }
 
   if (patch.locationFilter !== undefined) {
-    if (!patch.locationFilter || typeof patch.locationFilter !== 'object' || Array.isArray(patch.locationFilter)) {
+    if (
+      !patch.locationFilter ||
+      typeof patch.locationFilter !== 'object' ||
+      Array.isArray(patch.locationFilter)
+    ) {
       throw new Error('locationFilter must be an object with allow and block arrays');
     }
     if (patch.locationFilter.allow !== undefined && !Array.isArray(patch.locationFilter.allow)) {
@@ -687,23 +695,26 @@ export function updateExtensionConfig(db, userId, patch = {}) {
   const table = isRegisteredUser(db, userId) ? 'user_settings' : 'system_settings';
 
   if (table === 'user_settings') {
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO user_settings (user_id, key, value, updated_at)
       VALUES (?, 'extension_config', ?, ?)
       ON CONFLICT(user_id, key) DO UPDATE SET
         value = excluded.value,
         updated_at = excluded.updated_at
-    `).run(userId, JSON.stringify(next), now);
+    `
+    ).run(userId, JSON.stringify(next), now);
   } else {
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO system_settings (key, value, updated_at)
       VALUES ('extension_config', ?, ?)
       ON CONFLICT(key) DO UPDATE SET
         value = excluded.value,
         updated_at = excluded.updated_at
-    `).run(JSON.stringify(next), now);
+    `
+    ).run(JSON.stringify(next), now);
   }
 
   return next;
 }
-

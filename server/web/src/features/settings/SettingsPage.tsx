@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { AppSettings, DEFAULT_SETTINGS } from '../../lib/auth';
 import { useAuth } from '../../context/AuthContext';
-import { api, SystemSettings, SettingMeta, DiagnosticsInfo, ExtensionConfig } from '../../api/client';
+import {
+  api,
+  SystemSettings,
+  SettingMeta,
+  DiagnosticsInfo,
+  ExtensionConfig,
+} from '../../api/client';
 import { useTheme, ACCENT_THEMES, ColorMode, AccentTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
 import { ScraperSettingsTab } from './ScraperSettingsTab';
@@ -33,7 +39,8 @@ interface SettingsPageProps {
   onSaveSettings: (settings: AppSettings) => void;
 }
 
-type SettingsTab = 'general' | 'scorer' | 'tailor' | 'observability' | 'scrapers' | 'sync' | 'system';
+type SettingsTab =
+  'general' | 'scorer' | 'tailor' | 'observability' | 'scrapers' | 'sync' | 'system';
 
 const VALID_TABS: SettingsTab[] = [
   'general',
