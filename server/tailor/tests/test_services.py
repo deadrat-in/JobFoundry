@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from resume_ops_api.core.config import Settings
 from resume_ops_api.core.exceptions import AppError, ResumeValidationError
-from resume_ops_api.services.llm import StructuredLLMClient
+from resume_ops_api.services.llm import StructuredLLMClient, _validate_api_base
 from resume_ops_api.services.renderer import ResumeRenderer
 from resume_ops_api.services.schema import ResumeSchemaValidator
 from resume_ops_api.services.themes import ThemeService
@@ -872,6 +872,62 @@ class TestResumeGraphPipeline:
         assert final_resume["basics"]["summary"] == "Original summary."
         assert final_resume["skills"][0]["name"] == "Original Skill"
         assert final_resume["projects"][0]["description"] == "Original proj"
+
+
+# ---------------------------------------------------------------------------
+# API base allowlist & validation tests
+# ---------------------------------------------------------------------------
+
+
+class TestApiBaseValidation:
+    """Tests for _validate_api_base behavior and edge cases."""
+
+    def test_empty_or_none_allowed(self) -> None:
+        _validate_api_base(None)
+        _validate_api_base("")
+        _validate_api_base("   ")
+
+    def test_default_allowed_origins(self) -> None:
+        _validate_api_base("https://api.openai.com/v1")
+        _validate_api_base("https://openrouter.ai/api/v1")
+        _validate_api_base("http://127.0.0.1:8318")
+
+    def test_default_ports_accepted(self) -> None:
+        # Explicit :443 on https or :80 on http must canonicalize to default origins
+        _validate_api_base("https://api.openai.com:443/v1")
+        _validate_api_base("https://openrouter.ai:443")
+
+    def test_malformed_ports_rejected_as_app_error(self) -> None:
+        # Non-numeric port
+        with pytest.raises(AppError) as exc_info:
+            _validate_api_base("https://api.openai.com:abc/v1")
+        assert exc_info.value.code == "invalid_api_base"
+        assert exc_info.value.status_code == 400
+
+        # Out-of-range port
+        with pytest.raises(AppError) as exc_info:
+            _validate_api_base("https://api.openai.com:99999/v1")
+        assert exc_info.value.code == "invalid_api_base"
+        assert exc_info.value.status_code == 400
+
+    def test_invalid_scheme_rejected(self) -> None:
+        with pytest.raises(AppError) as exc_info:
+            _validate_api_base("ftp://api.openai.com")
+        assert exc_info.value.code == "invalid_api_base"
+        assert exc_info.value.status_code == 400
+
+    def test_embedded_credentials_rejected(self) -> None:
+        with pytest.raises(AppError) as exc_info:
+            _validate_api_base("https://user:pass@api.openai.com")
+        assert exc_info.value.code == "invalid_api_base"
+        assert exc_info.value.status_code == 400
+
+    def test_blocked_origin_rejected(self) -> None:
+        with pytest.raises(AppError) as exc_info:
+            _validate_api_base("https://evil-attacker.com/v1")
+        assert exc_info.value.code == "ssrf_api_base_blocked"
+        assert exc_info.value.status_code == 400
+
 
 
 

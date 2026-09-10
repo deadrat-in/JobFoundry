@@ -12,6 +12,98 @@ from resume_ops_api.core.exceptions import AppError
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
+# ---------------------------------------------------------------------------
+# API base URL allowlist (defense-in-depth)
+# Mirrors the allowlist enforced at the ingest settings layer.
+# The tailor service should never forward credentials to an arbitrary host.
+# Operators can extend via ALLOWED_LLM_BASES env var (comma-separated origins).
+# ---------------------------------------------------------------------------
+
+def _get_allowed_api_base_origins() -> set[str]:
+    import os
+    defaults = {
+        "https://openrouter.ai",
+        "https://api.openai.com",
+        "https://openai.com",
+        "https://api.anthropic.com",
+        "https://generativelanguage.googleapis.com",
+        "http://127.0.0.1:8318",
+        "http://localhost:8318",
+        "http://127.0.0.1:11434",
+        "http://localhost:11434",
+    }
+    def _normalize_origin(s: str) -> str | None:
+        from urllib.parse import urlparse
+        try:
+            p = urlparse(s.strip())
+            if p.scheme not in ("http", "https") or not p.hostname:
+                return None
+            # Canonicalize: omit port when it is the scheme default
+            default_port = {"http": 80, "https": 443}.get(p.scheme)
+            if p.port and p.port != default_port:
+                return f"{p.scheme}://{p.hostname}:{p.port}"
+            return f"{p.scheme}://{p.hostname}"
+        except Exception:
+            return None
+
+    extra = {
+        origin
+        for s in os.environ.get("ALLOWED_LLM_BASES", "").split(",")
+        if s.strip()
+        for origin in [_normalize_origin(s)]
+        if origin
+    }
+    return defaults | extra
+
+
+def _validate_api_base(api_base: str | None) -> None:
+    """Raise AppError if api_base is not in the permitted origins allowlist."""
+    if not api_base or not api_base.strip():
+        return
+    from urllib.parse import urlparse
+    stripped = api_base.strip()
+    parsed = urlparse(stripped)
+    if parsed.scheme not in ("http", "https"):
+        raise AppError(
+            f'API base URL must use http or https scheme, got "{parsed.scheme}"',
+            code="invalid_api_base",
+            status_code=400,
+        )
+    if not parsed.netloc:
+        raise AppError(
+            f'Invalid api_base URL: "{api_base}"',
+            code="invalid_api_base",
+            status_code=400,
+        )
+    if parsed.username or parsed.password:
+        raise AppError(
+            "API base URL must not contain credentials (user:pass@host)",
+            code="invalid_api_base",
+            status_code=400,
+        )
+    try:
+        port = parsed.port
+    except ValueError:
+        raise AppError(
+            f'Invalid port in api_base URL: "{api_base}"',
+            code="invalid_api_base",
+            status_code=400,
+        )
+    # Build origin from scheme + hostname + optional port (omit default ports like :443 for https, :80 for http)
+    default_port = {"http": 80, "https": 443}.get(parsed.scheme)
+    if port and port != default_port:
+        origin = f"{parsed.scheme}://{parsed.hostname}:{port}"
+    else:
+        origin = f"{parsed.scheme}://{parsed.hostname}"
+    allowed = _get_allowed_api_base_origins()
+    if origin not in allowed:
+        raise AppError(
+            f'api_base origin "{origin}" is not in the allowed origins list. '
+            f"Add it via the ALLOWED_LLM_BASES environment variable.",
+            code="ssrf_api_base_blocked",
+            status_code=400,
+        )
+
 
 class AsyncRateLimiter:
     def __init__(self, requests: int, period: float) -> None:
@@ -172,6 +264,7 @@ class StructuredLLMClient:
         if api_key:
             extra_kwargs["api_key"] = api_key
         if api_base:
+            _validate_api_base(api_base)
             extra_kwargs["api_base"] = api_base
 
         # Ensure "json" is in the prompts to satisfy APIs enforcing this when response_format is json_object
