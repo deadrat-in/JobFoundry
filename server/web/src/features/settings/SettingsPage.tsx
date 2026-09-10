@@ -274,7 +274,18 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
   const renderSourceBadge = (key: string) => {
     const itemMeta = meta[key];
     if (!itemMeta) return null;
-    if (itemMeta.source === 'database') {
+    if (itemMeta.source === 'user') {
+      return (
+        <span
+          className="badge badge-purple"
+          style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem' }}
+          title="This is your personal BYOK override, stored per user"
+        >
+          Your Override
+        </span>
+      );
+    }
+    if (itemMeta.source === 'system') {
       return (
         <span
           className="badge badge-primary"

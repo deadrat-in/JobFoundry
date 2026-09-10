@@ -89,6 +89,34 @@ describe('TriageStation & Split View', () => {
     expect(screen.getByText(/We are seeking a seasoned Senior Staff Engineer/)).toBeInTheDocument();
   });
 
+  it('renders the missing API key message for a score_failed job', () => {
+    const handleStatusChange = vi.fn();
+    const handleJobUpdated = vi.fn();
+
+    const failedJob: Job = {
+      ...mockJobs[0],
+      fit_score: null,
+      fit_notes: JSON.stringify({
+        error: 'No API key configured — go to Settings to add your LLM key.',
+      }),
+      status: 'score_failed',
+    };
+
+    render(
+      <JobWorkbench
+        job={failedJob}
+        threshold={75}
+        onStatusChange={handleStatusChange}
+        onJobUpdated={handleJobUpdated}
+      />
+    );
+
+    expect(
+      screen.getByText('No API key configured — go to Settings to add your LLM key.')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Unscored')).toBeInTheDocument();
+  });
+
   it('renders JobFeed in Split View by default and allows toggling to Cards view', () => {
     const handleSelect = vi.fn();
     render(<JobFeed jobs={mockJobs} onSelectJob={handleSelect} />);
