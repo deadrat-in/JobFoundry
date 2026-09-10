@@ -87,6 +87,51 @@ This script:
 
 ---
 
+## Run without Docker (Linux AppImage)
+
+On Linux x86_64 you can run JobFoundry as a single portable file — no Docker,
+no installation:
+
+```bash
+# Download JobFoundry-<version>-x86_64.AppImage from the GitHub Releases page,
+# then:
+chmod +x JobFoundry-*.AppImage
+./JobFoundry-*.AppImage
+```
+
+This starts all services in the foreground and opens the dashboard at
+[http://localhost:8080](http://localhost:8080). Stop with `Ctrl+C`.
+
+Background control (start on login, check status, tail logs):
+
+```bash
+./JobFoundry-*.AppImage start    # launch in the background
+./JobFoundry-*.AppImage status   # tailor / scorer / ingest health
+./JobFoundry-*.AppImage logs     # follow all service logs (or: logs ingest)
+./JobFoundry-*.AppImage open     # open the dashboard in your browser
+./JobFoundry-*.AppImage stop     # shut everything down
+```
+
+Configuration and data live outside the AppImage, following XDG conventions:
+
+- `~/.local/share/jobfoundry/` — SQLite DB, artifacts, logs, `master-resume.json`
+- `~/.local/share/jobfoundry/.env` — API keys (`OPENROUTER_API_KEY`, …) and model
+  overrides. The AppImage ships no keys; scoring and tailoring call your
+  configured LLM provider directly.
+
+Notes:
+
+- The AppImage bundles its own Node.js 22, Python 3.12 and a headless Chromium
+  for PDF export (~250–300 MB download).
+- Unlike the container, the AppImage does **not** include the Gatepass LLM
+  proxy: there is no local rate limiting or prompt audit log, and LLM traffic
+  goes straight to your provider.
+- The dashboard port (`8080`) listens on all interfaces, same as
+  `docker run -p 8080:8080`. Bindings for the internal services are
+  localhost-only.
+
+---
+
 ## Getting Started (Manual)
 
 ### 1. Prerequisites

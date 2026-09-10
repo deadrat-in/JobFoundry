@@ -23,6 +23,7 @@ data/
 dist/
 dist-extension/
 build/
+*.AppImage
 .output/
 .wxt/
 .astro/
