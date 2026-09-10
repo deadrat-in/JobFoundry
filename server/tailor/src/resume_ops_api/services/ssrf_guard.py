@@ -43,9 +43,11 @@ BLOCKED_V4 = [
     ipaddress.ip_network("240.0.0.0/4"),
 ]
 
-# IPv6 loopback, ULA, link-local, documentation and unspecified
+# IPv6 loopback, unspecified, IPv4-compatible, ULA, link-local, documentation and multicast
 BLOCKED_V6 = [
+    ipaddress.ip_network("::/128"),
     ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("::/96"),  # IPv4-compatible, e.g. ::192.168.1.1
     ipaddress.ip_network("2001:db8::/32"),
     ipaddress.ip_network("fc00::/7"),
     ipaddress.ip_network("fe80::/10"),
@@ -57,6 +59,8 @@ TRUSTED_DEFAULT_ORIGINS = {
     "http://localhost:8318",
     "http://127.0.0.1:11434",
     "http://localhost:11434",
+    "http://127.0.0.1:8081",
+    "http://localhost:8081",
 }
 
 
@@ -80,9 +84,10 @@ def _normalize_origin(s: str) -> str | None:
 def trusted_origins() -> set[str]:
     """Operator-trusted origins allowed to be on private/loopback networks."""
     origins = set(TRUSTED_DEFAULT_ORIGINS)
+    sources = os.environ.get("ALLOWED_LLM_BASES", "") + "," + os.environ.get("RESUME_OPS_URL", "")
     extra = {
         origin
-        for s in os.environ.get("ALLOWED_LLM_BASES", "").split(",")
+        for s in sources.split(",")
         if s.strip()
         for origin in [_normalize_origin(s)]
         if origin
@@ -127,6 +132,12 @@ def assert_safe_url(url: str) -> None:
     origin = _normalize_origin(stripped)
     if origin and origin in trusted_origins():
         return
+
+    if parsed.scheme == "http":
+        raise SSRFBlockedError(
+            "http:// api_base is only allowed for operator-trusted internal gateways; "
+            "use https:// for public endpoints (or add the origin to ALLOWED_LLM_BASES)"
+        )
 
     host = parsed.hostname
     if not host:

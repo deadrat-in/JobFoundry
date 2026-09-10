@@ -1195,7 +1195,7 @@ export function buildApp({
 
     if (resumeOpsUrl) {
       try {
-        const resp = await fetch(`${resumeOpsUrl.replace(/\/$/, '')}/api/v1/tailor`, {
+        const resp = await safeFetch(`${resumeOpsUrl.replace(/\/$/, '')}/api/v1/tailor`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: AbortSignal.timeout(tailorTimeoutMs),

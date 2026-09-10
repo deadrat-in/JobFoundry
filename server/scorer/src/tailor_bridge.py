@@ -3,6 +3,8 @@ from typing import Any
 import httpx
 from pydantic import BaseModel, Field
 
+from src.ssrf_guard import assert_safe_url
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,6 +46,14 @@ class TailorBridge:
             return None
 
         url = f"{self.base_url}/api/v1/tailor"
+        # SSRF: never send the (possibly BYOK) api_key to an unvalidated endpoint.
+        # The transport guard already re-checks at connect time; assert here too
+        # so a blocked destination fails before the payload is even built.
+        try:
+            assert_safe_url(url)
+        except Exception as e:
+            logger.error("Tailor bridge destination blocked by SSRF guard: %s (%s)", url, e)
+            return None
         payload = {
             "job_description": job.get("description", ""),
             "resume": master_resume,

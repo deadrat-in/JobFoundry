@@ -204,7 +204,35 @@ test('per-user getEffectiveSetting and secret preservation', () => {
     'sk-or-env-secret-123456789'
   );
 
-  // Per-user rows physically live in user_settings
-  const rows = db.prepare('SELECT * FROM user_settings ORDER BY key').all();
-  assert.ok(rows.length >= 0);
+  // Rows physically live in user_settings and are scoped to the user
+  const aliceRows = db
+    .prepare('SELECT user_id, key, value FROM user_settings WHERE user_id = ?')
+    .all('alice');
+  assert.deepEqual(
+    aliceRows.map((r) => `${r.user_id}:${r.key}=${r.value}`),
+    []
+  );
+
+  // Re-insert Alice's key, verify the stored row, then delete it
+  updateSettings(db, { scorer_api_key: 'sk-or-alice-db-key-123456' }, 'alice');
+  const stored = db
+    .prepare('SELECT user_id, key, value FROM user_settings WHERE user_id = ?')
+    .get('alice');
+  assert.equal(stored.user_id, 'alice');
+  assert.equal(stored.key, 'scorer_api_key');
+  assert.equal(stored.value, 'sk-or-alice-db-key-123456');
+
+  updateSettings(db, { scorer_api_key: null }, 'alice');
+  const afterDelete = db
+    .prepare('SELECT COUNT(*) AS n FROM user_settings WHERE user_id = ?')
+    .get('alice');
+  assert.equal(afterDelete.n, 0);
+
+  // A registered user with no user-scoped secret never sees the masked
+  // system/env fragment — the shared platform key is never surfaced to them
+  updateSettings(db, { scorer_api_key: 'sk-system-operator-123456' });
+  const isolated = getAllSettings(db, { env: fakeEnv, userId: 'alice' });
+  assert.equal(isolated.settings.scorer_api_key, '');
+  assert.equal(isolated.meta.scorer_api_key.source, 'default');
+  assert.equal(isolated.meta.scorer_api_key.hasCustomKey, false);
 });

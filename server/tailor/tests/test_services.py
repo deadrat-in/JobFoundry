@@ -888,9 +888,16 @@ class TestApiBaseValidation:
         _validate_api_base("   ")
 
     def test_public_api_bases_allowed(self) -> None:
-        # Public IP literals require no DNS and must pass under BYOK
+        # Public IP literals require no DNS and must pass under BYOK (https)
         _validate_api_base("https://8.8.8.8/v1")
-        _validate_api_base("http://1.1.1.1:8080/v1")
+        _validate_api_base("https://1.1.1.1:8080/v1")
+
+    def test_public_http_rejected(self) -> None:
+        # Public http endpoints could leak the BYOK api_key in cleartext
+        with pytest.raises(AppError) as exc_info:
+            _validate_api_base("http://1.1.1.1:8080/v1")
+        assert exc_info.value.code == "ssrf_api_base_blocked"
+        assert exc_info.value.status_code == 400
 
     def test_trusted_internal_gateways_allowed(self) -> None:
         # Operator-trusted Gatepass / local Ollama remain usable

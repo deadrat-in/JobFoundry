@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isBlockedIp, assertSafeOutboundUrl } from '../src/security/ssrf.mjs';
+import { isBlockedIp, assertSafeOutboundUrl, safeFetch } from '../src/security/ssrf.mjs';
 
 test('isBlockedIp flags private/loopback/link-local/reserved ranges', () => {
   const blocked = [
@@ -29,6 +29,9 @@ test('isBlockedIp flags private/loopback/link-local/reserved ranges', () => {
     '::ffff:10.0.0.1',
     '::ffff:192.168.0.1',
     '::ffff:169.254.169.254',
+    '::', // unspecified
+    '::127.0.0.1', // IPv4-compatible
+    '::192.168.1.1',
     '2001:db8::1',
     'fc00::1',
     'fd12:3456:789a::1',
@@ -74,21 +77,40 @@ test('assertSafeOutboundUrl allows operator-trusted internal gateways', async ()
 
 test('assertSafeOutboundUrl accepts public IP literals (no DNS needed)', async () => {
   await assertSafeOutboundUrl('https://8.8.8.8/v1');
-  await assertSafeOutboundUrl('http://1.1.1.1:8080/path');
+  await assertSafeOutboundUrl('https://1.1.1.1:8080/path');
+});
+
+test('assertSafeOutboundUrl requires https for public endpoints', async () => {
+  // A public http endpoint could leak the API key in cleartext — only
+  // operator-trusted internal gateways may use http.
+  await assert.rejects(
+    assertSafeOutboundUrl('http://1.1.1.1:8080/path'),
+    /operator-trusted internal gateways/
+  );
+  await assert.rejects(
+    assertSafeOutboundUrl('http://8.8.8.8/v1', {}),
+    /operator-trusted internal gateways/
+  );
+
+  // TLS-terminated endpoints remain fine
+  await assertSafeOutboundUrl('https://8.8.8.8/v1');
 });
 
 test('assertSafeOutboundUrl rejects blocked IP literals', async () => {
-  await assert.rejects(assertSafeOutboundUrl('http://127.0.0.1:8080'), /private\/blocked IP/);
+  await assert.rejects(assertSafeOutboundUrl('https://127.0.0.1:8080'), /private\/blocked IP/);
   await assert.rejects(assertSafeOutboundUrl('https://10.0.0.1/'), /private\/blocked IP/);
   await assert.rejects(
-    assertSafeOutboundUrl('http://169.254.169.254/latest/meta-data/'),
+    assertSafeOutboundUrl('https://169.254.169.254/latest/meta-data/'),
     /private\/blocked IP/
   );
-  await assert.rejects(assertSafeOutboundUrl('http://[::1]:8080/'), /private\/blocked IP/);
+  await assert.rejects(assertSafeOutboundUrl('https://[::1]/'), /private\/blocked IP/);
   await assert.rejects(
-    assertSafeOutboundUrl('http://[::ffff:192.168.1.1]:8080/'),
+    assertSafeOutboundUrl('https://[::ffff:192.168.1.1]/'),
     /private\/blocked IP/
   );
+  // IPv4-compatible IPv6 (::/96) forms inherit IPv4 blocking
+  await assert.rejects(assertSafeOutboundUrl('https://[::127.0.0.1]/'), /private\/blocked IP/);
+  await assert.rejects(assertSafeOutboundUrl('https://[::192.168.1.1]/'), /private\/blocked IP/);
 });
 
 test('assertSafeOutboundUrl rejects structural abuse', async () => {
@@ -108,4 +130,45 @@ test('assertSafeOutboundUrl blocks hostnames resolving to private IPs', async ()
     assertSafeOutboundUrl('https://definitely-not-a-real-host.invalid/'),
     /Unable to resolve/
   );
+});
+
+test('safeFetch re-validates every redirect hop', async () => {
+  const { createServer } = await import('node:http');
+
+  // Server on a trusted origin serving three routes:
+  //   /hop  → 302 to a private (untrusted) destination
+  //   /loop → 302 back to itself
+  //   /land → 302 to a still-safe destination on the same origin
+  const server = createServer((req, res) => {
+    if (req.url === '/hop') {
+      res.writeHead(302, { Location: 'https://127.0.0.1:9/private' });
+      res.end();
+    } else if (req.url === '/loop') {
+      res.writeHead(302, { Location: '/loop' });
+      res.end();
+    } else if (req.url === '/land') {
+      res.writeHead(200);
+      res.end('landed');
+    } else {
+      res.writeHead(302, { Location: '/land' });
+      res.end();
+    }
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const port = server.address().port;
+
+  const env = { ALLOWED_LLM_BASES: `http://127.0.0.1:${port}` };
+
+  // Redirect to a private destination must be rejected before it is followed
+  await assert.rejects(safeFetch(`http://127.0.0.1:${port}/hop`, {}, env), /private\/blocked IP/);
+
+  // A redirect loop must be aborted after the hop cap
+  await assert.rejects(safeFetch(`http://127.0.0.1:${port}/loop`, {}, env), /Too many redirects/);
+
+  // A benign redirect to a still-safe trusted destination is followed
+  const resp = await safeFetch(`http://127.0.0.1:${port}/land`, {}, env);
+  assert.equal(resp.status, 200);
+  assert.equal(await resp.text(), 'landed');
+
+  server.close();
 });

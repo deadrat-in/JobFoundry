@@ -3,25 +3,25 @@ import pytest
 from src.ssrf_guard import SSRFBlockedError, assert_safe_url, is_blocked_ip, trusted_origins
 
 
-def test_trusted_origins_defaults_and_env():
+def test_trusted_origins_defaults_and_env(monkeypatch):
     origins = trusted_origins()
     for origin in (
         "http://127.0.0.1:8318",
         "http://localhost:8318",
         "http://127.0.0.1:11434",
         "http://localhost:11434",
+        "http://127.0.0.1:8081",
+        "http://localhost:8081",
     ):
         assert origin in origins
 
-    import os
-
-    try:
-        os.environ["ALLOWED_LLM_BASES"] = "http://10.99.0.5:1234, https://gateway.internal:8443"
-        extra = trusted_origins()
-    finally:
-        del os.environ["ALLOWED_LLM_BASES"]
+    monkeypatch.setenv("ALLOWED_LLM_BASES", "http://10.99.0.5:1234, https://gateway.internal:8443")
+    extra = trusted_origins()
     assert "http://10.99.0.5:1234" in extra
     assert "https://gateway.internal:8443" in extra
+
+    monkeypatch.setenv("RESUME_OPS_URL", "http://resume-ops.internal:8081")
+    assert "http://resume-ops.internal:8081" in trusted_origins()
 
 
 @pytest.mark.parametrize(
@@ -42,10 +42,13 @@ def test_trusted_origins_defaults_and_env():
         "203.0.113.1",
         "224.0.0.1",
         "240.0.0.1",
+        "::",
         "::1",
         "::ffff:127.0.0.1",
         "::ffff:10.0.0.1",
         "::ffff:192.168.0.1",
+        "::192.168.1.1",
+        "::127.0.0.1",
         "2001:db8::1",
         "fc00::1",
         "fe80::1",
@@ -81,21 +84,33 @@ def test_assert_safe_url_allows_trusted_gateways():
     assert_safe_url("http://localhost:8318/path")
     assert_safe_url("http://127.0.0.1:11434/v1")
     assert_safe_url("http://localhost:11434/v1")
+    assert_safe_url("http://127.0.0.1:8081/v1")
+    assert_safe_url("http://localhost:8081/v1")
 
 
 def test_assert_safe_url_allows_public_ip_literal():
     assert_safe_url("https://8.8.8.8/v1")
-    assert_safe_url("http://1.1.1.1:8080/path")
+    assert_safe_url("https://1.1.1.1:8080/path")
+
+
+def test_assert_safe_url_requires_https_for_public_endpoints():
+    # A public http endpoint would leak the API key in cleartext
+    with pytest.raises(SSRFBlockedError):
+        assert_safe_url("http://1.1.1.1:8080/path")
+    with pytest.raises(SSRFBlockedError):
+        assert_safe_url("http://8.8.8.8/v1")
 
 
 @pytest.mark.parametrize(
     "url",
     [
-        "http://127.0.0.1:8080",
+        "https://127.0.0.1:8080",
         "https://10.0.0.1/",
-        "http://169.254.169.254/latest/meta-data/",
-        "http://[::1]:8080/",
-        "http://[::ffff:192.168.1.1]:8080/",
+        "https://169.254.169.254/latest/meta-data/",
+        "https://[::1]/",
+        "https://[::ffff:192.168.1.1]/",
+        "https://[::192.168.1.1]/",
+        "https://[::127.0.0.1]/",
     ],
 )
 def test_assert_safe_url_rejects_blocked_ip(url):

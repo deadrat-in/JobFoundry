@@ -7,12 +7,20 @@
  * gateways (see getTrustedApiBaseOrigins) are exempt so self-hosted deployments
  * (Gatepass on :8318, local Ollama on :11434) keep working.
  *
- * Resolution and the IP-range check happen immediately before the request is
- * sent, minimising the DNS-rebinding window compared to validate-then-store.
+ * Three layers, applied per request:
+ *   1. assertSafeOutboundUrl() validates scheme/credentials/trusted-origin and
+ *      resolves the hostname against the blocked IP ranges before we send.
+ *   2. safeFetch() follows redirects manually — every Location hop is re-validated
+ *      before the next request, so a public endpoint can never bounce us into a
+ *      private destination (or leak a bearer token there).
+ *   3. Requests go through an undici Agent whose custom DNS lookup re-resolves and
+ *      re-checks the non-public IP ranges at connect time, so the address actually
+ *      connected to is the address we validated (closing the DNS-rebinding window).
  */
 
-import { lookup } from 'node:dns/promises';
+import { lookup as resolveHostname } from 'node:dns/promises';
 import { isIP } from 'node:net';
+import { fetch as undiciFetch, Agent } from 'undici';
 import { getTrustedApiBaseOrigins } from '../settings/settings.mjs';
 
 // IPv4 CIDR blocks that must never be reached over the public internet.
@@ -38,6 +46,7 @@ const BLOCKED_V6_PREFIXES = [
   // [prefix bytes (as hex string), prefix length]
   ['00000000000000000000000000000000', 128], // :: (unspecified)
   ['00000000000000000000000000000001', 128], // ::1 (loopback)
+  ['000000000000000000000000', 96], // ::/96 (IPv4-compatible, e.g. ::192.168.1.1)
   ['fc000000000000000000000000000000', 7], // fc00::/7 (ULA)
   ['fe800000000000000000000000000000', 10], // fe80::/10 (link-local)
   ['ff000000000000000000000000000000', 8], // ff00::/8 (multicast)
@@ -45,6 +54,8 @@ const BLOCKED_V6_PREFIXES = [
 ];
 
 const V4_MAPPED_PREFIX = '00000000000000000000ffff';
+
+const MAX_REDIRECTS = 5;
 
 function ipv4ToInt(ip) {
   return ip.split('.').reduce((acc, octet) => (acc << 8) | Number(octet), 0) >>> 0;
@@ -111,7 +122,8 @@ function isBlockedV6(addr) {
   const bytes = ipv6ToBytes(addr);
   if (bytes.length !== 16) return false;
 
-  // IPv4-mapped IPv6 addresses (::ffff:1.2.3.4) inherit IPv4 policy
+  // IPv4-mapped IPv6 addresses (::ffff:1.2.3.4) inherit IPv4 policy before the
+  // ::/96 check so public mapped addresses (::ffff:8.8.8.8) stay allowed.
   if (bytes.subarray(0, 12).toString('hex') === V4_MAPPED_PREFIX) {
     const v4 = Array.from(bytes.subarray(12)).join('.');
     return isBlockedV4(v4);
@@ -136,11 +148,17 @@ export function isBlockedIp(ip) {
 /**
  * Validates that an outbound target URL is safe to connect to.
  * - Rejects non-http(s) schemes and embedded credentials (structural).
- * - Exempts operator-trusted origins (ALLOWED_LLM_BASES + local gateways).
+ * - Requires https for non-trusted origins so API keys are never sent to public
+ *   http endpoints; http is only allowed for operator-trusted gateways.
+ * - Exempts operator-trusted origins (ALLOWED_LLM_BASES/RESUME_OPS_URL + local gateways).
  * - Resolves the hostname and blocks private/loopback/link-local/reserved IPs.
  * @returns {Promise<void>} resolves when the target is permitted.
  */
-export async function assertSafeOutboundUrl(rawUrl, env = process.env) {
+export async function assertSafeOutboundUrl(
+  rawUrl,
+  env = process.env,
+  { requireHttps = true } = {}
+) {
   if (typeof rawUrl !== 'string' || !rawUrl.trim()) {
     throw new Error('Empty URL');
   }
@@ -162,6 +180,13 @@ export async function assertSafeOutboundUrl(rawUrl, env = process.env) {
     return; // operator-configured internal gateway
   }
 
+  if (requireHttps && parsed.protocol === 'http:') {
+    throw new Error(
+      'http:// api_base is only allowed for operator-trusted internal gateways; ' +
+        'use https:// for public endpoints (or add the origin to ALLOWED_LLM_BASES)'
+    );
+  }
+
   const hostname = parsed.hostname.replace(/^\[|\]$/g, '');
 
   if (isIP(hostname)) {
@@ -173,7 +198,7 @@ export async function assertSafeOutboundUrl(rawUrl, env = process.env) {
 
   let addresses = [];
   try {
-    const res = await lookup(hostname, { all: true, family: 0, verbatim: true });
+    const res = await resolveHostname(hostname, { all: true, family: 0, verbatim: true });
     addresses = Array.isArray(res) ? res : [{ address: res.address }];
   } catch {
     throw new Error(`Unable to resolve host: ${hostname}`);
@@ -191,9 +216,101 @@ export async function assertSafeOutboundUrl(rawUrl, env = process.env) {
 }
 
 /**
- * fetch() that first asserts the destination is not SSRF-eligible.
+ * Hostnames whose connections must be exempt from the non-public IP block
+ * (trusted internal gateways from the operator's configuration).
  */
-export async function safeFetch(url, init, env = process.env) {
-  await assertSafeOutboundUrl(url, env);
-  return fetch(url, init);
+function trustedHostnames(env) {
+  const hosts = new Set();
+  for (const origin of getTrustedApiBaseOrigins(env)) {
+    try {
+      hosts.add(new URL(origin).hostname);
+    } catch {
+      // ignore malformed origin
+    }
+  }
+  return hosts;
+}
+
+// Rebuild the pinned Agent only when the trusted-host set changes (tests rotate
+// local servers; production config is static).
+let pinnedAgent = null;
+let pinnedAgentKey = '';
+
+/**
+ * An undici Agent that re-resolves and re-validates the destination at connect
+ * time via a custom DNS lookup, binding the connection to the validated address.
+ */
+function getPinnedAgent(env = process.env) {
+  const hosts = trustedHostnames(env);
+  const key = [...hosts].sort().join(',');
+  if (pinnedAgent && pinnedAgentKey === key) {
+    return pinnedAgent;
+  }
+
+  pinnedAgent = new Agent({
+    headersTimeout: 1_800_000,
+    bodyTimeout: 1_800_000,
+    connectTimeout: 60_000,
+    connect: {
+      lookup(hostname, _options, callback) {
+        resolveHostname(hostname, { all: true, family: 0, verbatim: true })
+          .then((records) => {
+            const list = Array.isArray(records) ? records : [{ address: records.address }];
+
+            if (!hosts.has(hostname)) {
+              for (const { address } of list) {
+                if (isBlockedIp(address)) {
+                  const err = new Error(
+                    `Connection to ${hostname} is blocked: resolves to non-public IP ${address}`
+                  );
+                  err.code = 'ERR_SSRF_BLOCKED';
+                  throw err;
+                }
+              }
+            }
+
+            const { address, family } = list[0];
+            callback(null, { address, family });
+          })
+          .catch((err) => callback(err));
+      },
+    },
+  });
+  pinnedAgentKey = key;
+  return pinnedAgent;
+}
+
+/**
+ * fetch() with SSRF protection at every layer:
+ *  - the target is asserted safe before sending,
+ *  - automatic redirects are replaced with a bounded, per-hop-validated loop,
+ *  - the connection is pinned to a connect-time re-validated DNS resolution.
+ */
+export async function safeFetch(url, init = {}, env = process.env) {
+  let current = url;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
+    await assertSafeOutboundUrl(current, env);
+
+    const response = await undiciFetch(current, {
+      ...init,
+      redirect: 'manual',
+      dispatcher: getPinnedAgent(env),
+    });
+
+    const status = response.status;
+    if (status >= 300 && status < 400) {
+      const location = response.headers.get('location');
+      if (!location) {
+        return response; // cannot follow without a Location header
+      }
+      const next = new URL(location, current).toString();
+      await assertSafeOutboundUrl(next, env);
+      current = next;
+      continue;
+    }
+
+    return response;
+  }
+
+  throw new Error(`Too many redirects (max ${MAX_REDIRECTS}) while fetching ${url}`);
 }

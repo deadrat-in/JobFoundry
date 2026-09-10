@@ -116,6 +116,8 @@ export const SETTINGS_METADATA = {
  * from the private/loopback/link-local blocklist so self-hosted deployments
  * keep working. Extend at runtime via the ALLOWED_LLM_BASES env var
  * (comma-separated origins, e.g. "https://my-proxy.internal,http://localhost:11434").
+ * RESUME_OPS_URL is also honoured so the ingest → resume-ops call (which can
+ * carry a user BYOK key) stays permitted on internal deployments.
  */
 export function getTrustedApiBaseOrigins(env = process.env) {
   const defaults = [
@@ -123,9 +125,12 @@ export function getTrustedApiBaseOrigins(env = process.env) {
     'http://localhost:8318',
     'http://127.0.0.1:11434',
     'http://localhost:11434',
+    'http://127.0.0.1:8081',
+    'http://localhost:8081',
   ];
 
-  const extra = (env.ALLOWED_LLM_BASES || '')
+  const sources = [env.ALLOWED_LLM_BASES || '', env.RESUME_OPS_URL || '']
+    .join(',')
     .split(',')
     .map((s) => {
       const trimmed = s.trim();
@@ -139,7 +144,7 @@ export function getTrustedApiBaseOrigins(env = process.env) {
     })
     .filter(Boolean);
 
-  return new Set([...defaults, ...extra]);
+  return new Set([...defaults, ...sources]);
 }
 
 /**
@@ -261,6 +266,21 @@ export function getAllSettings(db, { userId = null, maskSecrets = true, env = pr
   const meta = {};
 
   for (const [key, spec] of Object.entries(SETTINGS_METADATA)) {
+    // BYOK isolation: a registered user without a user-scoped value for a
+    // secret key gets an empty value with no system/env masked fragment (or
+    // source) surfaced — the shared platform key is never presented to them.
+    if (spec.secret && userId && isRegisteredUser(db, userId) && !userSettings.has(key)) {
+      result[key] = '';
+      meta[key] = {
+        source: 'default',
+        hasCustomKey: false,
+        updatedAt: null,
+        type: spec.type,
+        secret: true,
+      };
+      continue;
+    }
+
     let rawVal;
     let source = 'default';
     let updatedAt = null;
@@ -355,7 +375,13 @@ export function getEffectiveSetting(db, key, env = process.env, userId = null) {
  */
 export function isRegisteredUser(db, userId) {
   if (!userId) return false;
-  return Boolean(db.prepare('SELECT id FROM users WHERE id = ?').get(userId));
+  try {
+    return Boolean(db.prepare('SELECT id FROM users WHERE id = ?').get(userId));
+  } catch (err) {
+    // Pre-migration DBs without a users table have no registered identities
+    if (String(err?.message || '').includes('no such table')) return false;
+    throw err;
+  }
 }
 
 /**
