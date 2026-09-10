@@ -152,8 +152,9 @@ cmd_start() {
       echo "[jobfoundry] ERROR: launcher exited during startup. See $LOGS_DIR/launcher.log" >&2
       return 1
     fi
-    if [ "$elapsed" -ge 120 ]; then
-      echo "[jobfoundry] ERROR: ingest unhealthy after 120s. Check logs in $LOGS_DIR" >&2
+    if [ "$elapsed" -ge 180 ]; then
+      echo "[jobfoundry] ERROR: ingest unhealthy after 180s. Check logs in $LOGS_DIR" >&2
+      cmd_stop >/dev/null 2>&1 || true
       return 1
     fi
   done
