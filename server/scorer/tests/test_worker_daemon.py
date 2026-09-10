@@ -295,6 +295,15 @@ async def test_worker_retry_cap_terminal_state(store: JobStore):
     assert res_after_cap["result"]["processed"] == 0
 
 
+def test_reset_in_flight_jobs_on_unmigrated_db_is_noop():
+    # Mirrors the scorer starting before the shared schema exists (or a fresh
+    # in-memory store): self-heal must not crash on missing tables.
+    store = JobStore(":memory:")
+    assert store.has_user_jobs_table() is False
+    assert store.has_jobs_table() is False
+    assert store.reset_in_flight_jobs() == 0
+
+
 def test_api_worker_endpoints():
     config = ScorerConfig(db_path=":memory:", worker_enabled=False)
     app = create_app(llm_client=StubLLM(), config=config)

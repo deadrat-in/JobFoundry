@@ -69,11 +69,17 @@ class JobStore:
         self.conn.executescript(schema_sql)
         self.conn.commit()
 
-    def has_user_jobs_table(self) -> bool:
+    def has_table(self, name: str) -> bool:
         cursor = self.conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='user_jobs'"
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,)
         )
         return cursor.fetchone() is not None
+
+    def has_user_jobs_table(self) -> bool:
+        return self.has_table("user_jobs")
+
+    def has_jobs_table(self) -> bool:
+        return self.has_table("jobs")
 
     def get_system_settings(self) -> dict[str, str]:
         """
@@ -188,6 +194,9 @@ class JobStore:
         """
         Self-healing on daemon startup: reset any stuck in-flight states
         (scoring/tailoring) back to new or ready_for_tailoring.
+
+        Best-effort: on a not-yet-migrated database (e.g. the scorer starting
+        before the shared schema is created) missing tables are a no-op.
         """
         now = int(time.time() * 1000)
         reset_count = 0
@@ -206,15 +215,16 @@ class JobStore:
             )
             reset_count += cur.rowcount
 
-        cur2 = self.conn.execute(
-            """
-            UPDATE jobs
-            SET status = 'new', updated_at = ?
-            WHERE status IN ('scoring', 'tailoring')
-            """,
-            (now,),
-        )
-        reset_count += cur2.rowcount
+        if self.has_jobs_table():
+            cur2 = self.conn.execute(
+                """
+                UPDATE jobs
+                SET status = 'new', updated_at = ?
+                WHERE status IN ('scoring', 'tailoring')
+                """,
+                (now,),
+            )
+            reset_count += cur2.rowcount
         self.conn.commit()
         return reset_count
 
