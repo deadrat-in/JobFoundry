@@ -215,8 +215,9 @@ async def process_unscored_jobs(
         ):
             return user_jobs_result
 
-    # Fallback to single-tenant jobs table
-    if not master_resume:
+    # Fallback to single-tenant jobs table (no-op when the shared schema has
+    # not been created yet, e.g. the scorer starting before the ingest DB).
+    if not master_resume or not store.has_jobs_table():
         return {"processed": 0, "passed": 0, "rejected": 0, "tailored": 0, "jobs": []}
 
     unscored_jobs = store.get_unscored_jobs(limit=limit)
