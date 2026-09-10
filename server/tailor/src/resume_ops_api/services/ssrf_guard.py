@@ -153,19 +153,70 @@ def assert_safe_url(url: str) -> None:
             raise SSRFBlockedError(f"Connection to private/blocked IP is not allowed: {host}")
 
     port = parsed.port or (443 if parsed.scheme == "https" else 80)
-    try:
-        infos = socket.getaddrinfo(host, port, family=socket.AF_UNSPEC, type=socket.SOCK_STREAM)
-    except socket.gaierror:
-        raise SSRFBlockedError(f"Unable to resolve host: {host}")
-
-    addresses = {info[4][0] for info in infos}
-    if not addresses:
-        raise SSRFBlockedError(f"Unable to resolve host: {host}")
+    addresses = _resolve(host, port)
     for addr in addresses:
         if is_blocked_ip(addr):
             raise SSRFBlockedError(
                 f"Connection to {host} is blocked: it resolves to non-public IP {addr}"
             )
+
+
+def _resolve(host: str, port: int, resolver=None) -> list[str]:
+    resolver = resolver or socket.getaddrinfo
+    try:
+        infos = resolver(host, port, family=socket.AF_UNSPEC, type=socket.SOCK_STREAM)
+    except socket.gaierror:
+        raise SSRFBlockedError(f"Unable to resolve host: {host}")
+    addresses = sorted({info[4][0] for info in infos})
+    if not addresses:
+        raise SSRFBlockedError(f"Unable to resolve host: {host}")
+    return addresses
+
+
+def _pin_request(request):
+    """
+    Rewrites an outbound httpx request so the connection is made to the exact
+    IP address validated by the SSRF check, rather than letting httpx re-resolve
+    the hostname at connect time.
+
+    This closes the DNS-rebinding (TOCTOU) window between validation and
+    connection: the URL host is replaced by the pinned public IP, the original
+    Host header is preserved for virtual-host routing, and the TLS SNI hostname
+    extension keeps certificate validation bound to the user-supplied name.
+
+    IP-literal and operator-trusted origins are returned unchanged. Direct
+    (non-proxied) connections only — outbound-proxy setups would need proxy-level
+    enforcement, which this codebase does not use.
+    """
+    url = str(request.url)
+    parsed = urlparse(url)
+    host = parsed.hostname
+    if not host or parsed.scheme not in ("http", "https"):
+        return request
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        pass
+    else:
+        return request  # already an IP literal: nothing to pin
+
+    if _normalize_origin(url) in trusted_origins():
+        return request  # operator gateways keep their original hostname
+
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+    addresses = _resolve(host, port)
+    for addr in addresses:
+        if is_blocked_ip(addr):
+            raise SSRFBlockedError(
+                f"Connection to {host} is blocked: it resolves to non-public IP {addr}"
+            )
+    pinned = addresses[0]
+
+    request.url = request.url.copy_with(host=pinned, port=parsed.port)
+    request.headers["host"] = f"{host}:{parsed.port}" if parsed.port else host
+    if parsed.scheme == "https":
+        request.extensions["sni_hostname"] = host
+    return request
 
 
 _orig_async_handle = httpx.AsyncHTTPTransport.handle_async_request
@@ -174,12 +225,12 @@ _orig_sync_handle = httpx.HTTPTransport.handle_request
 
 async def _guarded_async_handle(self, request):
     assert_safe_url(str(request.url))
-    return await _orig_async_handle(self, request)
+    return await _orig_async_handle(self, _pin_request(request))
 
 
 def _guarded_sync_handle(self, request):
     assert_safe_url(str(request.url))
-    return _orig_sync_handle(self, request)
+    return _orig_sync_handle(self, _pin_request(request))
 
 
 _PATCHED = False

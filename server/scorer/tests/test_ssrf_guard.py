@@ -1,6 +1,14 @@
 import pytest
+import socket
+import httpx
 
-from src.ssrf_guard import SSRFBlockedError, assert_safe_url, is_blocked_ip, trusted_origins
+from src.ssrf_guard import (
+    SSRFBlockedError,
+    _pin_request,
+    assert_safe_url,
+    is_blocked_ip,
+    trusted_origins,
+)
 
 
 def test_trusted_origins_defaults_and_env(monkeypatch):
@@ -116,6 +124,43 @@ def test_assert_safe_url_requires_https_for_public_endpoints():
 def test_assert_safe_url_rejects_blocked_ip(url):
     with pytest.raises(SSRFBlockedError):
         assert_safe_url(url)
+
+
+def _fake_resolve(public_ip: str):
+    def fake(host, port, family=0, type=0, proto=0, flags=0):
+        assert host == "api.example.com"
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (public_ip, port))]
+    return fake
+
+
+def test_pin_request_rewrites_hostname_to_validated_ip(monkeypatch):
+    monkeypatch.setattr(socket, "getaddrinfo", _fake_resolve("93.184.216.34"))
+    request = httpx.Request(
+        "POST", "https://api.example.com/v1/chat", headers={"x-origin": "test"}
+    )
+    pinned = _pin_request(request)
+    assert pinned.url.host == "93.184.216.34"
+    assert pinned.url.scheme == "https"
+    assert pinned.headers["host"] == "api.example.com"
+    assert pinned.extensions.get("sni_hostname") == "api.example.com"
+    assert pinned.headers["x-origin"] == "test"
+
+
+def test_pin_request_raises_when_resolution_is_forbidden(monkeypatch):
+    monkeypatch.setattr(socket, "getaddrinfo", _fake_resolve("10.0.0.5"))
+    request = httpx.Request("POST", "https://api.example.com/v1")
+    with pytest.raises(SSRFBlockedError):
+        _pin_request(request)
+
+
+def test_pin_request_leaves_ip_literals_untouched():
+    request = httpx.Request("POST", "https://8.8.8.8/v1")
+    assert _pin_request(request) is request
+
+
+def test_pin_request_leaves_trusted_origins_untouched():
+    request = httpx.Request("POST", "http://localhost:8318/v1/chat/completions")
+    assert _pin_request(request) is request
 
 
 def test_assert_safe_url_rejects_structural_abuse():
