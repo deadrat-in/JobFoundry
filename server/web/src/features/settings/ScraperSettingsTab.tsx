@@ -536,7 +536,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
       </div>
 
       {/* 1. Target Role Keywords (Positive Matches) */}
-      <div className="stat-card" style={{ padding: '1.5rem' }}>
+      <div className="settings-card" style={{ padding: '1.5rem' }}>
         <div
           style={{
             display: 'flex',
@@ -645,7 +645,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
       </div>
 
       {/* 2. Negative Excluded Keywords */}
-      <div className="stat-card" style={{ padding: '1.5rem' }}>
+      <div className="settings-card" style={{ padding: '1.5rem' }}>
         <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.25rem' }}>
           Negative Excluded Keywords
         </h3>
@@ -723,7 +723,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
         }}
       >
         {/* Max Posting Age */}
-        <div className="stat-card" style={{ padding: '1.5rem' }}>
+        <div className="settings-card" style={{ padding: '1.5rem' }}>
           <div
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}
           >
@@ -754,7 +754,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
         </div>
 
         {/* Location Filtering */}
-        <div className="stat-card" style={{ padding: '1.5rem' }}>
+        <div className="settings-card" style={{ padding: '1.5rem' }}>
           <div
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}
           >
@@ -820,7 +820,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
       </div>
 
       {/* 4. Background Automation & Companion Sync */}
-      <div className="stat-card" style={{ padding: '1.5rem' }}>
+      <div className="settings-card" style={{ padding: '1.5rem' }}>
         <div
           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}
         >
@@ -948,7 +948,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
       </div>
 
       {/* 5. Provider / Scraper Portal Catalog */}
-      <div className="stat-card" style={{ padding: '1.5rem' }}>
+      <div className="settings-card" style={{ padding: '1.5rem' }}>
         <div
           style={{
             display: 'flex',

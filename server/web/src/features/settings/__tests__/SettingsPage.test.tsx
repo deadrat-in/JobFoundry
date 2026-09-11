@@ -174,7 +174,7 @@ describe('SettingsPage', () => {
     fireEvent.change(modelInput, { target: { value: 'custom/new-model' } });
 
     // Save changes
-    const saveBtn = screen.getAllByRole('button', { name: /Save Changes/i })[0];
+    const saveBtn = screen.getByRole('button', { name: /Save Changes/i });
     fireEvent.click(saveBtn);
 
     await waitFor(() => {
