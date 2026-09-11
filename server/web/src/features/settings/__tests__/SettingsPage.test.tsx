@@ -94,6 +94,7 @@ describe('SettingsPage', () => {
         platform: 'linux',
       },
     });
+    vi.spyOn(api, 'getResumes').mockResolvedValue([]);
   });
 
   const renderComponent = (onSaveSettings = vi.fn()) => {
@@ -114,6 +115,7 @@ describe('SettingsPage', () => {
       expect(screen.getByText('System & Dashboard Settings')).toBeInTheDocument();
     });
 
+    expect(screen.getByRole('button', { name: /Master Profile/i })).toBeInTheDocument();
     expect(screen.getByText(/Appearance & UI/i)).toBeInTheDocument();
     expect(screen.getByText(/AI Fit Scorer/i)).toBeInTheDocument();
     expect(screen.getByText(/AI Resume Tailor/i)).toBeInTheDocument();

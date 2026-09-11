@@ -15,13 +15,11 @@ import { loadSettings, saveSettings, AppSettings } from './lib/auth';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginView } from './features/auth/LoginView';
 import { RegisterView } from './features/auth/RegisterView';
-import { ResumeManager } from './features/resume/ResumeManager';
 import { JobFeed } from './features/feed/JobFeed';
 import { KanbanBoard } from './features/tracker/KanbanBoard';
 import { JobDetailModal } from './features/detail/JobDetailModal';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { PipelineView } from './features/pipeline/PipelineView';
-import { ExtensionSyncView } from './features/sync/ExtensionSyncView';
 import { AddJobModal } from './features/feed/AddJobModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -32,8 +30,6 @@ import {
   Briefcase,
   Kanban,
   Activity,
-  FileText,
-  Puzzle,
   Plus,
   RefreshCw,
   Settings,
@@ -152,11 +148,7 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
   const highFitCount = jobs.filter((j) => (j.fit_score || 0) >= settings.threshold).length;
 
   const isStandalonePage =
-    location.pathname.startsWith('/resume') ||
-    location.pathname.startsWith('/profile') ||
-    location.pathname.startsWith('/pipeline') ||
-    location.pathname.startsWith('/extension-sync') ||
-    location.pathname.startsWith('/settings');
+    location.pathname.startsWith('/pipeline') || location.pathname.startsWith('/settings');
 
   return (
     <div className="app-container">
@@ -189,18 +181,6 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
             className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
           >
             <Activity size={16} /> Pipeline Monitor
-          </NavLink>
-          <NavLink
-            to="/profile"
-            className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
-          >
-            <FileText size={16} /> Master Profile
-          </NavLink>
-          <NavLink
-            to="/extension-sync"
-            className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
-          >
-            <Puzzle size={16} /> Extension Sync
           </NavLink>
         </nav>
 
@@ -402,9 +382,6 @@ const DashboardLayout: React.FC<DashboardContentProps> = ({
               path="/pipeline"
               element={<PipelineView onSelectJob={(jobId) => navigate(`/jobs/${jobId}`)} />}
             />
-            <Route path="/profile" element={<ResumeManager />} />
-            <Route path="/resume" element={<Navigate to="/profile" replace />} />
-            <Route path="/extension-sync" element={<ExtensionSyncView />} />
             <Route
               path="/jobs/:id"
               element={

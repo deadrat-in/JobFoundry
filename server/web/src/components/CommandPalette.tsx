@@ -110,7 +110,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         subtitle: 'Update your career profile, skills, and JSON resume',
         icon: <FileText size={16} />,
         action: () => {
-          navigate('/profile');
+          navigate('/settings?tab=profile');
           onClose();
         },
       },
@@ -121,7 +121,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         subtitle: 'Configure JobFoundry Chrome/Firefox extension pairing',
         icon: <Puzzle size={16} />,
         action: () => {
-          navigate('/extension-sync');
+          navigate('/settings?tab=sync');
           onClose();
         },
       },
