@@ -1726,7 +1726,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
               </div>
             </div>
           )}
-
         </form>
       )}
     </div>
