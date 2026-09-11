@@ -65,7 +65,7 @@ export const JobFeed: React.FC<JobFeedProps> = ({
     if (jobs.length === 0) {
       api
         .getActiveResume()
-        .then((res) => setHasActiveResume(Boolean(res?.resume)))
+        .then((res) => setHasActiveResume(Boolean(res && res.id)))
         .catch(() => setHasActiveResume(false));
     }
   }, [jobs.length]);
@@ -571,6 +571,21 @@ export const JobFeed: React.FC<JobFeedProps> = ({
             >
               Reset Filters
             </button>
+          </div>
+        ) : hasActiveResume === null ? (
+          <div
+            className="onboarding-hero"
+            style={{
+              opacity: 0.6,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: '200px',
+            }}
+          >
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+              Loading setup status...
+            </span>
           </div>
         ) : hasActiveResume === false ? (
           /* Step 1: AI Model -> Step 2: Master Resume -> Step 3: Ingestion */

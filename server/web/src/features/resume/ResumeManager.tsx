@@ -384,6 +384,7 @@ export const ResumeManager: React.FC = () => {
                     <div style={{ display: 'flex', gap: '0.4rem' }}>
                       {!r.isActive && (
                         <button
+                          type="button"
                           onClick={() => handleSwitchActive(r.id)}
                           className="btn btn-secondary btn-sm"
                           style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
@@ -392,6 +393,7 @@ export const ResumeManager: React.FC = () => {
                         </button>
                       )}
                       <button
+                        type="button"
                         onClick={() => handleDelete(r.id)}
                         className="btn btn-danger btn-sm"
                         style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
@@ -502,6 +504,7 @@ export const ResumeManager: React.FC = () => {
             }}
           >
             <button
+              type="button"
               onClick={handleSave}
               disabled={validationErrors.length > 0 || saving}
               className="btn btn-primary"

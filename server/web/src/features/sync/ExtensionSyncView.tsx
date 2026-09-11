@@ -222,6 +222,7 @@ export const ExtensionSyncView: React.FC = () => {
               }}
             />
             <button
+              type="button"
               onClick={handleCopyKey}
               className="btn btn-secondary btn-sm"
               style={{ minWidth: '80px' }}
@@ -231,6 +232,7 @@ export const ExtensionSyncView: React.FC = () => {
           </div>
 
           <button
+            type="button"
             onClick={handleRotateKey}
             disabled={rotating}
             className="btn btn-secondary btn-sm"
@@ -278,6 +280,7 @@ export const ExtensionSyncView: React.FC = () => {
               }}
             />
             <button
+              type="button"
               onClick={handleCopyUrl}
               className="btn btn-secondary btn-sm"
               style={{ minWidth: '80px' }}
