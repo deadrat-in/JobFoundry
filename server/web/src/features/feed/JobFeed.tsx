@@ -59,6 +59,17 @@ export const JobFeed: React.FC<JobFeedProps> = ({
   const lastGPressTimeRef = useRef<number>(0);
   const tailoringJobIdRef = useRef<string | null>(null);
 
+  const [hasActiveResume, setHasActiveResume] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (jobs.length === 0) {
+      api
+        .getActiveResume()
+        .then((res) => setHasActiveResume(Boolean(res?.resume)))
+        .catch(() => setHasActiveResume(false));
+    }
+  }, [jobs.length]);
+
   const handleViewModeChange = (mode: 'split' | 'grid') => {
     setViewMode(mode);
     localStorage.setItem('jf_feed_view_mode', mode);
@@ -543,14 +554,16 @@ export const JobFeed: React.FC<JobFeedProps> = ({
 
       {/* Content Rendering: Empty State, Split Triage Station, or Cards Grid */}
       {sortedAndFilteredJobs.length === 0 ? (
-        <div className="empty-state">
-          <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-            No jobs match your filters
-          </h3>
-          <p style={{ fontSize: '0.875rem' }}>
-            Try broadening your search query or reset the status and source filters.
-          </p>
-          {hasActiveFilters && (
+        hasActiveFilters ? (
+          <div className="empty-state">
+            <h3
+              style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}
+            >
+              No jobs match your filters
+            </h3>
+            <p style={{ fontSize: '0.875rem' }}>
+              Try broadening your search query or reset the status and source filters.
+            </p>
             <button
               onClick={resetFilters}
               className="btn btn-primary btn-sm"
@@ -558,8 +571,127 @@ export const JobFeed: React.FC<JobFeedProps> = ({
             >
               Reset Filters
             </button>
-          )}
-        </div>
+          </div>
+        ) : hasActiveResume === false ? (
+          /* Step 1: AI Model -> Step 2: Master Resume -> Step 3: Ingestion */
+          <div className="onboarding-hero">
+            <div className="onboarding-hero-header">
+              <div className="onboarding-hero-title">
+                <span>🚀</span> Welcome to JobFoundry!
+              </div>
+              <p className="onboarding-hero-subtitle">
+                Set up your career command center in 3 steps to unlock automated AI scoring, match
+                evaluation, and tailored resumes.
+              </p>
+            </div>
+
+            <div className="onboarding-steps">
+              <div className="onboarding-step-card">
+                <div>
+                  <span className="onboarding-step-badge">Step 1 • AI Settings</span>
+                  <div className="onboarding-step-title">Configure AI Model & Key</div>
+                  <div className="onboarding-step-desc">
+                    Verify your LLM model (OpenRouter, OpenAI, or Anthropic) used to screen jobs and
+                    tailor applications.
+                  </div>
+                </div>
+                <a
+                  href="/settings?tab=scorer"
+                  className="btn btn-primary btn-sm"
+                  style={{ textDecoration: 'none', textAlign: 'center' }}
+                >
+                  Configure AI Scorer →
+                </a>
+              </div>
+
+              <div className="onboarding-step-card">
+                <div>
+                  <span className="onboarding-step-badge">Step 2 • Master Profile</span>
+                  <div className="onboarding-step-title">Upload Master Resume</div>
+                  <div className="onboarding-step-desc">
+                    Add your master JSON Resume to anchor job evaluations and experience bullet
+                    tailoring.
+                  </div>
+                </div>
+                <a
+                  href="/settings?tab=profile"
+                  className="btn btn-primary btn-sm"
+                  style={{ textDecoration: 'none', textAlign: 'center' }}
+                >
+                  Set Up Resume →
+                </a>
+              </div>
+
+              <div className="onboarding-step-card">
+                <div>
+                  <span className="onboarding-step-badge">Step 3 • Ingestion</span>
+                  <div className="onboarding-step-title">Connect Job Sources</div>
+                  <div className="onboarding-step-desc">
+                    Pair the browser extension for 1-click capture or configure automated portal
+                    scrapers.
+                  </div>
+                </div>
+                <a
+                  href="/settings?tab=sync"
+                  className="btn btn-secondary btn-sm"
+                  style={{ textDecoration: 'none', textAlign: 'center' }}
+                >
+                  Connect Sources →
+                </a>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Resume is present, waiting for first job scan/capture */
+          <div className="onboarding-hero">
+            <div className="onboarding-hero-header">
+              <div className="onboarding-hero-title">
+                <span>⚡</span> Master Profile Ready — Let's Ingest Jobs!
+              </div>
+              <p className="onboarding-hero-subtitle">
+                Your Master Resume and AI Fit Scorer are ready. Ingest your first listings to start
+                seeing match scores and tailored resumes.
+              </p>
+            </div>
+
+            <div className="onboarding-steps">
+              <div className="onboarding-step-card">
+                <div>
+                  <span className="onboarding-step-badge">Browser Extension</span>
+                  <div className="onboarding-step-title">1-Click Live Capture</div>
+                  <div className="onboarding-step-desc">
+                    Browse jobs naturally on LinkedIn, Indeed, Greenhouse, or Lever and capture in 1
+                    click.
+                  </div>
+                </div>
+                <a
+                  href="/settings?tab=sync"
+                  className="btn btn-primary btn-sm"
+                  style={{ textDecoration: 'none', textAlign: 'center' }}
+                >
+                  Pair Extension →
+                </a>
+              </div>
+
+              <div className="onboarding-step-card">
+                <div>
+                  <span className="onboarding-step-badge">Portal Catalog</span>
+                  <div className="onboarding-step-title">Automated Feeds</div>
+                  <div className="onboarding-step-desc">
+                    Activate automated scrapers from Himalayas, RemoteOK, Arbeitnow, and 30+ boards.
+                  </div>
+                </div>
+                <a
+                  href="/settings?tab=scrapers"
+                  className="btn btn-secondary btn-sm"
+                  style={{ textDecoration: 'none', textAlign: 'center' }}
+                >
+                  Configure Portals →
+                </a>
+              </div>
+            </div>
+          </div>
+        )
       ) : viewMode === 'split' ? (
         <div className="triage-station">
           {/* Master List Pane */}

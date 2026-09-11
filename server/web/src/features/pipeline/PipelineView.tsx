@@ -261,7 +261,7 @@ export const PipelineView: React.FC<{
               </div>
             </div>
             <a
-              href="/profile"
+              href="/settings?tab=profile"
               className="btn btn-primary btn-sm"
               style={{ textDecoration: 'none' }}
             >
