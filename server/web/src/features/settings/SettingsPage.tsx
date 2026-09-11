@@ -30,7 +30,6 @@ import {
   Send,
   Lock,
   Unlock,
-  Sparkles,
   Compass,
 } from 'lucide-react';
 
@@ -457,14 +456,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
     );
   };
 
-  const modelPresets = [
-    { label: 'Gemini 2.0 Flash (Free)', id: 'openrouter/google/gemini-2.0-flash-exp:free' },
-    { label: 'GLM 5.3 Flash', id: 'openrouter/z-ai/glm-5.3-flash' },
-    { label: 'Qwen 3.8 Max', id: 'openrouter/qwen/qwen3.8-max' },
-    { label: 'GPT-4o Mini', id: 'openai/gpt-4o-mini' },
-    { label: 'Claude 3.5 Sonnet', id: 'anthropic/claude-3.5-sonnet' },
-  ];
-
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '1.5rem 1rem 4rem' }}>
       {/* Page Header */}
@@ -618,7 +609,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
           {/* TAB 1: APPEARANCE & INTERFACE */}
           {activeTab === 'general' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div className="stat-card" style={{ padding: '1.5rem' }}>
+              <div className="settings-card" style={{ padding: '1.5rem' }}>
                 <h3
                   style={{
                     fontSize: '1.1rem',
@@ -723,7 +714,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
               </div>
 
               {/* Threshold Setting */}
-              <div className="stat-card" style={{ padding: '1.5rem' }}>
+              <div className="settings-card" style={{ padding: '1.5rem' }}>
                 <div
                   style={{
                     display: 'flex',
@@ -788,7 +779,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
           {/* TAB 2: AI FIT SCORER */}
           {activeTab === 'scorer' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div className="stat-card" style={{ padding: '1.5rem' }}>
+              <div className="settings-card" style={{ padding: '1.5rem' }}>
                 <div
                   style={{
                     display: 'flex',
@@ -820,34 +811,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                 >
                   Configures the AI model used to evaluate ingested jobs against your master resume.
                 </p>
-
-                {/* Preset Model Buttons */}
-                <div style={{ marginBottom: '1rem' }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: 500,
-                      marginBottom: '0.4rem',
-                      color: 'var(--text-secondary)',
-                    }}
-                  >
-                    Recommended Model Presets
-                  </label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                    {modelPresets.map((preset) => (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        onClick={() => handleFieldChange('scorer_model', preset.id)}
-                        className={`btn btn-sm ${formSettings.scorer_model === preset.id ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
-                      >
-                        <Sparkles size={12} /> {preset.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
 
                 {/* Model ID input */}
                 <div style={{ marginBottom: '1.25rem' }}>
@@ -1058,7 +1021,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
           {/* TAB 3: AI RESUME TAILOR */}
           {activeTab === 'tailor' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div className="stat-card" style={{ padding: '1.5rem' }}>
+              <div className="settings-card" style={{ padding: '1.5rem' }}>
                 <div
                   style={{
                     display: 'flex',
@@ -1264,7 +1227,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
           {/* TAB 4: OBSERVABILITY & TRACING */}
           {activeTab === 'observability' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div className="stat-card" style={{ padding: '1.5rem' }}>
+              <div className="settings-card" style={{ padding: '1.5rem' }}>
                 <div
                   style={{
                     display: 'flex',
@@ -1467,7 +1430,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
               {/* User Account Info */}
               {user && (
                 <div
-                  className="stat-card"
+                  className="settings-card"
                   style={{
                     background: 'rgba(99, 102, 241, 0.08)',
                     border: '1px solid rgba(99, 102, 241, 0.25)',
@@ -1558,7 +1521,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
               )}
 
               {/* Ingest Server URL */}
-              <div className="stat-card" style={{ padding: '1.5rem' }}>
+              <div className="settings-card" style={{ padding: '1.5rem' }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.35rem' }}>
                   Ingest & Server API Endpoint
                 </h3>
@@ -1619,7 +1582,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
           {/* TAB 6: TELEMETRY & SYSTEM */}
           {activeTab === 'system' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div className="stat-card" style={{ padding: '1.5rem' }}>
+              <div className="settings-card" style={{ padding: '1.5rem' }}>
                 <h3
                   style={{
                     fontSize: '1.1rem',
@@ -1764,35 +1727,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
             </div>
           )}
 
-          {/* Bottom Save Bar */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '0.75rem',
-              marginTop: '2rem',
-              paddingTop: '1.5rem',
-              borderTop: '1px solid var(--border-subtle)',
-            }}
-          >
-            <button
-              type="button"
-              onClick={handleResetToDefaults}
-              disabled={saving}
-              className="btn btn-secondary btn-sm"
-            >
-              Reset Defaults
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="btn btn-primary btn-sm"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: '120px' }}
-            >
-              <CheckCircle2 size={15} />
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
         </form>
       )}
     </div>

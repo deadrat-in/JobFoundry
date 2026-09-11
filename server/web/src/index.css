@@ -245,6 +245,17 @@ h6 {
   box-shadow: var(--shadow-sm);
 }
 
+.settings-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-sm);
+}
+
+
 .stat-icon-wrapper {
   width: 44px;
   height: 44px;
