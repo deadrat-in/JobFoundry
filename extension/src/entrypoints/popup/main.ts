@@ -330,15 +330,34 @@ export function init(opts: { doc?: Document; [key: string]: any } = {}) {
     setConfig({ activeMode: e.target.checked }).catch(() => {});
   });
 
-  $<HTMLButtonElement>(doc, DOM.openOptions)?.addEventListener('click', () => {
+  $<HTMLButtonElement>(doc, DOM.openOptions)?.addEventListener('click', async () => {
+    const config = await getConfig();
     const api = (globalThis as any).browser ?? (globalThis as any).chrome;
-    const url = api?.runtime?.getURL ? api.runtime.getURL('options.html') : 'options.html';
-    if (api?.tabs?.create) {
-      api.tabs.create({ url });
-    } else if (api?.runtime?.openOptionsPage) {
-      api.runtime.openOptionsPage();
-    } else {
-      window.open(url, '_blank');
+    const openLocalOptions = () => {
+      if (api?.runtime?.openOptionsPage) {
+        api.runtime.openOptionsPage();
+      } else if (api?.tabs?.create) {
+        api.tabs.create({ url: 'options.html' });
+      } else {
+        window.open('options.html', '_blank');
+      }
+    };
+
+    if (!config.serverUrl || !config.apiKey) {
+      openLocalOptions();
+      return;
+    }
+    try {
+      const serverUrl = config.serverUrl;
+      const url = `${serverUrl.replace(/\/+$/, '')}/settings?tab=scrapers`;
+      new URL(url);
+      if (api?.tabs?.create) {
+        api.tabs.create({ url });
+      } else {
+        window.open(url, '_blank');
+      }
+    } catch {
+      openLocalOptions();
     }
   });
 

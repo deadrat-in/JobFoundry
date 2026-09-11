@@ -186,7 +186,17 @@ test('invalid payload shape returns 400 with detail', async () => {
 
 test('GET /api/v1/extension/config returns seed configuration bundle', async () => {
   const { app } = makeApp();
-  const res = await app.inject({ method: 'GET', url: '/api/v1/extension/config' });
+  // Unauthenticated returns null apiKey
+  const unauthRes = await app.inject({ method: 'GET', url: '/api/v1/extension/config' });
+  assert.equal(unauthRes.statusCode, 200);
+  assert.equal(unauthRes.json().apiKey, null);
+
+  // Authenticated returns the apiKey
+  const res = await app.inject({
+    method: 'GET',
+    url: '/api/v1/extension/config',
+    headers: { authorization: 'Bearer testkey' },
+  });
   assert.equal(res.statusCode, 200);
   const data = res.json();
   assert.equal(data.apiKey, 'testkey');

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { ApiClient } from '../client';
+import { ApiClient, ApiError } from '../client';
 import { Job } from '../../types/job';
 
 const mockJob: Job = {
@@ -179,7 +179,12 @@ describe('ApiClient', () => {
     });
     global.fetch = fetchMock;
 
-    await expect(client.getJob('non-existent')).rejects.toThrow('job not found');
+    // Vitest 5 has issues with .toThrow(string) on custom Error subclasses;
+    // catch explicitly for reliable assertions.
+    const err = await client.getJob('non-existent').catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect((err as ApiError).message).toBe('job not found');
+    expect((err as ApiError).status).toBe(404);
   });
 
   it('getDiagnostics fetches health and telemetry data', async () => {

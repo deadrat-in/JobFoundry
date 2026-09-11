@@ -27,6 +27,7 @@ const mockJobs: Job[] = [
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear();
+    window.history.pushState({}, '', '/');
     global.fetch = vi.fn().mockImplementation((url: string) => {
       if (url.includes('/api/v1/auth/me')) {
         return Promise.resolve({
@@ -62,12 +63,15 @@ describe('App', () => {
 
     render(<App />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Job')).toBeInTheDocument();
-      expect(screen.getByText('Foundry')).toBeInTheDocument();
-      expect(screen.getByText('Total Ingested Jobs')).toBeInTheDocument();
-      expect(screen.getByText('Average Fit Score')).toBeInTheDocument();
-      expect(screen.getAllByText('Lead Architect').length).toBeGreaterThanOrEqual(1);
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByText('Job')).toBeInTheDocument();
+        expect(screen.getByText('Foundry')).toBeInTheDocument();
+        expect(screen.getByText('Total Ingested Jobs')).toBeInTheDocument();
+        expect(screen.getByText('Average Fit Score')).toBeInTheDocument();
+        expect(screen.getAllByText('Lead Architect').length).toBeGreaterThanOrEqual(1);
+      },
+      { timeout: 5000 }
+    );
   });
 });

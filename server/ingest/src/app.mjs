@@ -43,10 +43,13 @@ import {
   deleteUserResume,
 } from './resumes/resumes.mjs';
 import {
+  DEFAULT_EXTENSION_CONFIG,
   getAllSettings,
   getEffectiveSetting,
   getEffectiveSettingWithSource,
+  getExtensionConfig,
   isRegisteredUser,
+  updateExtensionConfig,
   updateSettings,
 } from './settings/settings.mjs';
 import { safeFetch } from './security/ssrf.mjs';
@@ -204,7 +207,7 @@ export function buildApp({
     };
   });
 
-  // GET /api/v1/extension/config - Seed config bundle for browser extension
+  // GET /api/v1/extension/config - Seed & runtime config bundle for browser extension
   app.get('/api/v1/extension/config', async (request) => {
     const hostHeader = request.headers.host;
     const protocol = request.headers['x-forwarded-proto'] || request.protocol || 'http';
@@ -212,17 +215,62 @@ export function buildApp({
       serverUrl || (hostHeader ? `${protocol}://${hostHeader}` : 'http://localhost:8080');
 
     const user = resolveUser(request);
-    const threshold = getEffectiveSetting(db, 'scorer_threshold', process.env, user?.id) ?? 75;
+    const threshold = user
+      ? (getEffectiveSetting(db, 'scorer_threshold', process.env, user?.id) ?? 75)
+      : 75;
+    const extConfig = user ? getExtensionConfig(db, user?.id) : { ...DEFAULT_EXTENSION_CONFIG };
+
     return {
       serverUrl: computedUrl,
-      apiKey: user?.apiKey || (legacyKeys.size > 0 ? Array.from(legacyKeys)[0] : ''),
-      scanIntervalHours: 6,
-      passiveMode: true,
-      activeMode: false,
+      apiKey: user?.apiKey || null,
+      userEmail: user?.email || null,
       fitThreshold: threshold,
-      portals: {},
+      ...extConfig,
     };
   });
+
+  // PUT /api/v1/extension/config - Update extension configuration (per-user or operator)
+  app.put(
+    '/api/v1/extension/config',
+    {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: '1 minute',
+        },
+      },
+      rateLimit: {
+        max: 30,
+        timeWindow: '1 minute',
+      },
+    },
+    async (request, reply) => {
+      if (!checkRateLimit(request, reply, 30)) return;
+      if (!authenticate(request, reply)) return;
+      const body = request.body || {};
+      try {
+        const updated = updateExtensionConfig(db, request.user.id, body);
+        const hostHeader = request.headers.host;
+        const protocol = request.headers['x-forwarded-proto'] || request.protocol || 'http';
+        const computedUrl =
+          serverUrl || (hostHeader ? `${protocol}://${hostHeader}` : 'http://localhost:8080');
+        const threshold =
+          getEffectiveSetting(db, 'scorer_threshold', process.env, request.user.id) ?? 75;
+        return {
+          ok: true,
+          config: {
+            serverUrl: computedUrl,
+            apiKey: request.user.apiKey,
+            userEmail: request.user.email,
+            fitThreshold: threshold,
+            ...updated,
+          },
+        };
+      } catch (err) {
+        return reply.code(400).send({ error: err.message });
+      }
+    }
+  );
 
   // --- SYSTEM SETTINGS ROUTES ---
 

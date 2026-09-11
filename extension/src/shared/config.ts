@@ -186,13 +186,16 @@ export async function getConfig(
   return merged;
 }
 
-export async function setConfig(patch: Partial<Config>): Promise<Config> {
+export async function setConfig(
+  patch: Partial<Config>,
+  opts: { storageImpl?: any } = {}
+): Promise<Config> {
   validate(patch);
-  const current = await getConfig();
+  const current = await getConfig(opts);
   const next = { ...current, ...patch };
   validate(next);
 
-  const storageArea = getStorageArea();
+  const storageArea = opts.storageImpl ?? getStorageArea();
   if (storageArea) {
     try {
       await storageArea.set({ [STORAGE_KEY]: next });
@@ -203,4 +206,201 @@ export async function setConfig(patch: Partial<Config>): Promise<Config> {
     inMemoryStore = next;
   }
   return next;
+}
+
+export const OFFLINE_QUEUE_KEY = 'jobfoundry-offline-queue';
+
+let queueMutex = Promise.resolve();
+
+function withQueueMutex<T>(fn: () => Promise<T>): Promise<T> {
+  const next = queueMutex.then(fn, fn);
+  queueMutex = next.then(
+    () => {},
+    () => {}
+  );
+  return next;
+}
+
+export async function syncConfigFromServer(
+  serverUrl: string,
+  apiKey: string,
+  opts: { fetchImpl?: typeof fetch; storageImpl?: any; timeoutMs?: number } = {}
+): Promise<Config & { synced: boolean }> {
+  const cleanUrl = serverUrl.replace(/\/+$/, '');
+  const endpoint = `${cleanUrl}/api/v1/extension/config`;
+  const fetchImpl = opts.fetchImpl ?? globalThis.fetch;
+  const timeoutMs = opts.timeoutMs ?? 5000;
+
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+  try {
+    const res = await fetchImpl(endpoint, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'x-api-key': apiKey,
+        Accept: 'application/json',
+      },
+      signal: controller?.signal,
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const serverConfig = data?.config ?? data;
+      if (serverConfig && typeof serverConfig === 'object') {
+        const patch: Partial<Config> = {
+          serverUrl: cleanUrl,
+          apiKey,
+        };
+        if (serverConfig.titleFilter) patch.titleFilter = serverConfig.titleFilter;
+        if (serverConfig.maxPostingAgeDays !== undefined)
+          patch.maxPostingAgeDays = serverConfig.maxPostingAgeDays;
+        if (serverConfig.locationFilter) patch.locationFilter = serverConfig.locationFilter;
+        if (serverConfig.portals) patch.portals = serverConfig.portals;
+        if (serverConfig.passiveMode !== undefined) patch.passiveMode = serverConfig.passiveMode;
+        if (serverConfig.activeMode !== undefined) patch.activeMode = serverConfig.activeMode;
+        if (serverConfig.activeModeDelayMs !== undefined)
+          patch.activeModeDelayMs = serverConfig.activeModeDelayMs;
+        if (serverConfig.fitThreshold !== undefined) patch.fitThreshold = serverConfig.fitThreshold;
+        if (serverConfig.scanIntervalHours !== undefined)
+          patch.scanIntervalHours = serverConfig.scanIntervalHours;
+        if (Array.isArray(serverConfig.trackedCompanies))
+          patch.trackedCompanies = serverConfig.trackedCompanies;
+        const saved = await setConfig(patch, opts);
+        return { ...saved, synced: true };
+      }
+    }
+  } catch (err) {
+    console.warn?.(`[syncConfigFromServer] Failed to sync config from ${endpoint}:`, err);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+  const current = await getConfig(opts);
+  return { ...current, synced: false };
+}
+
+export async function getOfflineQueue(opts: { storageImpl?: any } = {}): Promise<any[]> {
+  const storageArea = opts.storageImpl ?? getStorageArea();
+  if (storageArea) {
+    try {
+      const res = await storageArea.get(OFFLINE_QUEUE_KEY);
+      const queue = res?.[OFFLINE_QUEUE_KEY] ?? res?.queue ?? [];
+      return Array.isArray(queue) ? queue : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+export function enqueueOfflineJobs(
+  jobs: any[],
+  opts: { storageImpl?: any; maxQueueSize?: number } = {}
+): Promise<number> {
+  return withQueueMutex(async () => {
+    if (!Array.isArray(jobs) || jobs.length === 0) {
+      const q = await getOfflineQueue(opts);
+      return q.length;
+    }
+    const storageArea = opts.storageImpl ?? getStorageArea();
+    const maxQueue = opts.maxQueueSize ?? 500;
+    const currentQueue = await getOfflineQueue(opts);
+    const seenKeys = new Set(
+      currentQueue.map((j) => j.fingerprint || j.url || `${j.title}::${j.company}`)
+    );
+
+    const newJobs: any[] = [];
+    for (const job of jobs) {
+      const key = job.fingerprint || job.url || `${job.title}::${job.company}`;
+      if (!seenKeys.has(key)) {
+        seenKeys.add(key);
+        newJobs.push(job);
+      }
+    }
+
+    const updatedQueue = [...currentQueue, ...newJobs].slice(-maxQueue);
+    if (storageArea) {
+      try {
+        await storageArea.set({ [OFFLINE_QUEUE_KEY]: updatedQueue });
+      } catch {
+        // ignore
+      }
+    }
+    return updatedQueue.length;
+  });
+}
+
+export function clearOfflineQueue(opts: { storageImpl?: any } = {}): Promise<void> {
+  return withQueueMutex(async () => {
+    const storageArea = opts.storageImpl ?? getStorageArea();
+    if (storageArea) {
+      try {
+        if (typeof storageArea.remove === 'function') {
+          await storageArea.remove(OFFLINE_QUEUE_KEY);
+        } else {
+          await storageArea.set({ [OFFLINE_QUEUE_KEY]: [] });
+        }
+      } catch {
+        // ignore
+      }
+    }
+  });
+}
+
+const BATCH_SIZE = 200;
+
+export function flushOfflineJobs(
+  sendJobsFn: (params: { jobs: any[]; serverUrl?: string; apiKey?: string }) => Promise<any>,
+  opts: { storageImpl?: any; getConfig?: () => Promise<Config>; batchSize?: number } = {}
+): Promise<{ flushed: number; remaining: number }> {
+  return withQueueMutex(async () => {
+    const queue = await getOfflineQueue(opts);
+    if (queue.length === 0) {
+      return { flushed: 0, remaining: 0 };
+    }
+
+    const gc = opts.getConfig ?? getConfig;
+    const config = await gc();
+    if (!config.serverUrl || !config.apiKey) {
+      return { flushed: 0, remaining: queue.length };
+    }
+
+    const batchSize = opts.batchSize ?? BATCH_SIZE;
+    const storageArea = opts.storageImpl ?? getStorageArea();
+    let flushedCount = 0;
+    let currentQueue = [...queue];
+
+    try {
+      while (currentQueue.length > 0) {
+        const batch = currentQueue.slice(0, batchSize);
+        await sendJobsFn({
+          jobs: batch,
+          serverUrl: config.serverUrl,
+          apiKey: config.apiKey,
+        });
+        flushedCount += batch.length;
+        currentQueue = currentQueue.slice(batch.length);
+
+        if (storageArea) {
+          try {
+            if (currentQueue.length === 0) {
+              if (typeof storageArea.remove === 'function') {
+                await storageArea.remove(OFFLINE_QUEUE_KEY);
+              } else {
+                await storageArea.set({ [OFFLINE_QUEUE_KEY]: [] });
+              }
+            } else {
+              await storageArea.set({ [OFFLINE_QUEUE_KEY]: currentQueue });
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+      return { flushed: flushedCount, remaining: 0 };
+    } catch (err) {
+      console.warn?.('[flushOfflineJobs] Failed to flush offline jobs, will retry later:', err);
+      return { flushed: flushedCount, remaining: currentQueue.length };
+    }
+  });
 }
