@@ -43,6 +43,7 @@ import {
   deleteUserResume,
 } from './resumes/resumes.mjs';
 import {
+  DEFAULT_EXTENSION_CONFIG,
   getAllSettings,
   getEffectiveSetting,
   getEffectiveSettingWithSource,
@@ -214,8 +215,10 @@ export function buildApp({
       serverUrl || (hostHeader ? `${protocol}://${hostHeader}` : 'http://localhost:8080');
 
     const user = resolveUser(request);
-    const threshold = getEffectiveSetting(db, 'scorer_threshold', process.env, user?.id) ?? 75;
-    const extConfig = getExtensionConfig(db, user?.id);
+    const threshold = user
+      ? (getEffectiveSetting(db, 'scorer_threshold', process.env, user?.id) ?? 75)
+      : 75;
+    const extConfig = user ? getExtensionConfig(db, user?.id) : { ...DEFAULT_EXTENSION_CONFIG };
 
     return {
       serverUrl: computedUrl,

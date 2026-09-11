@@ -536,22 +536,31 @@ export function validateExtensionConfig(patch) {
   }
 
   if (patch.scanIntervalHours !== undefined) {
-    const num = Number(patch.scanIntervalHours);
-    if (isNaN(num) || num < 1) {
+    if (
+      typeof patch.scanIntervalHours !== 'number' ||
+      !Number.isFinite(patch.scanIntervalHours) ||
+      patch.scanIntervalHours < 1
+    ) {
       throw new Error('scanIntervalHours must be a number >= 1');
     }
   }
 
   if (patch.maxPostingAgeDays !== undefined) {
-    const num = Number(patch.maxPostingAgeDays);
-    if (isNaN(num) || num < 0) {
+    if (
+      typeof patch.maxPostingAgeDays !== 'number' ||
+      !Number.isFinite(patch.maxPostingAgeDays) ||
+      patch.maxPostingAgeDays < 0
+    ) {
       throw new Error('maxPostingAgeDays must be a non-negative number');
     }
   }
 
   if (patch.activeModeDelayMs !== undefined) {
-    const num = Number(patch.activeModeDelayMs);
-    if (isNaN(num) || num < 0) {
+    if (
+      typeof patch.activeModeDelayMs !== 'number' ||
+      !Number.isFinite(patch.activeModeDelayMs) ||
+      patch.activeModeDelayMs < 0
+    ) {
       throw new Error('activeModeDelayMs must be a non-negative number');
     }
   }
@@ -679,7 +688,10 @@ export function updateExtensionConfig(db, userId, patch = {}) {
           negative: patch.titleFilter.negative ?? current.titleFilter.negative,
         }
       : current.titleFilter,
-    maxPostingAgeDays: patch.maxPostingAgeDays ?? current.maxPostingAgeDays,
+    maxPostingAgeDays:
+      patch.maxPostingAgeDays !== undefined
+        ? Number(patch.maxPostingAgeDays)
+        : current.maxPostingAgeDays,
     locationFilter: patch.locationFilter
       ? {
           allow: patch.locationFilter.allow ?? current.locationFilter.allow,
@@ -689,8 +701,14 @@ export function updateExtensionConfig(db, userId, patch = {}) {
     portals: patch.portals ? { ...current.portals, ...patch.portals } : current.portals,
     passiveMode: patch.passiveMode ?? current.passiveMode,
     activeMode: patch.activeMode ?? current.activeMode,
-    activeModeDelayMs: patch.activeModeDelayMs ?? current.activeModeDelayMs,
-    scanIntervalHours: patch.scanIntervalHours ?? current.scanIntervalHours,
+    activeModeDelayMs:
+      patch.activeModeDelayMs !== undefined
+        ? Number(patch.activeModeDelayMs)
+        : current.activeModeDelayMs,
+    scanIntervalHours:
+      patch.scanIntervalHours !== undefined
+        ? Number(patch.scanIntervalHours)
+        : current.scanIntervalHours,
     trackedCompanies: patch.trackedCompanies ?? current.trackedCompanies,
   };
 

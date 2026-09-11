@@ -333,7 +333,7 @@ export function init(opts: { doc?: Document; [key: string]: any } = {}) {
   $<HTMLButtonElement>(doc, DOM.openOptions)?.addEventListener('click', async () => {
     const config = await getConfig();
     const api = (globalThis as any).browser ?? (globalThis as any).chrome;
-    if (!config.serverUrl || !config.apiKey) {
+    const openLocalOptions = () => {
       if (api?.runtime?.openOptionsPage) {
         api.runtime.openOptionsPage();
       } else if (api?.tabs?.create) {
@@ -341,14 +341,23 @@ export function init(opts: { doc?: Document; [key: string]: any } = {}) {
       } else {
         window.open('options.html', '_blank');
       }
+    };
+
+    if (!config.serverUrl || !config.apiKey) {
+      openLocalOptions();
       return;
     }
-    const serverUrl = config.serverUrl;
-    const url = `${serverUrl.replace(/\/+$/, '')}/settings?tab=scrapers`;
-    if (api?.tabs?.create) {
-      api.tabs.create({ url });
-    } else {
-      window.open(url, '_blank');
+    try {
+      const serverUrl = config.serverUrl;
+      const url = `${serverUrl.replace(/\/+$/, '')}/settings?tab=scrapers`;
+      new URL(url);
+      if (api?.tabs?.create) {
+        api.tabs.create({ url });
+      } else {
+        window.open(url, '_blank');
+      }
+    } catch {
+      openLocalOptions();
     }
   });
 

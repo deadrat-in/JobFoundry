@@ -206,11 +206,18 @@ export function init() {
     e.preventDefault();
     const saveStatus = $('#save-status');
     try {
+      const rawScanInterval = $('#scan-interval')?.value;
+      const parsedScanInterval = parseInt(rawScanInterval, 10);
+      const rawFitThreshold = $('#fit-threshold')?.value;
+      const parsedFitThreshold = parseInt(rawFitThreshold, 10);
+
       const patch: Partial<Config> = {
         serverUrl: $('#server-url')?.value.trim() || null,
         apiKey: $('#api-key')?.value.trim() || null,
-        scanIntervalHours: parseInt($('#scan-interval')?.value, 10) || 6,
-        fitThreshold: parseInt($('#fit-threshold')?.value, 10) || 75,
+        scanIntervalHours:
+          !isNaN(parsedScanInterval) && parsedScanInterval >= 1 ? parsedScanInterval : 6,
+        fitThreshold:
+          !isNaN(parsedFitThreshold) && parsedFitThreshold >= 0 ? parsedFitThreshold : 75,
         passiveMode: Boolean($('#passive-mode')?.checked),
         activeMode: Boolean($('#active-mode')?.checked),
       };
@@ -222,7 +229,27 @@ export function init() {
       }
       await hydrate();
       if (patch.serverUrl && patch.apiKey) {
+        try {
+          const cleanUrl = patch.serverUrl.replace(/\/+$/, '');
+          await fetch(`${cleanUrl}/api/v1/extension/config`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${patch.apiKey}`,
+              'x-api-key': patch.apiKey,
+            },
+            body: JSON.stringify({
+              passiveMode: patch.passiveMode,
+              activeMode: patch.activeMode,
+              scanIntervalHours: patch.scanIntervalHours,
+            }),
+          });
+        } catch {
+          // ignore network failure on push
+        }
         await triggerSync();
+        await setConfig(patch);
+        await hydrate();
       }
     } catch (err: any) {
       if (saveStatus) {

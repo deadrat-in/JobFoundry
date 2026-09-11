@@ -55,6 +55,15 @@ test('GET & PUT /api/v1/extension/config with auth and validation', async () => 
     assert.equal(invalidPut.statusCode, 400);
     assert.match(invalidPut.json().error, /scanIntervalHours/);
 
+    const invalidTypePut = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/extension/config',
+      headers: { authorization: 'Bearer test-api-key' },
+      payload: { scanIntervalHours: '6' },
+    });
+    assert.equal(invalidTypePut.statusCode, 400);
+    assert.match(invalidTypePut.json().error, /scanIntervalHours/);
+
     const invalidTitlePut = await app.inject({
       method: 'PUT',
       url: '/api/v1/extension/config',
@@ -109,6 +118,15 @@ test('GET & PUT /api/v1/extension/config with auth and validation', async () => 
     assert.deepEqual(getData.titleFilter.positive, ['Software Engineer', 'Fullstack']);
     assert.equal(getData.portals.remoteok, true);
     assert.equal(getData.portals.himalayas, false);
+
+    // 6. Unauthenticated GET still returns clean defaults, not updated operator config
+    const unauthGetAfterPut = await app.inject({
+      method: 'GET',
+      url: '/api/v1/extension/config',
+    });
+    assert.equal(unauthGetAfterPut.statusCode, 200);
+    assert.equal(unauthGetAfterPut.json().portals.remoteok, false);
+    assert.equal(unauthGetAfterPut.json().maxPostingAgeDays, 30);
   } finally {
     await app.close();
   }

@@ -282,15 +282,18 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
       }
 
       const savePromises: Promise<any>[] = [api.updateSettings(payload)];
-      if (isExtensionDirty && extensionLoaded) {
+      const savingExtension = Boolean(isExtensionDirty && extensionLoaded);
+      if (savingExtension) {
         savePromises.push(api.updateExtensionConfig(extensionConfig));
       }
 
       const [updated, extRes] = await Promise.all(savePromises);
-      if (extRes?.config) {
-        setExtensionConfig(extRes.config);
+      if (savingExtension) {
+        if (extRes?.config) {
+          setExtensionConfig(extRes.config);
+        }
+        setIsExtensionDirty(false);
       }
-      setIsExtensionDirty(false);
       setFormSettings((prev) => ({ ...prev, ...updated.settings }));
       setMeta(updated.meta);
 

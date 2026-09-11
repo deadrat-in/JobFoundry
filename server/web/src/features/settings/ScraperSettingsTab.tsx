@@ -768,6 +768,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <div>
               <label
+                htmlFor="allowed-locations-input"
                 style={{
                   display: 'block',
                   fontSize: '0.75rem',
@@ -780,6 +781,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
                 Allowed Locations (comma-separated):
               </label>
               <input
+                id="allowed-locations-input"
                 type="text"
                 value={allowedLocDraft}
                 onChange={(e) => handleAllowedLocChange(e.target.value)}
@@ -791,6 +793,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
 
             <div>
               <label
+                htmlFor="blocked-locations-input"
                 style={{
                   display: 'block',
                   fontSize: '0.75rem',
@@ -803,6 +806,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
                 Blocked Locations (comma-separated):
               </label>
               <input
+                id="blocked-locations-input"
                 type="text"
                 value={blockedLocDraft}
                 onChange={(e) => handleBlockedLocChange(e.target.value)}
