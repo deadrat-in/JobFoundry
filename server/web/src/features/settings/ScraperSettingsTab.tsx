@@ -842,6 +842,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
           {/* Scan Interval */}
           <div>
             <label
+              htmlFor="scan-interval-input"
               style={{
                 display: 'block',
                 fontSize: '0.75rem',
@@ -854,6 +855,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
               Scan Interval (Hours)
             </label>
             <input
+              id="scan-interval-input"
               type="number"
               min="1"
               max="72"
@@ -899,6 +901,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
             </div>
             <input
               type="checkbox"
+              aria-label="Passive Browsing Capture"
               checked={Boolean(config.passiveMode)}
               onChange={(e) => onChange({ ...config, passiveMode: e.target.checked })}
               style={{
@@ -930,6 +933,7 @@ export const ScraperSettingsTab: React.FC<ScraperSettingsTabProps> = ({
             </div>
             <input
               type="checkbox"
+              aria-label="Scheduled Background Scans"
               checked={Boolean(config.activeMode)}
               onChange={(e) => onChange({ ...config, activeMode: e.target.checked })}
               style={{
