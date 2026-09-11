@@ -10,8 +10,16 @@ const SCRATCH_CAREER_OPS = '/home/anu/Workspace/Public/Job/Scratch/career-ops';
 
 const fromExists = existsSync(join(SCRATCH_CAREER_OPS, 'providers'));
 
+/**
+ * Execute a Node process with arguments and capture combined output.
+ *
+ * @param {string[]} args - Command-line arguments for the child process.
+ * @param {object} [options] - Execution options.
+ * @param {boolean} [options.ok=false] - Whether to rethrow errors on non-zero exit.
+ * @returns {string} Combined stdout and stderr string.
+ */
 function run(args, { ok } = {}) {
-  let out = '';
+  let out;
   try {
     out = execFileSync(process.execPath, args, { encoding: 'utf8' });
   } catch (err) {

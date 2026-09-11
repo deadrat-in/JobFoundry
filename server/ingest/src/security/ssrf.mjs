@@ -152,7 +152,12 @@ export function isBlockedIp(ip) {
  *   http endpoints; http is only allowed for operator-trusted gateways.
  * - Exempts operator-trusted origins (ALLOWED_LLM_BASES/RESUME_OPS_URL + local gateways).
  * - Resolves the hostname and blocks private/loopback/link-local/reserved IPs.
- * @returns {Promise<void>} resolves when the target is permitted.
+ *
+ * @param {string} rawUrl - Target URL to validate.
+ * @param {object} [env=process.env] - Environment configuration map.
+ * @param {object} [options] - Validation options.
+ * @param {boolean} [options.requireHttps=true] - Whether HTTPS is required for non-trusted targets.
+ * @returns {Promise<void>} Resolves when the target is permitted, throws otherwise.
  */
 export async function assertSafeOutboundUrl(
   rawUrl,
@@ -196,7 +201,7 @@ export async function assertSafeOutboundUrl(
     return;
   }
 
-  let addresses = [];
+  let addresses;
   try {
     const res = await resolveHostname(hostname, { all: true, family: 0, verbatim: true });
     addresses = Array.isArray(res) ? res : [{ address: res.address }];

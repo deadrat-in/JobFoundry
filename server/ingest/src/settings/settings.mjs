@@ -254,6 +254,7 @@ function getUserSettings(db, userId) {
  * @param {string} [options.userId] - authenticated user id to resolve per-user settings
  * @param {boolean} [options.maskSecrets=true]
  * @param {object} [options.env=process.env]
+ * @returns {{ settings: Record<string, any>, meta: Record<string, any> }} Effective settings and provenance metadata.
  */
 export function getAllSettings(db, { userId = null, maskSecrets = true, env = process.env } = {}) {
   const dbRows = db.prepare('SELECT key, value, updated_at FROM system_settings').all();
@@ -280,7 +281,7 @@ export function getAllSettings(db, { userId = null, maskSecrets = true, env = pr
     }
 
     let rawVal;
-    let source = 'default';
+    let source;
     let updatedAt = null;
 
     if (userSettings.has(key)) {
