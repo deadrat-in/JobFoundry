@@ -68,7 +68,7 @@ download() {
 
 pyjson() {
   # usage: cmd | pyjson '<python expr on data>'
-  python3 -c "import json,sys; data = json.load(sys.stdin); $1"
+  python3 -c "import json,sys,textwrap; data = json.load(sys.stdin); exec(textwrap.dedent('''$1'''))"
 }
 
 # ------------------------------------------------------------------------------

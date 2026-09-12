@@ -71,7 +71,9 @@ jobs:
 
       - name: Install build prerequisites
         run: |
-          dnf -q -y install file unzip xz
+          dnf -q -y install file unzip xz nspr nss nss-util cairo pango atk at-spi2-atk \
+            cups-libs libdrm mesa-libgbm alsa-lib libX11 libXcomposite libXdamage \
+            libXext libXfixes libXrandr libxshmfence libxkbcommon
 
       - name: Build AppImage
         run: bash packaging/appimage/build-appimage.sh
