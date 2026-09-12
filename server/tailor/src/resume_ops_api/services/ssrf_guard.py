@@ -86,7 +86,7 @@ def trusted_origins() -> set[str]:
     if tailor_port:
         origins.add(f"http://127.0.0.1:{tailor_port}")
         origins.add(f"http://localhost:{tailor_port}")
-    sources = os.environ.get("ALLOWED_LLM_BASES", "") + "," + os.environ.get("RESUME_OPS_URL", "")
+    sources = os.environ.get("ALLOWED_LLM_BASES", "")
     extra = {
         origin
         for s in sources.split(",")

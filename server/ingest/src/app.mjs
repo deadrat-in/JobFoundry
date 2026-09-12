@@ -59,6 +59,12 @@ function bearerToken(header) {
   return header.startsWith('Bearer ') ? header.slice(7).trim() : '';
 }
 
+/**
+ * Build the JobFoundry ingest API application.
+ *
+ * @param {object} options - Application dependencies and runtime options.
+ * @returns {import('fastify').FastifyInstance} The configured Fastify application.
+ */
 export function buildApp({
   db,
   apiKeys = [],

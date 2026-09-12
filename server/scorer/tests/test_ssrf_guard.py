@@ -12,6 +12,8 @@ from src.ssrf_guard import (
 
 
 def test_trusted_origins_defaults_and_env(monkeypatch):
+    """Only explicit LLM bases and local Tailor ports extend trusted origins."""
+
     origins = trusted_origins()
     for origin in (
         "http://127.0.0.1:11434",
@@ -26,8 +28,12 @@ def test_trusted_origins_defaults_and_env(monkeypatch):
     assert "http://10.99.0.5:1234" in extra
     assert "https://gateway.internal:8443" in extra
 
+    monkeypatch.setenv("TAILOR_PORT", "8082")
+    assert "http://127.0.0.1:8082" in trusted_origins()
+    assert "http://localhost:8082" in trusted_origins()
+
     monkeypatch.setenv("RESUME_OPS_URL", "http://resume-ops.internal:8081")
-    assert "http://resume-ops.internal:8081" in trusted_origins()
+    assert "http://resume-ops.internal:8081" not in trusted_origins()
 
 
 @pytest.mark.parametrize(
