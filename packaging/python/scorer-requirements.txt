@@ -97,7 +97,7 @@ jinja2==3.1.6
     # via
     #   instructor
     #   litellm
-jiter==0.14.0
+jiter==0.16.0
     # via
     #   instructor
     #   openai
