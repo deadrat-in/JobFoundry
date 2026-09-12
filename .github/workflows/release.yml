@@ -87,3 +87,114 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: build/appimage/output/*.AppImage
+
+  build-windows-payload:
+    runs-on: ubuntu-24.04
+    container: almalinux:10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install build prerequisites
+        run: |
+          dnf -q -y install file unzip xz
+
+      - name: Build Windows MSIX payload
+        run: packaging/windows/build-windows.sh
+
+      - name: Upload Windows payload (CI)
+        uses: actions/upload-artifact@v7
+        with:
+          name: jobfoundry-windows-payload
+          path: build/windows/payload/
+
+  package-windows-msix:
+    runs-on: windows-latest
+    needs: build-windows-payload
+    permissions:
+      contents: write
+    env:
+      # Optional: base64-encoded PFX that persists the signing identity across
+      # releases (so a .cer trusted once keeps trusting future releases).
+      # Without these secrets, the release falls back to a fresh self-signed
+      # certificate that users must trust again on every update.
+      MSIX_SIGNING_PFX: ${{ secrets.MSIX_SIGNING_PFX }}
+      MSIX_SIGNING_PFX_PASSWORD: ${{ secrets.MSIX_SIGNING_PFX_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download Windows payload
+        uses: actions/download-artifact@v7
+        with:
+          name: jobfoundry-windows-payload
+          path: payload
+
+      - name: Pack and sign MSIX
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $kits = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin' -Directory |
+            Where-Object { $_.Name -as [version] } |
+            Sort-Object { [version]$_.Name } -Descending | Select-Object -First 1
+          if (-not $kits) { throw 'Windows SDK not found' }
+          $makeappx = Join-Path $kits.FullName 'x64\makeappx.exe'
+          $signtool = Join-Path $kits.FullName 'x64\signtool.exe'
+          if (-not (Test-Path $makeappx)) { throw "makeappx not found: $makeappx" }
+          if (-not (Test-Path $signtool)) { throw "signtool not found: $signtool" }
+
+          # The package Identity version is rendered into AppxManifest.xml by
+          # build-windows.sh (from the release tag when present). Read it from
+          # there so the artifact filename always matches the packaged identity
+          # instead of relying on package.json's value.
+          [xml]$manifest = Get-Content .\payload\AppxManifest.xml
+          $ver = $manifest.Package.Identity.Version
+          $ver = $ver -replace '\.0$', ''
+
+          New-Item -ItemType Directory -Force -Path build | Out-Null
+          $pfx = Join-Path (Get-Location) 'build\jobfoundry.pfx'
+          $cer = Join-Path (Get-Location) 'build\JobFoundry.cer'
+          $pfxPassword = 'jobfoundry-build'
+
+          if ($env:MSIX_SIGNING_PFX -and $env:MSIX_SIGNING_PFX_PASSWORD) {
+            [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:MSIX_SIGNING_PFX))
+            $sec = ConvertTo-SecureString $env:MSIX_SIGNING_PFX_PASSWORD -Force -AsPlainText
+            $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $sec
+            $pfxPassword = $env:MSIX_SIGNING_PFX_PASSWORD
+            Write-Host "[jobfoundry] signed with persistent certificate: $($cert.Subject)"
+          } else {
+            $cert = New-SelfSignedCertificate -Type CodeSigningCert `
+              -Subject 'CN=JobFoundry' -CertStoreLocation Cert:\CurrentUser\My `
+              -KeyExportPolicy Exportable -KeyUsage DigitalSignature `
+              -KeyAlgorithm RSA -KeyLength 2048 -NotAfter (Get-Date).AddYears(3)
+            $sec = ConvertTo-SecureString $pfxPassword -Force -AsPlainText
+            Export-PfxCertificate -Cert $cert -FilePath $pfx -Password $sec | Out-Null
+            Write-Host "[jobfoundry] signed with new per-release self-signed certificate"
+          }
+          Export-Certificate -Cert $cert -FilePath $cer -Force | Out-Null
+
+          $msix = Join-Path (Get-Location) "build\JobFoundry-$ver-x64.msix"
+          & $makeappx pack /d (Resolve-Path .\payload).Path /p $msix /o
+          if ($LASTEXITCODE -ne 0) { throw "makeappx failed (exit $LASTEXITCODE)" }
+          & $signtool sign /fd SHA256 /f $pfx /p $pfxPassword `
+            /tr http://timestamp.digicert.com /td SHA256 $msix
+          if ($LASTEXITCODE -ne 0) { throw "signtool failed (exit $LASTEXITCODE)" }
+          Get-ChildItem build | Format-Table Name, Length -AutoSize
+
+      - name: Upload MSIX artifacts (CI)
+        uses: actions/upload-artifact@v7
+        with:
+          name: jobfoundry-windows-msix
+          path: |
+            build/*.msix
+            build/*.cer
+
+      - name: Attach MSIX to Release
+        uses: softprops/action-gh-release@v3
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            build/*.msix
+            build/*.cer
