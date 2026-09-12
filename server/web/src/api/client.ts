@@ -383,6 +383,7 @@ export class ApiClient {
     model?: string;
     apiKey?: string;
     apiBase?: string;
+    provider?: string;
   }): Promise<TestLlmResponse> {
     return this.request<TestLlmResponse>('/api/v1/settings/test-llm', {
       method: 'POST',
@@ -455,6 +456,7 @@ export interface SystemSettings {
   worker_enabled: boolean;
   worker_poll_interval_seconds: number;
   tailor_model: string;
+  tailor_provider?: string;
   tailor_api_key: string;
   tailor_api_base: string;
   tailor_theme: string;

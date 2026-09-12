@@ -189,6 +189,76 @@ describe('SettingsPage', () => {
     });
   });
 
+  it('renders provider pills and allows selecting recommended models', async () => {
+    renderComponent();
+    await waitFor(() => {
+      expect(screen.queryByText(/Loading system configuration/i)).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText(/AI Fit Scorer/i));
+
+    // Verify provider pills exist
+    expect(screen.getByRole('button', { name: /^Google Gemini$/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^DeepSeek$/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^OpenAI$/ })).toBeInTheDocument();
+
+    // Click DeepSeek provider pill
+    fireEvent.click(screen.getByRole('button', { name: /^DeepSeek$/ }));
+
+    // Verify recommendations for DeepSeek render
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Recommended Fast Screening Models \(DeepSeek\)/i)
+      ).toBeInTheDocument();
+    });
+
+    // Click recommended model chip
+    const chip = screen.getByRole('button', { name: /DeepSeek V4\.1 Flash/i });
+    fireEvent.click(chip);
+
+    const modelInput = screen.getByPlaceholderText(
+      'openrouter/z-ai/glm-5.3-flash'
+    ) as HTMLInputElement;
+    expect(modelInput.value).toBe('deepseek/deepseek-v4.1-flash');
+  });
+
+  it('switches to AI Resume Tailor tab, inherits scorer settings, and tests connection', async () => {
+    const testLlmSpy = vi.spyOn(api, 'testLlmConnection').mockResolvedValue({
+      success: true,
+      latencyMs: 180,
+      message: 'Tailoring model responded OK',
+    });
+
+    renderComponent();
+    await waitFor(() => {
+      expect(screen.queryByText(/Loading system configuration/i)).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText(/AI Resume Tailor/i));
+
+    await waitFor(() => {
+      expect(screen.getByText('Resume Tailoring Engine (resume-ops)')).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByLabelText(/Use same provider & API key as AI Fit Scorer/i)
+    ).toBeInTheDocument();
+
+    const tailorTestBtn = screen.getByTestId('test-tailor-llm-btn');
+    fireEvent.click(tailorTestBtn);
+
+    await waitFor(() => {
+      expect(testLlmSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          provider: 'openrouter',
+          apiKey: 'sk-or-••••••••0d60',
+          model: 'openrouter/google/gemini-2.0-flash-exp:free',
+        })
+      );
+      expect(screen.getAllByText(/Tailoring model responded OK/i).length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
   it('navigates to Telemetry & System tab and displays live metrics', async () => {
     renderComponent();
     await waitFor(() => {
@@ -201,5 +271,31 @@ describe('SettingsPage', () => {
     expect(screen.getByText('Total Jobs in DB')).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
     expect(screen.getByText(/\/data\/jobfoundry.db/i)).toBeInTheDocument();
+  });
+
+  it('preserves custom provider when typing custom model names and displays fallback chip label', async () => {
+    renderComponent();
+    await waitFor(() => {
+      expect(screen.queryByText(/Loading system configuration/i)).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText(/AI Fit Scorer/i));
+
+    // Select Custom Gateway provider
+    fireEvent.click(screen.getByRole('button', { name: /Custom \/ Self-Hosted Gateway/i }));
+
+    // Fallback header should state other providers
+    expect(
+      screen.getByText(/Recommended Fast Screening Models \(other providers\):/i)
+    ).toBeInTheDocument();
+
+    // Type a model name without a provider prefix
+    const modelInput = screen.getByPlaceholderText('openrouter/z-ai/glm-5.3-flash');
+    fireEvent.change(modelInput, { target: { value: 'my-custom-mistral' } });
+
+    // Custom Gateway should remain selected
+    expect(
+      screen.getByRole('button', { name: /Custom \/ Self-Hosted Gateway/i })
+    ).toBeInTheDocument();
   });
 });

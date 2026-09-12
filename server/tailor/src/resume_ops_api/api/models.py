@@ -67,3 +67,17 @@ class MasterResumeStatus(BaseModel):
     valid: bool
     message: str
 
+
+class TestLlmRequest(BaseModel):
+    model: str
+    api_key: str | None = None
+    api_base: str | None = None
+
+
+class TestLlmResponse(BaseModel):
+    success: bool
+    latencyMs: int | None = None
+    model: str | None = None
+    message: str | None = None
+    error: str | None = None
+

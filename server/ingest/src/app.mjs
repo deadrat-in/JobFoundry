@@ -358,7 +358,7 @@ export function buildApp({
     async (request, reply) => {
       if (!checkRateLimit(request, reply, 15)) return;
       if (!authenticate(request, reply)) return;
-      const { model, apiKey } = request.body || {};
+      const { model, apiKey, apiBase, provider } = request.body || {};
 
       const userId = request.user.id;
       const registered = isRegisteredUser(db, userId);
@@ -374,7 +374,36 @@ export function buildApp({
       const effectiveKey = hasExplicitKey ? apiKey : fallbackKeyAllowed ? keySetting.value : '';
       const effectiveModel =
         model || modelSetting.value || 'openrouter/google/gemini-2.0-flash-exp:free';
-      const effectiveBase = (base.value || 'https://openrouter.ai/api/v1').replace(/\/$/, '');
+
+      let explicitBase = null;
+      if (typeof apiBase === 'string' && apiBase.trim()) {
+        explicitBase = apiBase.trim().replace(/\/$/, '');
+      } else if (base.value && base.value.trim()) {
+        explicitBase = base.value.trim().replace(/\/$/, '');
+      }
+
+      // Default base for direct /chat/completions fallback
+      let directBase = explicitBase;
+      if (!directBase) {
+        const m = (effectiveModel || '').toLowerCase();
+        const p = (provider || '').toLowerCase();
+        if (p === 'groq' || m.startsWith('groq/')) {
+          directBase = 'https://api.groq.com/openai/v1';
+        } else if (
+          p === 'openai' ||
+          m.startsWith('openai/') ||
+          m.startsWith('gpt-') ||
+          m.startsWith('o3-')
+        ) {
+          directBase = 'https://api.openai.com/v1';
+        } else if (p === 'deepseek' || m.startsWith('deepseek/')) {
+          directBase = 'https://api.deepseek.com/v1';
+        } else if (p === 'ollama' || m.startsWith('ollama/')) {
+          directBase = 'http://127.0.0.1:11434/v1';
+        } else {
+          directBase = 'https://openrouter.ai/api/v1';
+        }
+      }
 
       if (!effectiveKey) {
         return reply.code(400).send({
@@ -385,14 +414,60 @@ export function buildApp({
         });
       }
       const startTime = Date.now();
+
+      // Try LiteLLM test endpoint in tailor service if running
+      const resumeOpsUrl = process.env.RESUME_OPS_URL || 'http://127.0.0.1:8081';
       try {
-        const resp = await safeFetch(`${effectiveBase}/chat/completions`, {
+        const tailorPayload = {
+          model: effectiveModel,
+          api_key: effectiveKey,
+          ...(explicitBase ? { api_base: explicitBase } : {}),
+        };
+        const tailorResp = await safeFetch(`${resumeOpsUrl.replace(/\/$/, '')}/api/v1/test-llm`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(10000),
+          redirect: 'error',
+          body: JSON.stringify(tailorPayload),
+        });
+        if (tailorResp.ok) {
+          const data = await tailorResp.json();
+          if (data.success) {
+            return {
+              success: true,
+              latencyMs: data.latencyMs || Date.now() - startTime,
+              model: effectiveModel,
+              message:
+                data.message ||
+                `Connected successfully to ${effectiveModel} (${data.latencyMs || Date.now() - startTime}ms)`,
+            };
+          } else {
+            return reply.code(400).send({
+              success: false,
+              latencyMs: data.latencyMs || Date.now() - startTime,
+              error: data.error || 'LLM connection failed',
+            });
+          }
+        }
+      } catch (err) {
+        if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+          return reply.code(504).send({
+            success: false,
+            error: 'Connection test to Tailor service timed out after 10 seconds',
+          });
+        }
+        // Fallback to direct fetch only if Tailor service failed to connect / unreachable
+      }
+
+      try {
+        const resp = await safeFetch(`${directBase}/chat/completions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${effectiveKey}`,
           },
           signal: AbortSignal.timeout(15000),
+          redirect: 'error',
           body: JSON.stringify({
             model: effectiveModel,
             messages: [{ role: 'user', content: 'Reply with the word OK.' }],
