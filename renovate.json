@@ -1,5 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", "group:all"],
-  "prHourlyLimit": 0
+  "extends": [
+    "local>deadrat-in/.github"
+  ]
 }
