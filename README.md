@@ -138,10 +138,18 @@ On Windows 11 x64 (22000+), JobFoundry ships as a MSIX package for
 
 ```powershell
 # Download JobFoundry-<version>-x64.msix and JobFoundry-<version>-x64.cer
-# from the GitHub Releases page, then:
-Add-Certificate -Notepad .\[JobFoundry].cer          # Trust it (Current User, 'Trusted People')
+# from the GitHub Releases page.
+# 1) Trust the signing certificate ONCE (requires an elevated PowerShell):
+Import-Certificate -FilePath .\JobFoundry.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
+# 2) Install the package:
 Add-AppxPackage -Path .\JobFoundry-<version>-x64.msix
 ```
+
+The App Installer places the signing certificate in the **Local Computer →
+Trusted People** store (App Installer checks the machine store, not the current
+user store), so the import command above must run elevated. It is not a root CA,
+so it belongs in Trusted People, never in Trusted Root Certification
+Authorities.
 
 Launch `JobFoundry` from the Start menu to run all services in the foreground
 and open the dashboard at [http://localhost:8080](http://localhost:8080).
@@ -149,9 +157,9 @@ Because the sealed MSIX payload is read-only, shutdown is via the Windows
 control CLI bundled with the app:
 
 ```powershell
-# From a PowerShell prompt (typically on the %PATH%): jobfoundry.ps1 start|status|logs|stop
-jobfoundry.ps1 status
-jobfoundry.ps1 stop
+# From any PowerShell prompt: jobfoundry start|status|logs|stop
+jobfoundry status
+jobfoundry stop
 ```
 
 Configuration and data live outside the package, per app conventions:
@@ -163,11 +171,14 @@ Configuration and data live outside the package, per app conventions:
 
 Notes:
 
-- The release builds are self-signed for full-trust sideloading; install the
-  included `.cer` (Current User → Trusted People) once to trust updates signed
-  with the same root. A Microsoft Store listing will use store certificates
-  instead, removing the certificate step.
-- `jobfoundry.ps1 start` runs the background services; `stop` shuts them down.
+- The release builds are self-signed for full-trust sideloading. If the release
+  was built with the persistent signing certificate (uploaded as the
+  `MSIX_SIGNING_PFX` repo secret), trusting `JobFoundry.cer` once covers all
+  future releases; without it, every release signs with a fresh certificate and
+  the new `.cer` must be imported again before updating. A Microsoft Store
+  listing would use store certificates instead, removing the certificate step
+  entirely.
+- `jobfoundry start` runs the background services; `stop` shuts them down.
   Killing the console window of a foreground run can orphan the child services.
 - The package bundles its own Node.js 26, Python 3.12 and a headless Chromium
   for PDF export (~300 MB download).

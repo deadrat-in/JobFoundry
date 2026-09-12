@@ -14,19 +14,17 @@
 // child services can be orphaned. Use jobfoundry.ps1 stop for clean shutdown.
 // ==============================================================================
 
-'use strict';
-
-const { spawn, execFile } = require('node:child_process');
-const net = require('node:net');
-const fs = require('node:fs');
-const path = require('node:path');
+import { spawn, execFile } from 'node:child_process';
+import net from 'node:net';
+import fs from 'node:fs';
+import path from 'node:path';
 
 // ------------------------------------------------------------------------------
 // 1. Locate package root (JobFoundry.exe sits at the package root)
 // ------------------------------------------------------------------------------
 // This script ships at <root>\usr\share\jobfoundry\windows\launcher.mjs, so the
-// package root is four directories up from __dirname (NOT the node.exe dir).
-const PKG_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
+// package root is four directories up from the script dir (NOT the node.exe dir).
+const PKG_ROOT = path.resolve(import.meta.dirname, '..', '..', '..', '..');
 
 const NODE_BIN = path.join(PKG_ROOT, 'usr', 'lib', 'node', 'node.exe');
 const PYTHON_BIN = path.join(PKG_ROOT, 'usr', 'lib', 'python', 'python.exe');
@@ -165,7 +163,7 @@ function startService(name, exe, args, envOverrides, logStream) {
     removePidfile(name);
     children.delete(name);
     if (code !== null || signal !== null) {
-      if (name !== 'launcher') shutdown(`service ${name} exited`);
+      if (name !== 'launcher') shutdown(`service ${name} exited`, 1);
     }
   });
   return child;
@@ -251,7 +249,7 @@ startService(
 
 let shuttingDown = false;
 
-function shutdown(reason) {
+function shutdown(reason, exitCode = 0) {
   if (shuttingDown) return;
   shuttingDown = true;
   console.log(`[jobfoundry] Shutting down services (${reason})...`);
@@ -278,7 +276,7 @@ function shutdown(reason) {
       }
       removePidfile('launcher');
       console.log('[jobfoundry] All services stopped.');
-      process.exit(0);
+      process.exit(exitCode);
     }
   }, 200);
 }
@@ -315,12 +313,11 @@ async function main() {
       }
     });
     console.log('[jobfoundry] A service exited unexpectedly. Shutting down.');
-    shutdown('service exit');
+    shutdown('service exit', 1);
   } catch (err) {
     console.error(`[jobfoundry] ERROR: ${err.message}`);
     console.error(`[jobfoundry] See logs in ${LOGS_DIR}`);
-    shutdown('startup failure');
-    process.exitCode = 1;
+    shutdown('startup failure', 1);
   }
 }
 

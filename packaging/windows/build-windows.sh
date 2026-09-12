@@ -5,7 +5,7 @@
 # Cross-assembles the writable payload of the Windows MSIX package:
 #   - Node.js 26 (win-x64 from nodejs.org, SHA-verified)
 #   - Python 3.12 (python-build-standalone win-x64 install_only, SHA-verified)
-#   - chrome-headless-shell (win64, SHA fetched from chrome-for-testing metadata)
+#   - chrome-headless-shell (win64, SHA pinned for the default version)
 #   - Python deps cross-installed with uv --python-platform windows (no Windows
 #     interpreter needed; wheels only, so native .pyd files land ready to run)
 #   - better-sqlite3 v13 ships its prebuilds inside the npm tarball, so the
@@ -127,8 +127,13 @@ download "https://github.com/astral-sh/python-build-standalone/releases/download
 download "https://github.com/astral-sh/python-build-standalone/releases/download/${PYBS_TAG}/SHA256SUMS" "$WORK/PYBS_SHA256SUMS"
 (cd "$WORK" && grep "  ${PY_TGZ}\$" PYBS_SHA256SUMS | sha256sum -c -)
 
-# --- chrome-headless-shell (win64, URL+SHA from chrome-for-testing) ----------
+# --- chrome-headless-shell (win64, URL from chrome-for-testing) ---------------
+# The official chrome-for-testing metadata exposes no digest for
+# chrome-headless-shell (only 'platform' + 'url'), so the SHA-256 of the
+# pinned default version is reviewed and pinned here, then verified at
+# download time. Overridden versions without a checksum degrade to a warning.
 CHROME_VERSION="${CHROME_VERSION:-153.0.8010.36}"
+CHROME_SHA256_DEFAULT="dc59aeda4f9ce8a9a329693617ac5d8b75ceea52ac3d794c4af06cdee261040e"
 echo "[windows] chrome-headless-shell: $CHROME_VERSION"
 CHROME_META="$(curl -fsSL --retry 5 --retry-delay 5 \
   "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json" \
@@ -137,12 +142,19 @@ CHROME_META="$(curl -fsSL --retry 5 --retry-delay 5 \
     if not vs:
         print('UNKNOWN_VERSION'); raise SystemExit(1)
     dl=[d for d in vs[0]['downloads']['chrome-headless-shell'] if d['platform']=='win64'][0]
-    print(dl['url']); print(dl['sha256'])")"
+    print(dl.get('url', '')); print(dl.get('sha256', ''))")"
 CHROME_ZIP_URL="$(echo "$CHROME_META" | sed -n 1p)"
 CHROME_SHA256="$(echo "$CHROME_META" | sed -n 2p)"
+if [ "$CHROME_VERSION" = "153.0.8010.36" ]; then
+  CHROME_SHA256="$CHROME_SHA256_DEFAULT"
+fi
 CHROME_ZIP="$WORK/chrome-headless-shell-win64.zip"
 download "$CHROME_ZIP_URL" "$CHROME_ZIP"
-echo "${CHROME_SHA256}  $CHROME_ZIP" | sha256sum -c -
+if [ -n "$CHROME_SHA256" ]; then
+  echo "${CHROME_SHA256}  $CHROME_ZIP" | sha256sum -c -
+else
+  echo "[windows] WARNING: no checksum available for chrome-headless-shell ${CHROME_VERSION}; skipping verification"
+fi
 
 # ------------------------------------------------------------------------------
 # 2. Stage app sources (repo subset, mirrors the AppImage build)
@@ -287,6 +299,12 @@ echo "[windows] building JobFoundry.exe shim..."
   "$GO_BIN" build -trimpath -ldflags "-s -w" -o "$PAYLOAD/JobFoundry.exe" ./launcher-src)
 file "$PAYLOAD/JobFoundry.exe" | grep -qi "PE32" \
   || { echo "[windows] ERROR: JobFoundry.exe is not a Windows PE binary" >&2; exit 1; }
+
+echo "[windows] building jobfoundry.exe control-CLI shim..."
+(cd "$SCRIPT_DIR" && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 \
+  "$GO_BIN" build -trimpath -ldflags "-s -w" -o "$PAYLOAD/jobfoundry.exe" ./jobfoundry-cli-src)
+file "$PAYLOAD/jobfoundry.exe" | grep -qi "PE32" \
+  || { echo "[windows] ERROR: jobfoundry.exe is not a Windows PE binary" >&2; exit 1; }
 
 echo "[windows] generating MSIX assets..."
 mkdir -p "$PAYLOAD/assets"

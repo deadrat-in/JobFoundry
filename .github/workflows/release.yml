@@ -115,6 +115,13 @@ jobs:
     needs: build-windows-payload
     permissions:
       contents: write
+    env:
+      # Optional: base64-encoded PFX that persists the signing identity across
+      # releases (so a .cer trusted once keeps trusting future releases).
+      # Without these secrets, the release falls back to a fresh self-signed
+      # certificate that users must trust again on every update.
+      MSIX_SIGNING_PFX: ${{ secrets.MSIX_SIGNING_PFX }}
+      MSIX_SIGNING_PFX_PASSWORD: ${{ secrets.MSIX_SIGNING_PFX_PASSWORD }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -139,20 +146,31 @@ jobs:
           if (-not (Test-Path $signtool)) { throw "signtool not found: $signtool" }
 
           New-Item -ItemType Directory -Force -Path build | Out-Null
-          $cert = New-SelfSignedCertificate -Type CodeSigningCert `
-            -Subject 'CN=JobFoundry' -CertStoreLocation Cert:\CurrentUser\My `
-            -KeyExportPolicy Exportable -KeyUsage DigitalSignature `
-            -KeyAlgorithm RSA -KeyLength 2048 -NotAfter (Get-Date).AddYears(3)
           $pfx = Join-Path (Get-Location) 'build\jobfoundry.pfx'
           $cer = Join-Path (Get-Location) 'build\JobFoundry.cer'
+          $pfxPassword = 'jobfoundry-build'
+
+          if ($env:MSIX_SIGNING_PFX -and $env:MSIX_SIGNING_PFX_PASSWORD) {
+            [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:MSIX_SIGNING_PFX))
+            $sec = ConvertTo-SecureString $env:MSIX_SIGNING_PFX_PASSWORD -Force -AsPlainText
+            $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $sec
+            $pfxPassword = $env:MSIX_SIGNING_PFX_PASSWORD
+            Write-Host "[jobfoundry] signed with persistent certificate: $($cert.Subject)"
+          } else {
+            $cert = New-SelfSignedCertificate -Type CodeSigningCert `
+              -Subject 'CN=JobFoundry' -CertStoreLocation Cert:\CurrentUser\My `
+              -KeyExportPolicy Exportable -KeyUsage DigitalSignature `
+              -KeyAlgorithm RSA -KeyLength 2048 -NotAfter (Get-Date).AddYears(3)
+            $sec = ConvertTo-SecureString $pfxPassword -Force -AsPlainText
+            Export-PfxCertificate -Cert $cert -FilePath $pfx -Password $sec | Out-Null
+            Write-Host "[jobfoundry] signed with new per-release self-signed certificate"
+          }
           Export-Certificate -Cert $cert -FilePath $cer -Force | Out-Null
-          $sec = ConvertTo-SecureString 'jobfoundry-build' -Force -AsPlainText
-          Export-PfxCertificate -Cert $cert -FilePath $pfx -Password $sec | Out-Null
 
           $msix = Join-Path (Get-Location) "build\JobFoundry-$ver-x64.msix"
           & $makeappx pack /d (Resolve-Path .\payload).Path /p $msix /o
           if ($LASTEXITCODE -ne 0) { throw "makeappx failed (exit $LASTEXITCODE)" }
-          & $signtool sign /fd SHA256 /f $pfx /p 'jobfoundry-build' `
+          & $signtool sign /fd SHA256 /f $pfx /p $pfxPassword `
             /tr http://timestamp.digicert.com /td SHA256 $msix
           if ($LASTEXITCODE -ne 0) { throw "signtool failed (exit $LASTEXITCODE)" }
           Get-ChildItem build | Format-Table Name, Length -AutoSize
