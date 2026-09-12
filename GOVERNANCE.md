@@ -56,6 +56,5 @@ decided by maintainers, and may be appealed once by email to
 - There is no paid tier, no hosted service, and no telemetry to monetize.
   If that ever needs to change, it changes here first, in public, before
   any code reflects it.
-- Forks are explicitly welcome — that is what the license is for. The
-  [trademark policy](TRADEMARK.md) only asks that forks not present
-  themselves as JobFoundry itself.
+- Forks are explicitly welcome — that is what the license is for. Just don't
+  present your fork as JobFoundry itself.

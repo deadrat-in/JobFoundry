@@ -6,22 +6,34 @@ This document provides technical details for developing and debugging JobFoundry
 
 ## Monorepo Architecture
 
-JobFoundry is structured as an npm multi-workspace repository:
+JobFoundry is structured as an npm multi-workspace repository
+(workspaces: `extension`, `server/ingest`, `server/web`, `site`):
 
 ```
 JobFoundry/
-├── bin/
-├── extension/          # WXT-based Browser Extension (MV3 / Firefox)
+├── extension/            # WXT MV3 browser extension (Chrome + Firefox)
+│   ├── src/background/   # service worker: scan.js, relay.js, safe-url.js
+│   │   └── providers/    # 87 ATS/job-board adapters (see ADDING_A_PROVIDER.md)
+│   ├── src/content/      # in-page extractors (LinkedIn, Indeed, Glassdoor …)
+│   ├── src/entrypoints/  # popup, options, sidepanel, dashboard
+│   ├── scripts/          # vendor.mjs, sync-providers.mjs, ports/, gen-provider-index.mjs
+│   └── test/             # node:test suites (run: npm --workspace=extension test)
 ├── server/
-│   ├── ingest/         # Fastify REST API, SQLite DB, multi-tenant auth, SimHash dedup
-│   ├── scorer/         # FastAPI fit screener, LiteLLM integration, tailor worker daemon
-│   ├── tailor/         # LangGraph resume tailoring engine & folio-export PDF bridge
-│   └── web/            # Vite + React 19 SPA (Kanban board, job feed, resume manager)
-├── docs/               # GitHub Pages documentation portal
-├── compose.yaml        # Local full-stack container orchestration
-├── scripts/            # Repo utilities (healthchecks, metadata validation)
-└── test/               # Multi-service end-to-end integration test suite
+│   ├── ingest/           # Fastify REST API, SQLite, auth, SimHash dedup (:8080)
+│   ├── scorer/           # FastAPI fit screener + worker daemon (:8001, loopback)
+│   ├── tailor/           # LangGraph resume engine + folio-export PDF bridge (:8081, loopback)
+│   └── web/              # Vite + React 19 SPA (Kanban, feed, resume manager)
+├── site/                 # Astro docs site source (builds to site/dist/, deployed to Pages)
+├── packaging/            # AppImage (Linux) and MSIX (Windows) builders
+├── scripts/              # healthcheck, metadata checks, career-ops import
+├── test/                 # multi-service E2E + metadata assertions
+├── compose.yaml          # local full-stack container orchestration
+├── supervisord.conf      # in-container process supervision
+└── install.sh            # one-command installer
 ```
+
+Related design docs: [ARCHITECTURE.md](ARCHITECTURE.md) (pipeline + principles),
+[AGENTS.md](AGENTS.md) (AI-agent constraints, ports, pre-commit commands).
 
 ---
 
