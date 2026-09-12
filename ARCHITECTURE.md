@@ -173,4 +173,4 @@ packaging/        AppImage (Linux), MSIX (Windows) builders
 ```
 
 For AI-agent-specific constraints (port map, SSRF rules, PDF toolchain
-gotchas, pre-commit commands), see [AGENTS.md](AGENTS.md).
+gotchas, pre-commit commands), see [.agents/AGENTS.md](.agents/AGENTS.md).

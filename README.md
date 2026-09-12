@@ -22,9 +22,7 @@ Job hunting is stressful enough without new barriers: no accounts, no subscripti
 **Capture where the jobs are visible — your browser:**
 
 - **Server scrapers lose. Your browser wins.** Datacenter IPs die against Cloudflare, CAPTCHAs, and login walls. Your authenticated browser session walks straight through — so listings are captured inside the browser you already use.
-- **Zero server scraping, guaranteed:**
-
-  > The JobFoundry server never performs outbound job-board scraping. All scraping and job-board HTTP requests originate from the user's browser extension.
+- **Zero server scraping.** Capture happens in your browser; the server only ever receives already-captured jobs. Full statement: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 - **Zero-token discovery.** Reading a public job posting never costs an LLM call — structured data comes from public ATS endpoints, feeds, and markup. Models are spent only where judgment is needed: fit scoring and tailoring.
 - **Truthful tailoring.** Your genuine experience, re-ranked and rephrased under strict schema constraints. Never invented employers, skills, or metrics.

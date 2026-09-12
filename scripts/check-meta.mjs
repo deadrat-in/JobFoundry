@@ -29,10 +29,23 @@ assert(
 assert(/Version 3/.test(license), 'LICENSE must be AGPL version 3');
 
 const readme = read('README.md');
+assert(readme.includes('JobFoundry'), 'README.md must mention the project name JobFoundry');
+assert(
+  readme.includes('ARCHITECTURE.md'),
+  'README.md must link to ARCHITECTURE.md (where the invariant lives)'
+);
+
+// The architectural invariant lives in ARCHITECTURE.md — not in marketing
+// copy. README links there; the canonical wording is enforced here.
+// Comparison is whitespace-insensitive so formatters can't break it.
+const architecture = read('ARCHITECTURE.md');
 const INVARIANT =
   "The JobFoundry server never performs outbound job-board scraping. All scraping and job-board HTTP requests originate from the user's browser extension.";
-assert(readme.includes(INVARIANT), 'README.md must contain the architectural invariant verbatim');
-assert(readme.includes('JobFoundry'), 'README.md must mention the project name JobFoundry');
+const normalized = (s) => s.replace(/>/g, '').replace(/\s+/g, ' ');
+assert(
+  normalized(architecture).includes(normalized(INVARIANT)),
+  'ARCHITECTURE.md must contain the architectural invariant verbatim'
+);
 
 if (failures.length > 0) {
   console.error('check-meta FAILED:');

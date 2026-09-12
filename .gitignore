@@ -56,7 +56,8 @@ Thumbs.db
 *.swp
 *.swo
 *~
-.agents/
+.agents/*
+!.agents/AGENTS.md
 .gemini/
 .claude/
 

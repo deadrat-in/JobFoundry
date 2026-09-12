@@ -33,7 +33,7 @@ JobFoundry/
 ```
 
 Related design docs: [ARCHITECTURE.md](ARCHITECTURE.md) (pipeline + principles),
-[AGENTS.md](AGENTS.md) (AI-agent constraints, ports, pre-commit commands).
+[.agents/AGENTS.md](.agents/AGENTS.md) (AI-agent constraints, ports, pre-commit commands).
 
 ---
 

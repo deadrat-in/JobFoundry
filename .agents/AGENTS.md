@@ -1,6 +1,6 @@
 # AI Agent Guidelines (`AGENTS.md`)
 
-This document defines behavioral constraints, critical invariants, and internal subsystem mechanics for AI agents working in this repository. For general setup and developer guides, refer to [DEVELOPMENT.md](DEVELOPMENT.md), [CONTRIBUTING.md](CONTRIBUTING.md), and [README.md](README.md).
+This document defines behavioral constraints, critical invariants, and internal subsystem mechanics for AI agents working in this repository. For general setup and developer guides, refer to [DEVELOPMENT.md](../DEVELOPMENT.md), [CONTRIBUTING.md](../CONTRIBUTING.md), and [README.md](../README.md).
 
 ---
 
