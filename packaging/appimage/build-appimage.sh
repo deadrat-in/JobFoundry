@@ -185,7 +185,7 @@ fi
 # 5. Install ingest production dependencies (scoped to the workspace)
 # ------------------------------------------------------------------------------
 echo "[appimage] installing ingest production dependencies..."
-(cd "$STAGE" && npm ci --omit=dev --workspace=server/ingest --no-audit --no-fund)
+(cd "$STAGE" && npm ci --omit=dev --workspace=server/ingest --ignore-scripts --no-audit --no-fund)
 [ -d "$STAGE/node_modules/better-sqlite3" ] \
   || { echo "[appimage] ERROR: better-sqlite3 missing after install" >&2; exit 1; }
 
@@ -235,13 +235,10 @@ find "$APPDIR/usr/lib/python" -name "__pycache__" -type d -prune -exec rm -rf {}
 # ------------------------------------------------------------------------------
 echo "[appimage] laying out app files..."
 APP_SHARE="$APPDIR/usr/share/jobfoundry"
-mkdir -p "$APP_SHARE/server" "$APP_SHARE/web"
-cp -r "$STAGE/server/ingest/src" "$STAGE/server/ingest/package.json" "$APP_SHARE/server/ingest-tmp"
-mkdir -p "$APP_SHARE/server/ingest"
-mv "$APP_SHARE/server/ingest-tmp/src" "$APP_SHARE/server/ingest/src"
-mv "$APP_SHARE/server/ingest-tmp/package.json" "$APP_SHARE/server/ingest/package.json"
-rmdir "$APP_SHARE/server/ingest-tmp"
-cp -r "$STAGE/server/scorer/src" "$APP_SHARE/server/scorer"
+mkdir -p "$APP_SHARE/server/ingest" "$APP_SHARE/server/scorer" "$APP_SHARE/web"
+cp -r "$STAGE/server/ingest/src" "$APP_SHARE/server/ingest/src"
+cp "$STAGE/server/ingest/package.json" "$APP_SHARE/server/ingest/package.json"
+cp -r "$STAGE/server/scorer/src" "$APP_SHARE/server/scorer/src"
 cp -r "$WEB_DIST" "$APP_SHARE/web/dist"
 cp -r "$STAGE/node_modules" "$APP_SHARE/node_modules"
 cp -r "$STAGE/node-tools" "$APP_SHARE/node-tools"
@@ -253,6 +250,15 @@ echo "[appimage] bundling chrome-headless-shell shared libraries..."
 LIB_DIR="$APPDIR/usr/lib/chrome-headless-shell/lib"
 mkdir -p "$LIB_DIR"
 ldd "$APPDIR/usr/lib/chrome-headless-shell/chrome-headless-shell" \
+  | awk '/=> \// {print $3}' | sort -u | while read -r lib; do
+  base="$(basename "$lib")"
+  case "$base" in
+    libc.so*|libm.so*|libpthread.so*|libdl.so*|librt.so*|libnsl.so*|libresolv.so*|libutil.so*|ld-linux*|libgcc_s.so*)
+      continue ;;
+  esac
+  cp -n "$lib" "$LIB_DIR/" 2>/dev/null || echo "[appimage] WARN: could not bundle $lib"
+done
+ldd "$APPDIR/usr/lib/node/bin/node" \
   | awk '/=> \// {print $3}' | sort -u | while read -r lib; do
   base="$(basename "$lib")"
   case "$base" in

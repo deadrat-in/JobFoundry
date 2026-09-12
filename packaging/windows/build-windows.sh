@@ -85,6 +85,16 @@ download "https://nodejs.org/dist/v${NODE_VERSION}/${NODE_ZIP}" "$WORK/$NODE_ZIP
 download "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" "$WORK/SHASUMS256.txt"
 (cd "$WORK" && grep "  $NODE_ZIP\$" SHASUMS256.txt | sha256sum -c -)
 
+# Host Node.js & npm (used to build web SPA and fetch npm dependencies)
+if ! command -v npm >/dev/null 2>&1; then
+  echo "[windows] host npm not found, bootstrapping node $NODE_VERSION for linux-x64..."
+  NODE_LINUX_TGZ="node-v${NODE_VERSION}-linux-x64.tar.xz"
+  download "https://nodejs.org/dist/v${NODE_VERSION}/${NODE_LINUX_TGZ}" "$WORK/$NODE_LINUX_TGZ"
+  (cd "$WORK" && grep "  $NODE_LINUX_TGZ\$" SHASUMS256.txt | sha256sum -c -)
+  tar -xJf "$WORK/$NODE_LINUX_TGZ" -C "$WORK"
+  export PATH="$WORK/node-v${NODE_VERSION}-linux-x64/bin:$PATH"
+fi
+
 # --- Go (linux) for the shim + asset generator (SHA from go.dev) ------------
 GO_VERSION="${GO_VERSION:-}"
 if [ -z "$GO_VERSION" ]; then
@@ -197,7 +207,7 @@ fi
 # 4. Install ingest dependencies (better-sqlite3 prebuilds ship in the tarball)
 # ------------------------------------------------------------------------------
 echo "[windows] installing ingest production dependencies..."
-(cd "$STAGE" && npm ci --omit=dev --workspace=server/ingest --no-audit --no-fund)
+(cd "$STAGE" && npm ci --omit=dev --workspace=server/ingest --ignore-scripts --no-audit --no-fund)
 [ -f "$STAGE/node_modules/better-sqlite3/prebuilds/win32-x64.node" ] \
   || { echo "[windows] ERROR: better-sqlite3 win32 prebuild missing" >&2; exit 1; }
 
@@ -242,7 +252,7 @@ mv "$WORK/python" "$PAYLOAD/usr/lib/python"
 
 unzip -q "$CHROME_ZIP" -d "$WORK/chrome"
 mkdir -p "$PAYLOAD/usr/lib/chrome-headless-shell"
-mv "$WORK/chrome/chrome-headless-shell-windows-x64/"* "$PAYLOAD/usr/lib/chrome-headless-shell/"
+mv "$WORK"/chrome/chrome-headless-shell-*/* "$PAYLOAD/usr/lib/chrome-headless-shell/"
 file "$PAYLOAD/usr/lib/chrome-headless-shell/chrome-headless-shell.exe" | grep -qi "PE32" \
   || { echo "[windows] ERROR: chrome-headless-shell.exe is not a Windows PE binary" >&2; exit 1; }
 
@@ -295,20 +305,20 @@ cp "$SCRIPT_DIR/jobfoundry.ps1" "$APP_SHARE/windows/jobfoundry.ps1"
 # 9. Build the shim (JobFoundry.exe) and MSIX assets with the bundled Go
 # ------------------------------------------------------------------------------
 echo "[windows] building JobFoundry.exe shim..."
-(cd "$SCRIPT_DIR" && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 \
-  "$GO_BIN" build -trimpath -ldflags "-s -w" -o "$PAYLOAD/JobFoundry.exe" ./launcher-src)
+(cd "$SCRIPT_DIR/launcher-src" && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 \
+  "$GO_BIN" build -trimpath -ldflags "-s -w" -o "$PAYLOAD/JobFoundry.exe" .)
 file "$PAYLOAD/JobFoundry.exe" | grep -qi "PE32" \
   || { echo "[windows] ERROR: JobFoundry.exe is not a Windows PE binary" >&2; exit 1; }
 
 echo "[windows] building jobfoundry.exe control-CLI shim..."
-(cd "$SCRIPT_DIR" && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 \
-  "$GO_BIN" build -trimpath -ldflags "-s -w" -o "$PAYLOAD/jobfoundry.exe" ./jobfoundry-cli-src)
+(cd "$SCRIPT_DIR/jobfoundry-cli-src" && GOOS=windows GOARCH=amd64 CGO_ENABLED=0 \
+  "$GO_BIN" build -trimpath -ldflags "-s -w" -o "$PAYLOAD/jobfoundry.exe" .)
 file "$PAYLOAD/jobfoundry.exe" | grep -qi "PE32" \
   || { echo "[windows] ERROR: jobfoundry.exe is not a Windows PE binary" >&2; exit 1; }
 
 echo "[windows] generating MSIX assets..."
 mkdir -p "$PAYLOAD/assets"
-(cd "$SCRIPT_DIR" && "$GO_BIN" run ./genicons \
+(cd "$SCRIPT_DIR/genicons" && "$GO_BIN" run . \
   -in "$REPO_ROOT/extension/public/icons/icon-512.png" \
   -out "$PAYLOAD/assets")
 
