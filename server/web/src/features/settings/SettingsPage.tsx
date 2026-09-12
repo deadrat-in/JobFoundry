@@ -123,6 +123,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
     worker_enabled: true,
     worker_poll_interval_seconds: 10,
     tailor_model: 'openrouter/google/gemini-2.0-flash-exp:free',
+    tailor_provider: 'openrouter',
     tailor_api_key: '',
     tailor_api_base: '',
     tailor_theme: 'jsonresume-theme-folio',
@@ -161,7 +162,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
 
   const [tailorSyncWithScorer, setTailorSyncWithScorer] = useState<boolean>(true);
   const [selectedTailorProvider, setSelectedTailorProvider] = useState<string>(() => {
-    return detectProviderFromModel(formSettings.tailor_model) || 'openrouter';
+    return (
+      formSettings.tailor_provider ||
+      detectProviderFromModel(formSettings.tailor_model) ||
+      'openrouter'
+    );
   });
   const [showTailorEndpointOverride, setShowTailorEndpointOverride] = useState<boolean>(false);
 
@@ -211,7 +216,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
           if (backendSettings.scorer_api_base) {
             setShowScorerEndpointOverride(true);
           }
-          if (backendSettings.tailor_model) {
+          if (backendSettings.tailor_provider) {
+            setSelectedTailorProvider(backendSettings.tailor_provider);
+          } else if (backendSettings.tailor_model) {
             setSelectedTailorProvider(detectProviderFromModel(backendSettings.tailor_model));
           }
           if (backendSettings.tailor_api_base) {
@@ -266,6 +273,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
 
   const handleSelectTailorProvider = (providerId: string) => {
     setSelectedTailorProvider(providerId);
+    handleFieldChange('tailor_provider', providerId);
     const providerMeta = LLM_PROVIDERS.find((p) => p.id === providerId);
     if (providerMeta?.isLocal || providerMeta?.isCustom) {
       setShowTailorEndpointOverride(true);
@@ -348,6 +356,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
       const payload: Partial<SystemSettings> = {
         ...formSettings,
         scorer_provider: selectedScorerProvider,
+        tailor_provider: tailorSyncWithScorer ? selectedScorerProvider : selectedTailorProvider,
         scorer_threshold: Number(formSettings.scorer_threshold) || 75,
         tailor_timeout_seconds: Number(formSettings.tailor_timeout_seconds) || 900,
         worker_poll_interval_seconds: Number(formSettings.worker_poll_interval_seconds) || 10,

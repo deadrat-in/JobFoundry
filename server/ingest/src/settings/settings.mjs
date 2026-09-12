@@ -47,6 +47,11 @@ export const SETTINGS_METADATA = {
     default: 'openrouter/google/gemini-2.0-flash-exp:free',
     type: 'string',
   },
+  tailor_provider: {
+    env: 'TAILOR_PROVIDER',
+    default: 'openrouter',
+    type: 'string',
+  },
   tailor_api_key: {
     env: ['OPENAI_API_KEY', 'OPENROUTER_API_KEY'],
     default: '',

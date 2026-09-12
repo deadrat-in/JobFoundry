@@ -40,14 +40,14 @@ export const LLM_PROVIDERS: LlmProviderMeta[] = [
         provider: 'openrouter',
       },
       {
-        id: 'deepseek/deepseek-v4.1-flash',
+        id: 'openrouter/deepseek/deepseek-v4.1-flash',
         name: 'DeepSeek V4.1 Flash',
         tier: 'fast',
         description: 'Ultra-fast sparse MoE (206 tok/s)',
         provider: 'openrouter',
       },
       {
-        id: 'anthropic/claude-fable-5.1',
+        id: 'openrouter/anthropic/claude-fable-5.1',
         name: 'Claude Fable 5.1',
         tier: 'reasoning',
         description: 'Top-tier deliberative writing & coding',
@@ -318,7 +318,7 @@ export const LLM_PROVIDERS: LlmProviderMeta[] = [
     id: 'ollama',
     name: 'Ollama (Local)',
     isLocal: true,
-    defaultBase: 'http://localhost:11434',
+    defaultBase: 'http://localhost:11434/v1',
     keyPlaceholder: 'optional (local)',
     keyHelp: 'Runs locally on your device with 0 external API calls and complete privacy.',
     recommendedModels: [

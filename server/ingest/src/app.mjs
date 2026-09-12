@@ -375,29 +375,33 @@ export function buildApp({
       const effectiveModel =
         model || modelSetting.value || 'openrouter/google/gemini-2.0-flash-exp:free';
 
-      let effectiveBase;
+      let explicitBase = null;
       if (typeof apiBase === 'string' && apiBase.trim()) {
-        effectiveBase = apiBase.trim().replace(/\/$/, '');
+        explicitBase = apiBase.trim().replace(/\/$/, '');
       } else if (base.value && base.value.trim()) {
-        effectiveBase = base.value.trim().replace(/\/$/, '');
-      } else {
+        explicitBase = base.value.trim().replace(/\/$/, '');
+      }
+
+      // Default base for direct /chat/completions fallback
+      let directBase = explicitBase;
+      if (!directBase) {
         const m = (effectiveModel || '').toLowerCase();
         const p = (provider || '').toLowerCase();
         if (p === 'groq' || m.startsWith('groq/')) {
-          effectiveBase = 'https://api.groq.com/openai/v1';
+          directBase = 'https://api.groq.com/openai/v1';
         } else if (
           p === 'openai' ||
           m.startsWith('openai/') ||
           m.startsWith('gpt-') ||
           m.startsWith('o3-')
         ) {
-          effectiveBase = 'https://api.openai.com/v1';
+          directBase = 'https://api.openai.com/v1';
         } else if (p === 'deepseek' || m.startsWith('deepseek/')) {
-          effectiveBase = 'https://api.deepseek.com/v1';
+          directBase = 'https://api.deepseek.com/v1';
         } else if (p === 'ollama' || m.startsWith('ollama/')) {
-          effectiveBase = 'http://127.0.0.1:11434/v1';
+          directBase = 'http://127.0.0.1:11434/v1';
         } else {
-          effectiveBase = 'https://openrouter.ai/api/v1';
+          directBase = 'https://openrouter.ai/api/v1';
         }
       }
 
@@ -414,15 +418,17 @@ export function buildApp({
       // Try LiteLLM test endpoint in tailor service if running
       const resumeOpsUrl = process.env.RESUME_OPS_URL || 'http://127.0.0.1:8081';
       try {
+        const tailorPayload = {
+          model: effectiveModel,
+          api_key: effectiveKey,
+          ...(explicitBase ? { api_base: explicitBase } : {}),
+        };
         const tailorResp = await safeFetch(`${resumeOpsUrl.replace(/\/$/, '')}/api/v1/test-llm`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: AbortSignal.timeout(10000),
-          body: JSON.stringify({
-            model: effectiveModel,
-            api_key: effectiveKey,
-            api_base: effectiveBase,
-          }),
+          redirect: 'error',
+          body: JSON.stringify(tailorPayload),
         });
         if (tailorResp.ok) {
           const data = await tailorResp.json();
@@ -443,18 +449,25 @@ export function buildApp({
             });
           }
         }
-      } catch {
-        // Fallback to direct fetch
+      } catch (err) {
+        if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+          return reply.code(504).send({
+            success: false,
+            error: 'Connection test to Tailor service timed out after 10 seconds',
+          });
+        }
+        // Fallback to direct fetch only if Tailor service failed to connect / unreachable
       }
 
       try {
-        const resp = await safeFetch(`${effectiveBase}/chat/completions`, {
+        const resp = await safeFetch(`${directBase}/chat/completions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${effectiveKey}`,
           },
           signal: AbortSignal.timeout(15000),
+          redirect: 'error',
           body: JSON.stringify({
             model: effectiveModel,
             messages: [{ role: 'user', content: 'Reply with the word OK.' }],

@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 import time
+from urllib.parse import urlparse
 from litellm import acompletion
 from resume_ops_api.api.deps import get_container
 from resume_ops_api.api.models import (
@@ -137,12 +138,26 @@ async def test_llm_connection(payload: TestLlmRequest) -> TestLlmResponse:
         "model": payload.model,
         "messages": [{"role": "user", "content": "Reply with OK"}],
         "max_tokens": 5,
+        "timeout": 15,
     }
     if payload.api_key:
         kwargs["api_key"] = payload.api_key
     if payload.api_base:
-        assert_safe_url(payload.api_base)
+        parsed = urlparse(payload.api_base)
+        host = (parsed.hostname or "").lower()
+        is_loopback = host in ("localhost", "127.0.0.1", "::1", "0.0.0.0")
+        if payload.api_key and parsed.scheme != "https" and not is_loopback:
+            return TestLlmResponse(
+                success=False,
+                model=payload.model,
+                error="HTTPS is required for remote api_base endpoints when an API key is provided",
+            )
+        try:
+            assert_safe_url(payload.api_base)
+        except Exception as e:
+            return TestLlmResponse(success=False, model=payload.model, error=str(e))
         kwargs["api_base"] = payload.api_base
+
     try:
         await acompletion(**kwargs)
         duration_ms = int((time.perf_counter() - start_time) * 1000)
