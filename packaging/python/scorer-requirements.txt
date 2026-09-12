@@ -121,7 +121,7 @@ multidict==6.8.0
     # via
     #   aiohttp
     #   yarl
-openai==2.54.0
+openai==3.13.0
     # via
     #   instructor
     #   litellm
