@@ -130,7 +130,7 @@ jsonschema==4.26.0
     #   resume-ops-api
 jsonschema-specifications==2025.9.1
     # via jsonschema
-langchain-core==1.6.2
+langchain-core==1.6.3
     # via
     #   langgraph
     #   langgraph-checkpoint
