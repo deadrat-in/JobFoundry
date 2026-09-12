@@ -1,4 +1,4 @@
-name: Release Extension Bundles
+name: Release
 
 on:
   push:
@@ -74,7 +74,7 @@ jobs:
           dnf -q -y install file unzip xz
 
       - name: Build AppImage
-        run: packaging/appimage/build-appimage.sh
+        run: bash packaging/appimage/build-appimage.sh
 
       - name: Upload AppImage (CI)
         uses: actions/upload-artifact@v7
@@ -102,7 +102,7 @@ jobs:
           dnf -q -y install file unzip xz
 
       - name: Build Windows MSIX payload
-        run: packaging/windows/build-windows.sh
+        run: bash packaging/windows/build-windows.sh
 
       - name: Upload Windows payload (CI)
         uses: actions/upload-artifact@v7

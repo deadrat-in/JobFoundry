@@ -23,7 +23,7 @@
 #   packaging/windows/build-windows.sh
 #
 # Env overrides:
-#   NODE_MAJOR=26  PYTHON_SERIES=3.12  APP_VERSION=0.1.0
+#   NODE_MAJOR=26  PYTHON_SERIES=3.14  APP_VERSION=0.1.0
 #   GO_VERSION=1.26.5  UV_VERSION=latest  CHROME_VERSION=153.0.8010.36
 #   BUILD_DIR=<workdir>  OUTPUT_DIR=<artifact dir>  SKIP_WEB_BUILD=1
 #
@@ -36,7 +36,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 NODE_MAJOR="${NODE_MAJOR:-26}"
-PYTHON_SERIES="${PYTHON_SERIES:-3.12}"
+PYTHON_SERIES="${PYTHON_SERIES:-3.14}"
 APP_VERSION="${APP_VERSION:-${GITHUB_REF_NAME:-}}"
 APP_VERSION="${APP_VERSION#v}"
 if [ -z "$APP_VERSION" ]; then
@@ -118,7 +118,7 @@ echo "${UV_SHA}  $UV_TGZ" | sha256sum -c -
 tar -xzf "$UV_TGZ" -C "$WORK"
 UV_BIN="$WORK/uv-x86_64-unknown-linux-gnu/uv"
 
-# --- Python 3.12 (win-x64 install_only, SHA256SUMS-verified) ----------------
+# --- Python 3.14 (win-x64 install_only, SHA256SUMS-verified) ----------------
 PYBS_RELEASE="$(curl -fsSL --retry 5 --retry-delay 5 https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest)"
 PYBS_TAG="$(echo "$PYBS_RELEASE" | pyjson "print(data['tag_name'])")"
 PY_TGZ="$(echo "$PYBS_RELEASE" | pyjson "print([a['name'] for a in data['assets'] if a['name'].startswith('cpython-${PYTHON_SERIES}.') and 'x86_64-pc-windows-msvc' in a['name'] and a['name'].endswith('install_only.tar.gz')][0])")"

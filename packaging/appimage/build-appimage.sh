@@ -17,7 +17,7 @@
 #   packaging/appimage/build-appimage.sh
 #
 # Env overrides:
-#   NODE_MAJOR=26  PYTHON_SERIES=3.12  APP_VERSION=0.1.0
+#   NODE_MAJOR=26  PYTHON_SERIES=3.14  APP_VERSION=0.1.0
 #   UV_VERSION=0.12.12  APPIMAGETOOL_VERSION=1.9.1  CHROME_VERSION=153.0.8010.36
 #   BUILD_DIR=<workdir>  OUTPUT_DIR=<artifact dir>  SKIP_WEB_BUILD=1
 #
@@ -35,7 +35,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 NODE_MAJOR="${NODE_MAJOR:-26}"
-PYTHON_SERIES="${PYTHON_SERIES:-3.12}"
+PYTHON_SERIES="${PYTHON_SERIES:-3.14}"
 APP_VERSION="${APP_VERSION:-${GITHUB_REF_NAME:-}}"
 APP_VERSION="${APP_VERSION#v}"
 if [ -z "$APP_VERSION" ]; then
@@ -122,9 +122,13 @@ file "$APPDIR/usr/lib/node/bin/node" | grep -q "x86-64" \
 
 mkdir -p "$APPDIR/usr/lib/python"
 cp -r "$UV_PY_HOME"/. "$APPDIR/usr/lib/python/"
-# uv installs bin/python3.<minor>; expose the generic name the launcher expects.
-UV_PY_FULL="$(basename "$(echo "$APPDIR"/usr/lib/python/bin/python3.*)")"
-ln -sfn "$UV_PY_FULL" "$APPDIR/usr/lib/python/bin/python3"
+# uv installs bin/python3.<minor>; ensure bin/python3 is a working Python interpreter.
+if ! "$APPDIR/usr/lib/python/bin/python3" -c "import sys" >/dev/null 2>&1; then
+  PY_EXE="$(find "$APPDIR/usr/lib/python/bin" -maxdepth 1 -type f -name "python3.[0-9]*" ! -name "*-config" | sort -V | tail -1)"
+  if [ -n "$PY_EXE" ]; then
+    ln -sfn "$(basename "$PY_EXE")" "$APPDIR/usr/lib/python/bin/python3"
+  fi
+fi
 PYTHON_BIN="$APPDIR/usr/lib/python/bin/python3"
 "$PYTHON_BIN" --version
 
@@ -213,19 +217,15 @@ EOF
 # 7. Install Python services into the standalone Python
 # ------------------------------------------------------------------------------
 echo "[appimage] installing Python dependencies..."
-# --break-system-packages is correct here: the target is our isolated bundle
-# prefix, not a system Python.
-"$PYTHON_BIN" -m ensurepip --upgrade >/dev/null
-"$PYTHON_BIN" -m pip install --disable-pip-version-check --no-cache-dir --no-compile \
-  --break-system-packages \
+"$UV_BIN" pip install --break-system-packages --python "$PYTHON_BIN" \
+  --no-cache \
   -r "$REPO_ROOT/packaging/python/scorer-requirements.txt"
-"$PYTHON_BIN" -m pip install --disable-pip-version-check --no-cache-dir --no-compile \
-  --break-system-packages \
+"$UV_BIN" pip install --break-system-packages --python "$PYTHON_BIN" \
+  --no-cache \
   -r "$REPO_ROOT/packaging/python/tailor-requirements.txt"
 echo "[appimage] installing resume-ops-api package..."
-"$PYTHON_BIN" -m pip install --disable-pip-version-check --no-cache-dir --no-compile \
-  --break-system-packages \
-  --no-deps "$STAGE/server/tailor"
+"$UV_BIN" pip install --break-system-packages --python "$PYTHON_BIN" \
+  --no-cache --no-deps "$STAGE/server/tailor"
 "$PYTHON_BIN" -c "import resume_ops_api, fastapi, litellm; print('[appimage] python imports OK')"
 # Drop bytecode caches to keep the image lean.
 find "$APPDIR/usr/lib/python" -name "__pycache__" -type d -prune -exec rm -rf {} + 2>/dev/null || true
