@@ -966,12 +966,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                       const fastModels = providerMeta.recommendedModels.filter(
                         (m) => m.tier === 'fast'
                       );
-                      const modelsToShow =
-                        fastModels.length > 0
-                          ? fastModels
-                          : LLM_PROVIDERS.flatMap((p) => p.recommendedModels)
-                              .filter((m) => m.tier === 'fast')
-                              .slice(0, 4);
+                      const isFallback = fastModels.length === 0;
+                      const modelsToShow = !isFallback
+                        ? fastModels
+                        : LLM_PROVIDERS.flatMap((p) => p.recommendedModels)
+                            .filter((m) => m.tier === 'fast')
+                            .slice(0, 4);
 
                       return (
                         <div
@@ -995,7 +995,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                             }}
                           >
                             <Zap size={14} style={{ color: 'var(--accent-primary)' }} />
-                            Recommended Fast Screening Models ({providerMeta.name}):
+                            {isFallback
+                              ? 'Recommended Fast Screening Models (other providers):'
+                              : `Recommended Fast Screening Models (${providerMeta.name}):`}
                           </div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                             {modelsToShow.map((m) => {
@@ -1072,8 +1074,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                         onChange={(e) => {
                           const val = e.target.value;
                           handleFieldChange('scorer_model', val);
+                          const current = LLM_PROVIDERS.find(
+                            (p) => p.id === selectedScorerProvider
+                          );
+                          const hasKnownPrefix = LLM_PROVIDERS.some((p) =>
+                            val.toLowerCase().startsWith(`${p.id}/`)
+                          );
                           const detected = detectProviderFromModel(val);
-                          if (detected && detected !== selectedScorerProvider) {
+                          if (
+                            hasKnownPrefix &&
+                            !current?.isCustom &&
+                            !current?.isLocal &&
+                            detected !== selectedScorerProvider
+                          ) {
                             setSelectedScorerProvider(detected);
                             handleFieldChange('scorer_provider', detected);
                           }
@@ -1647,12 +1660,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                       const providerMeta = LLM_PROVIDERS.find((p) => p.id === effectiveProvider);
                       const reasoningModels =
                         providerMeta?.recommendedModels.filter((m) => m.tier === 'reasoning') || [];
-                      const modelsToShow =
-                        reasoningModels.length > 0
-                          ? reasoningModels
-                          : LLM_PROVIDERS.flatMap((p) => p.recommendedModels)
-                              .filter((m) => m.tier === 'reasoning')
-                              .slice(0, 5);
+                      const isFallback = reasoningModels.length === 0;
+                      const modelsToShow = !isFallback
+                        ? reasoningModels
+                        : LLM_PROVIDERS.flatMap((p) => p.recommendedModels)
+                            .filter((m) => m.tier === 'reasoning')
+                            .slice(0, 5);
 
                       return (
                         <div
@@ -1676,7 +1689,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                             }}
                           >
                             <Sparkles size={14} style={{ color: 'var(--accent-primary)' }} />
-                            Recommended Tailoring & Deep Reasoning Models:
+                            {isFallback
+                              ? 'Recommended Tailoring & Deep Reasoning Models (other providers):'
+                              : `Recommended Tailoring & Deep Reasoning Models (${providerMeta?.name || 'Selected Provider'}):`}
                           </div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                             {modelsToShow.map((m) => {

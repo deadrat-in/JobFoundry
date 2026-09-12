@@ -272,4 +272,30 @@ describe('SettingsPage', () => {
     expect(screen.getByText('42')).toBeInTheDocument();
     expect(screen.getByText(/\/data\/jobfoundry.db/i)).toBeInTheDocument();
   });
+
+  it('preserves custom provider when typing custom model names and displays fallback chip label', async () => {
+    renderComponent();
+    await waitFor(() => {
+      expect(screen.queryByText(/Loading system configuration/i)).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText(/AI Fit Scorer/i));
+
+    // Select Custom Gateway provider
+    fireEvent.click(screen.getByRole('button', { name: /Custom \/ Self-Hosted Gateway/i }));
+
+    // Fallback header should state other providers
+    expect(
+      screen.getByText(/Recommended Fast Screening Models \(other providers\):/i)
+    ).toBeInTheDocument();
+
+    // Type a model name without a provider prefix
+    const modelInput = screen.getByPlaceholderText('openrouter/z-ai/glm-5.3-flash');
+    fireEvent.change(modelInput, { target: { value: 'my-custom-mistral' } });
+
+    // Custom Gateway should remain selected
+    expect(
+      screen.getByRole('button', { name: /Custom \/ Self-Hosted Gateway/i })
+    ).toBeInTheDocument();
+  });
 });
