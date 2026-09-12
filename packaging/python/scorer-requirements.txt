@@ -87,7 +87,7 @@ idna==3.19
     #   instructor
     #   requests
     #   yarl
-importlib-metadata==8.9.0
+importlib-metadata==9.0.1
     # via litellm
 iniconfig==2.3.0
     # via pytest
