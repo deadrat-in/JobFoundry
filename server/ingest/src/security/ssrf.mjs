@@ -323,6 +323,12 @@ export async function safeFetch(url, init = {}, env = process.env) {
 
     const status = response.status;
     if (status >= 300 && status < 400) {
+      if (init.redirect === 'error') {
+        throw new Error(`Redirect blocked by policy for ${current}`);
+      }
+      if (init.redirect === 'manual') {
+        return response;
+      }
       const location = response.headers.get('location');
       if (!location) {
         return response; // cannot follow without a Location header

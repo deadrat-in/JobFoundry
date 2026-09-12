@@ -1330,6 +1330,7 @@ export function buildApp({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: AbortSignal.timeout(tailorTimeoutMs),
+          redirect: 'error',
           body: JSON.stringify({
             job_description: jobRecord.description,
             resume: tailoredResume,

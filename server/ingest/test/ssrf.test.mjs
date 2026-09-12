@@ -196,19 +196,34 @@ test('safeFetch re-validates every redirect hop', async () => {
   });
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const port = server.address().port;
-
   const env = { ALLOWED_LLM_BASES: `http://127.0.0.1:${port}` };
 
-  // Redirect to a private destination must be rejected before it is followed
-  await assert.rejects(safeFetch(`http://127.0.0.1:${port}/hop`, {}, env), /private\/blocked IP/);
+  try {
+    // Redirect to a private destination must be rejected before it is followed
+    await assert.rejects(safeFetch(`http://127.0.0.1:${port}/hop`, {}, env), /private\/blocked IP/);
 
-  // A redirect loop must be aborted after the hop cap
-  await assert.rejects(safeFetch(`http://127.0.0.1:${port}/loop`, {}, env), /Too many redirects/);
+    // A redirect loop must be aborted after the hop cap
+    await assert.rejects(safeFetch(`http://127.0.0.1:${port}/loop`, {}, env), /Too many redirects/);
 
-  // A benign redirect to a still-safe trusted destination is followed
-  const resp = await safeFetch(`http://127.0.0.1:${port}/land`, {}, env);
-  assert.equal(resp.status, 200);
-  assert.equal(await resp.text(), 'landed');
+    // A benign redirect to a still-safe trusted destination is followed
+    const resp = await safeFetch(`http://127.0.0.1:${port}/redirect-me`, {}, env);
+    assert.equal(resp.status, 200);
+    assert.equal(await resp.text(), 'landed');
 
-  server.close();
+    // redirect: 'error' rejects if a redirect occurs
+    await assert.rejects(
+      safeFetch(`http://127.0.0.1:${port}/redirect-me`, { redirect: 'error' }, env),
+      /Redirect blocked by policy/
+    );
+
+    // redirect: 'manual' returns the 3xx response without following
+    const manualResp = await safeFetch(
+      `http://127.0.0.1:${port}/redirect-me`,
+      { redirect: 'manual' },
+      env
+    );
+    assert.equal(manualResp.status, 302);
+  } finally {
+    server.close();
+  }
 });
