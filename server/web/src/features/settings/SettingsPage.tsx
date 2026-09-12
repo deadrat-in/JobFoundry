@@ -31,7 +31,12 @@ import {
   Lock,
   Unlock,
   Compass,
+  Zap,
+  Sparkles,
+  ChevronRight,
+  Check,
 } from 'lucide-react';
+import { LLM_PROVIDERS, detectProviderFromModel, ALL_RECOMMENDED_MODELS } from './llmCatalog';
 
 interface SettingsPageProps {
   settings: AppSettings;
@@ -144,9 +149,33 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
   const [editingOpikKey, setEditingOpikKey] = useState(false);
   const [newOpikKey, setNewOpikKey] = useState('');
 
+  // LLM Provider & Multi-Model Selection State
+  const [selectedScorerProvider, setSelectedScorerProvider] = useState<string>(() => {
+    return (
+      formSettings.scorer_provider ||
+      detectProviderFromModel(formSettings.scorer_model) ||
+      'openrouter'
+    );
+  });
+  const [showScorerEndpointOverride, setShowScorerEndpointOverride] = useState<boolean>(false);
+
+  const [tailorSyncWithScorer, setTailorSyncWithScorer] = useState<boolean>(true);
+  const [selectedTailorProvider, setSelectedTailorProvider] = useState<string>(() => {
+    return detectProviderFromModel(formSettings.tailor_model) || 'openrouter';
+  });
+  const [showTailorEndpointOverride, setShowTailorEndpointOverride] = useState<boolean>(false);
+
   // LLM Test Connection State
   const [testingLlm, setTestingLlm] = useState(false);
   const [testResult, setTestResult] = useState<{
+    success: boolean;
+    message?: string;
+    error?: string;
+    latencyMs?: number;
+  } | null>(null);
+
+  const [testingTailorLlm, setTestingTailorLlm] = useState(false);
+  const [tailorTestResult, setTailorTestResult] = useState<{
     success: boolean;
     message?: string;
     error?: string;
@@ -173,6 +202,28 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
             ...backendSettings,
           }));
           setMeta(backendMeta);
+
+          if (backendSettings.scorer_provider) {
+            setSelectedScorerProvider(backendSettings.scorer_provider);
+          } else if (backendSettings.scorer_model) {
+            setSelectedScorerProvider(detectProviderFromModel(backendSettings.scorer_model));
+          }
+          if (backendSettings.scorer_api_base) {
+            setShowScorerEndpointOverride(true);
+          }
+          if (backendSettings.tailor_model) {
+            setSelectedTailorProvider(detectProviderFromModel(backendSettings.tailor_model));
+          }
+          if (backendSettings.tailor_api_base) {
+            setShowTailorEndpointOverride(true);
+          }
+          if (
+            backendSettings.tailor_api_key &&
+            backendSettings.scorer_api_key &&
+            backendSettings.tailor_api_key !== backendSettings.scorer_api_key
+          ) {
+            setTailorSyncWithScorer(false);
+          }
         }
 
         if (diagRes.status === 'fulfilled') {
@@ -193,6 +244,43 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleSelectScorerProvider = (providerId: string) => {
+    setSelectedScorerProvider(providerId);
+    handleFieldChange('scorer_provider', providerId);
+    const providerMeta = LLM_PROVIDERS.find((p) => p.id === providerId);
+    if (providerMeta?.isLocal || providerMeta?.isCustom) {
+      setShowScorerEndpointOverride(true);
+      if (!formSettings.scorer_api_base && providerMeta.defaultBase) {
+        handleFieldChange('scorer_api_base', providerMeta.defaultBase);
+      }
+    } else {
+      if (
+        formSettings.scorer_api_base?.includes('11434') ||
+        formSettings.scorer_api_base?.includes('localhost:8000')
+      ) {
+        handleFieldChange('scorer_api_base', '');
+      }
+    }
+  };
+
+  const handleSelectTailorProvider = (providerId: string) => {
+    setSelectedTailorProvider(providerId);
+    const providerMeta = LLM_PROVIDERS.find((p) => p.id === providerId);
+    if (providerMeta?.isLocal || providerMeta?.isCustom) {
+      setShowTailorEndpointOverride(true);
+      if (!formSettings.tailor_api_base && providerMeta.defaultBase) {
+        handleFieldChange('tailor_api_base', providerMeta.defaultBase);
+      }
+    } else {
+      if (
+        formSettings.tailor_api_base?.includes('11434') ||
+        formSettings.tailor_api_base?.includes('localhost:8000')
+      ) {
+        handleFieldChange('tailor_api_base', '');
+      }
+    }
+  };
 
   const handleFieldChange = (key: keyof SystemSettings, val: any) => {
     setFormSettings((prev) => ({ ...prev, [key]: val }));
@@ -259,6 +347,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
     try {
       const payload: Partial<SystemSettings> = {
         ...formSettings,
+        scorer_provider: selectedScorerProvider,
         scorer_threshold: Number(formSettings.scorer_threshold) || 75,
         tailor_timeout_seconds: Number(formSettings.tailor_timeout_seconds) || 900,
         worker_poll_interval_seconds: Number(formSettings.worker_poll_interval_seconds) || 10,
@@ -274,6 +363,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
       }
       if (editingOpikKey && newOpikKey.trim()) {
         payload.opik_api_key = newOpikKey.trim();
+      }
+
+      if (tailorSyncWithScorer) {
+        if (payload.scorer_api_key) {
+          payload.tailor_api_key = payload.scorer_api_key;
+        }
+        payload.tailor_api_base = formSettings.scorer_api_base;
       }
 
       const savePromises: Promise<any>[] = [api.updateSettings(payload)];
@@ -339,26 +435,59 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
     toast.info('Settings form reset. Click "Save Changes" to apply.');
   };
 
-  const handleTestLlm = async () => {
-    setTestingLlm(true);
-    setTestResult(null);
-    try {
-      const model = formSettings.scorer_model;
-      const apiBase = formSettings.scorer_api_base;
-      const apiKey = editingScorerKey ? newScorerKey : formSettings.scorer_api_key;
-      const res = await api.testLlmConnection({ model, apiBase, apiKey });
-      setTestResult(res);
-      if (res.success) {
-        toast.success(res.message || 'LLM connection successful');
-      } else {
-        toast.error(res.error || 'LLM connection failed');
+  const handleTestLlm = async (service: 'scorer' | 'tailor' = 'scorer') => {
+    if (service === 'scorer') {
+      setTestingLlm(true);
+      setTestResult(null);
+      try {
+        const model = formSettings.scorer_model;
+        const apiBase = formSettings.scorer_api_base;
+        const apiKey = editingScorerKey ? newScorerKey : formSettings.scorer_api_key;
+        const provider = selectedScorerProvider;
+        const res = await api.testLlmConnection({ model, apiBase, apiKey, provider });
+        setTestResult(res);
+        if (res.success) {
+          toast.success(res.message || 'LLM connection successful');
+        } else {
+          toast.error(res.error || 'LLM connection failed');
+        }
+      } catch (err: any) {
+        const msg = err?.message || 'Connection test failed';
+        setTestResult({ success: false, error: msg });
+        toast.error(msg);
+      } finally {
+        setTestingLlm(false);
       }
-    } catch (err: any) {
-      const msg = err?.message || 'Connection test failed';
-      setTestResult({ success: false, error: msg });
-      toast.error(msg);
-    } finally {
-      setTestingLlm(false);
+    } else {
+      setTestingTailorLlm(true);
+      setTailorTestResult(null);
+      try {
+        const model = formSettings.tailor_model;
+        const apiBase = tailorSyncWithScorer
+          ? formSettings.scorer_api_base
+          : formSettings.tailor_api_base;
+        const apiKey = tailorSyncWithScorer
+          ? editingScorerKey
+            ? newScorerKey
+            : formSettings.scorer_api_key
+          : editingTailorKey
+            ? newTailorKey
+            : formSettings.tailor_api_key;
+        const provider = tailorSyncWithScorer ? selectedScorerProvider : selectedTailorProvider;
+        const res = await api.testLlmConnection({ model, apiBase, apiKey, provider });
+        setTailorTestResult(res);
+        if (res.success) {
+          toast.success(res.message || 'Tailoring model connection successful');
+        } else {
+          toast.error(res.error || 'Tailoring model connection failed');
+        }
+      } catch (err: any) {
+        const msg = err?.message || 'Connection test failed';
+        setTailorTestResult({ success: false, error: msg });
+        toast.error(msg);
+      } finally {
+        setTestingTailorLlm(false);
+      }
     }
   };
 
@@ -773,33 +902,156 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                         marginBottom: '1.25rem',
                       }}
                     >
-                      Configures the AI model used to evaluate ingested jobs against your master
-                      resume.
+                      Configures the primary AI model used to evaluate ingested jobs against your
+                      master resume. LiteLLM handles automated routing across 152+ providers.
                     </p>
 
-                    {/* Model ID input */}
+                    {/* Primary Provider Selector */}
                     <div style={{ marginBottom: '1.25rem' }}>
                       <label
                         style={{
                           display: 'block',
                           fontSize: '0.85rem',
-                          fontWeight: 500,
-                          marginBottom: '0.35rem',
+                          fontWeight: 600,
+                          marginBottom: '0.5rem',
                         }}
                       >
-                        Scorer Model Identifier (e.g. openrouter/model or openai/model)
+                        Primary LLM Provider
                       </label>
-                      <input
-                        type="text"
-                        value={formSettings.scorer_model}
-                        onChange={(e) => handleFieldChange('scorer_model', e.target.value)}
-                        className="input-text"
-                        placeholder="openrouter/z-ai/glm-5.3-flash"
-                        required
-                      />
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        {LLM_PROVIDERS.map((p) => {
+                          const isSelected = selectedScorerProvider === p.id;
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => handleSelectScorerProvider(p.id)}
+                              style={{
+                                padding: '0.4rem 0.75rem',
+                                borderRadius: 'var(--radius-md)',
+                                fontSize: '0.82rem',
+                                fontWeight: isSelected ? 600 : 400,
+                                border: isSelected
+                                  ? '1.5px solid var(--accent-primary)'
+                                  : '1px solid var(--border-subtle)',
+                                background: isSelected
+                                  ? 'rgba(99, 102, 241, 0.12)'
+                                  : 'var(--bg-card)',
+                                color: isSelected
+                                  ? 'var(--accent-primary)'
+                                  : 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              {p.isLocal && (
+                                <span style={{ fontSize: '0.7rem', opacity: 0.8 }}>🏠</span>
+                              )}
+                              {p.name}
+                              {isSelected && <Check size={13} style={{ strokeWidth: 3 }} />}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
-                    {/* API Base URL */}
+                    {/* Recommended Fast Models */}
+                    {(() => {
+                      const providerMeta =
+                        LLM_PROVIDERS.find((p) => p.id === selectedScorerProvider) ||
+                        LLM_PROVIDERS[0];
+                      const fastModels = providerMeta.recommendedModels.filter(
+                        (m) => m.tier === 'fast'
+                      );
+                      const modelsToShow =
+                        fastModels.length > 0
+                          ? fastModels
+                          : LLM_PROVIDERS.flatMap((p) => p.recommendedModels)
+                              .filter((m) => m.tier === 'fast')
+                              .slice(0, 4);
+
+                      return (
+                        <div
+                          style={{
+                            marginBottom: '1.25rem',
+                            padding: '0.75rem',
+                            background: 'var(--bg-input, rgba(255,255,255,0.02))',
+                            border: '1px dashed var(--border-subtle)',
+                            borderRadius: 'var(--radius-md)',
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              color: 'var(--text-secondary)',
+                              marginBottom: '0.5rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                            }}
+                          >
+                            <Zap size={14} style={{ color: 'var(--accent-primary)' }} />
+                            Recommended Fast Screening Models ({providerMeta.name}):
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                            {modelsToShow.map((m) => {
+                              const isCurrent = formSettings.scorer_model === m.id;
+                              return (
+                                <button
+                                  key={m.id}
+                                  type="button"
+                                  onClick={() => {
+                                    handleFieldChange('scorer_model', m.id);
+                                    setIsDirty(true);
+                                  }}
+                                  style={{
+                                    padding: '0.35rem 0.65rem',
+                                    borderRadius: 'var(--radius-sm)',
+                                    fontSize: '0.78rem',
+                                    border: isCurrent
+                                      ? '1px solid var(--accent-primary)'
+                                      : '1px solid var(--border-subtle)',
+                                    background: isCurrent
+                                      ? 'rgba(99, 102, 241, 0.15)'
+                                      : 'var(--bg-card)',
+                                    color: isCurrent
+                                      ? 'var(--accent-primary)'
+                                      : 'var(--text-primary)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.35rem',
+                                  }}
+                                  title={m.description}
+                                >
+                                  <span>{m.name}</span>
+                                  <span
+                                    style={{
+                                      fontSize: '0.7rem',
+                                      padding: '0.1rem 0.35rem',
+                                      borderRadius: '3px',
+                                      background: isCurrent
+                                        ? 'var(--accent-primary)'
+                                        : 'var(--border-subtle)',
+                                      color: isCurrent ? '#fff' : 'var(--text-muted)',
+                                    }}
+                                  >
+                                    Fast
+                                  </span>
+                                  {isCurrent && <Check size={12} />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Model ID input + datalist */}
                     <div style={{ marginBottom: '1.25rem' }}>
                       <div
                         style={{
@@ -810,17 +1062,33 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                         }}
                       >
                         <label style={{ fontSize: '0.85rem', fontWeight: 500 }}>
-                          LLM Endpoint Base URL
+                          Scorer Model Identifier (e.g. openrouter/model or openai/model)
                         </label>
-                        {renderSourceBadge('scorer_api_base')}
                       </div>
                       <input
                         type="text"
-                        value={formSettings.scorer_api_base}
-                        onChange={(e) => handleFieldChange('scorer_api_base', e.target.value)}
+                        list="scorer-model-suggestions"
+                        value={formSettings.scorer_model}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          handleFieldChange('scorer_model', val);
+                          const detected = detectProviderFromModel(val);
+                          if (detected && detected !== selectedScorerProvider) {
+                            setSelectedScorerProvider(detected);
+                            handleFieldChange('scorer_provider', detected);
+                          }
+                        }}
                         className="input-text"
-                        placeholder="https://openrouter.ai/api/v1"
+                        placeholder="openrouter/z-ai/glm-5.3-flash"
+                        required
                       />
+                      <datalist id="scorer-model-suggestions">
+                        {ALL_RECOMMENDED_MODELS.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name} ({m.provider}) - {m.description}
+                          </option>
+                        ))}
+                      </datalist>
                       <span
                         style={{
                           fontSize: '0.75rem',
@@ -829,13 +1097,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                           display: 'block',
                         }}
                       >
-                        Set the direct provider URL, for example
-                        <code>https://openrouter.ai/api/v1</code>.
+                        LiteLLM supports 2,500+ models. Select from quick recommendations or type
+                        any valid model identifier.
                       </span>
                     </div>
 
                     {/* API Key */}
-                    <div style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ marginBottom: '1.25rem' }}>
                       <div
                         style={{
                           display: 'flex',
@@ -845,7 +1113,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                         }}
                       >
                         <label style={{ fontSize: '0.85rem', fontWeight: 500 }}>
-                          LLM API Key (OpenRouter / OpenAI / Anthropic)
+                          {(() => {
+                            const p = LLM_PROVIDERS.find((x) => x.id === selectedScorerProvider);
+                            return `${p?.name || 'LLM'} API Key`;
+                          })()}
                         </label>
                         {renderSourceBadge('scorer_api_key')}
                       </div>
@@ -891,7 +1162,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                               setIsDirty(true);
                             }}
                             className="input-text"
-                            placeholder="Enter new API key (e.g. sk-or-v1-...)"
+                            placeholder={
+                              LLM_PROVIDERS.find((x) => x.id === selectedScorerProvider)
+                                ?.keyPlaceholder || 'Enter API key (e.g. sk-...)'
+                            }
                             style={{ flex: 1 }}
                             autoFocus
                           />
@@ -907,7 +1181,110 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                           </button>
                         </div>
                       )}
+                      <span
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
+                          marginTop: '0.25rem',
+                          display: 'block',
+                        }}
+                      >
+                        {LLM_PROVIDERS.find((x) => x.id === selectedScorerProvider)?.keyHelp ||
+                          'Your API key is securely encrypted and stored locally.'}
+                      </span>
                     </div>
+
+                    {/* Endpoint Base URL (Smart Toggle / Override) */}
+                    {(() => {
+                      const p = LLM_PROVIDERS.find((x) => x.id === selectedScorerProvider);
+                      const requiresBaseUrl = Boolean(p?.isLocal || p?.isCustom);
+                      const isShowing =
+                        requiresBaseUrl ||
+                        showScorerEndpointOverride ||
+                        Boolean(formSettings.scorer_api_base);
+
+                      if (isShowing) {
+                        return (
+                          <div style={{ marginBottom: '1.5rem' }}>
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginBottom: '0.35rem',
+                              }}
+                            >
+                              <label style={{ fontSize: '0.85rem', fontWeight: 500 }}>
+                                LLM Endpoint Base URL {requiresBaseUrl ? '' : '(Custom Override)'}
+                              </label>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                {!requiresBaseUrl && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setShowScorerEndpointOverride(false);
+                                      handleFieldChange('scorer_api_base', '');
+                                    }}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: 'var(--text-muted)',
+                                      fontSize: '0.75rem',
+                                      cursor: 'pointer',
+                                      textDecoration: 'underline',
+                                    }}
+                                  >
+                                    Reset to Default Route
+                                  </button>
+                                )}
+                                {renderSourceBadge('scorer_api_base')}
+                              </div>
+                            </div>
+                            <input
+                              type="text"
+                              value={formSettings.scorer_api_base}
+                              onChange={(e) => handleFieldChange('scorer_api_base', e.target.value)}
+                              className="input-text"
+                              placeholder={p?.defaultBase || 'https://openrouter.ai/api/v1'}
+                            />
+                            <span
+                              style={{
+                                fontSize: '0.75rem',
+                                color: 'var(--text-muted)',
+                                marginTop: '0.25rem',
+                                display: 'block',
+                              }}
+                            >
+                              {requiresBaseUrl
+                                ? 'Local/Gateway endpoints (e.g. http://localhost:11434 for Ollama).'
+                                : 'Cloud providers route automatically; custom base URL is only needed for private reverse proxies or gateways.'}
+                            </span>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div style={{ marginBottom: '1.5rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => setShowScorerEndpointOverride(true)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--accent-primary)',
+                              fontSize: '0.8rem',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              padding: '0.2rem 0',
+                            }}
+                          >
+                            <ChevronRight size={14} /> Advanced: Custom Endpoint Base URL / Proxy
+                          </button>
+                        </div>
+                      );
+                    })()}
 
                     {/* Live Test LLM Connection */}
                     <div
@@ -930,13 +1307,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                             Test LLM Connectivity
                           </div>
                           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                            Send a minimal 1-token test prompt to verify your model and API key.
+                            Send a minimal 1-token test prompt via LiteLLM to verify model routing
+                            and credentials.
                           </div>
                         </div>
                         <button
                           type="button"
                           data-testid="test-llm-btn"
-                          onClick={handleTestLlm}
+                          onClick={() => handleTestLlm('scorer')}
                           disabled={testingLlm}
                           className="btn btn-secondary btn-sm"
                           style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
@@ -975,7 +1353,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                           ) : (
                             <AlertTriangle size={16} />
                           )}
-                          <span>{testResult.message || testResult.error}</span>
+                          <span>
+                            {testResult.message || testResult.error}
+                            {testResult.latencyMs !== undefined
+                              ? ` (${testResult.latencyMs}ms)`
+                              : ''}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -1020,7 +1403,336 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                       compiles tailored PDF resumes.
                     </p>
 
-                    {/* Tailor Model */}
+                    {/* Sync toggle with AI Fit Scorer */}
+                    <div
+                      style={{
+                        marginBottom: '1.25rem',
+                        padding: '0.85rem 1rem',
+                        borderRadius: 'var(--radius-md)',
+                        background: tailorSyncWithScorer
+                          ? 'rgba(99, 102, 241, 0.08)'
+                          : 'var(--bg-input)',
+                        border: '1px solid var(--border-subtle)',
+                      }}
+                    >
+                      <label
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.65rem',
+                          cursor: 'pointer',
+                          fontSize: '0.88rem',
+                          fontWeight: 600,
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={tailorSyncWithScorer}
+                          onChange={(e) => {
+                            setTailorSyncWithScorer(e.target.checked);
+                            setIsDirty(true);
+                          }}
+                          style={{
+                            accentColor: 'var(--accent-primary)',
+                            width: '16px',
+                            height: '16px',
+                          }}
+                        />
+                        Use same provider & API key as AI Fit Scorer (Recommended)
+                      </label>
+                      <div
+                        style={{
+                          fontSize: '0.78rem',
+                          color: 'var(--text-muted)',
+                          marginTop: '0.35rem',
+                          marginLeft: '1.65rem',
+                        }}
+                      >
+                        {tailorSyncWithScorer
+                          ? `Inheriting provider (${LLM_PROVIDERS.find((p) => p.id === selectedScorerProvider)?.name || 'Primary'}) and credentials from AI Fit Scorer. Both services share the same gateway.`
+                          : 'Configure independent provider credentials specifically for high-capacity resume tailoring.'}
+                      </div>
+                    </div>
+
+                    {/* If NOT synced, show dedicated provider selector & key */}
+                    {!tailorSyncWithScorer && (
+                      <div
+                        style={{
+                          marginBottom: '1.25rem',
+                          padding: '1rem',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: 'var(--radius-md)',
+                        }}
+                      >
+                        <div style={{ marginBottom: '1rem' }}>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: '0.85rem',
+                              fontWeight: 600,
+                              marginBottom: '0.5rem',
+                            }}
+                          >
+                            Tailor Dedicated Provider
+                          </label>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            {LLM_PROVIDERS.map((p) => {
+                              const isSelected = selectedTailorProvider === p.id;
+                              return (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  onClick={() => handleSelectTailorProvider(p.id)}
+                                  style={{
+                                    padding: '0.35rem 0.65rem',
+                                    borderRadius: 'var(--radius-md)',
+                                    fontSize: '0.8rem',
+                                    fontWeight: isSelected ? 600 : 400,
+                                    border: isSelected
+                                      ? '1.5px solid var(--accent-primary)'
+                                      : '1px solid var(--border-subtle)',
+                                    background: isSelected
+                                      ? 'rgba(99, 102, 241, 0.12)'
+                                      : 'var(--bg-card)',
+                                    color: isSelected
+                                      ? 'var(--accent-primary)'
+                                      : 'var(--text-secondary)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.35rem',
+                                  }}
+                                >
+                                  {p.name}
+                                  {isSelected && <Check size={12} />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Dedicated Tailor Key */}
+                        <div style={{ marginBottom: '1rem' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              marginBottom: '0.35rem',
+                            }}
+                          >
+                            <label style={{ fontSize: '0.85rem', fontWeight: 500 }}>
+                              Dedicated Tailor API Key
+                            </label>
+                            {renderSourceBadge('tailor_api_key')}
+                          </div>
+                          {!editingTailorKey ? (
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                              <div
+                                style={{
+                                  flex: 1,
+                                  padding: '0.55rem 0.75rem',
+                                  borderRadius: 'var(--radius-md)',
+                                  background: 'var(--bg-input)',
+                                  border: '1px solid var(--border-subtle)',
+                                  fontFamily: 'monospace',
+                                  fontSize: '0.85rem',
+                                  color: formSettings.tailor_api_key
+                                    ? 'var(--text-primary)'
+                                    : 'var(--text-muted)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.5rem',
+                                }}
+                              >
+                                <Lock size={14} style={{ color: 'var(--accent-primary)' }} />
+                                {formSettings.tailor_api_key || 'No dedicated key set'}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setEditingTailorKey(true)}
+                                className="btn btn-secondary btn-sm"
+                              >
+                                <Unlock size={14} /> Change Key
+                              </button>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                              <input
+                                type="password"
+                                value={newTailorKey}
+                                onChange={(e) => {
+                                  setNewTailorKey(e.target.value);
+                                  setIsDirty(true);
+                                }}
+                                className="input-text"
+                                placeholder="Enter custom key for tailor service"
+                                style={{ flex: 1 }}
+                                autoFocus
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingTailorKey(false);
+                                  setNewTailorKey('');
+                                }}
+                                className="btn btn-secondary btn-sm"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Tailor Base URL */}
+                        {(() => {
+                          const p = LLM_PROVIDERS.find((x) => x.id === selectedTailorProvider);
+                          const requiresBase = Boolean(p?.isLocal || p?.isCustom);
+                          if (
+                            requiresBase ||
+                            showTailorEndpointOverride ||
+                            Boolean(formSettings.tailor_api_base)
+                          ) {
+                            return (
+                              <div>
+                                <label
+                                  style={{
+                                    fontSize: '0.85rem',
+                                    fontWeight: 500,
+                                    display: 'block',
+                                    marginBottom: '0.35rem',
+                                  }}
+                                >
+                                  Dedicated Endpoint Base URL
+                                </label>
+                                <input
+                                  type="text"
+                                  value={formSettings.tailor_api_base}
+                                  onChange={(e) =>
+                                    handleFieldChange('tailor_api_base', e.target.value)
+                                  }
+                                  className="input-text"
+                                  placeholder={p?.defaultBase || 'https://api.openai.com/v1'}
+                                />
+                              </div>
+                            );
+                          }
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => setShowTailorEndpointOverride(true)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--accent-primary)',
+                                fontSize: '0.8rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                              }}
+                            >
+                              <ChevronRight size={14} /> Custom Tailor Base URL (Optional)
+                            </button>
+                          );
+                        })()}
+                      </div>
+                    )}
+
+                    {/* Recommended Tailoring & Reasoning Models */}
+                    {(() => {
+                      const effectiveProvider = tailorSyncWithScorer
+                        ? selectedScorerProvider
+                        : selectedTailorProvider;
+                      const providerMeta = LLM_PROVIDERS.find((p) => p.id === effectiveProvider);
+                      const reasoningModels =
+                        providerMeta?.recommendedModels.filter((m) => m.tier === 'reasoning') || [];
+                      const modelsToShow =
+                        reasoningModels.length > 0
+                          ? reasoningModels
+                          : LLM_PROVIDERS.flatMap((p) => p.recommendedModels)
+                              .filter((m) => m.tier === 'reasoning')
+                              .slice(0, 5);
+
+                      return (
+                        <div
+                          style={{
+                            marginBottom: '1.25rem',
+                            padding: '0.75rem',
+                            background: 'var(--bg-input, rgba(255,255,255,0.02))',
+                            border: '1px dashed var(--border-subtle)',
+                            borderRadius: 'var(--radius-md)',
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: '0.8rem',
+                              fontWeight: 600,
+                              color: 'var(--text-secondary)',
+                              marginBottom: '0.5rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                            }}
+                          >
+                            <Sparkles size={14} style={{ color: 'var(--accent-primary)' }} />
+                            Recommended Tailoring & Deep Reasoning Models:
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                            {modelsToShow.map((m) => {
+                              const isCurrent = formSettings.tailor_model === m.id;
+                              return (
+                                <button
+                                  key={m.id}
+                                  type="button"
+                                  onClick={() => {
+                                    handleFieldChange('tailor_model', m.id);
+                                    setIsDirty(true);
+                                  }}
+                                  style={{
+                                    padding: '0.35rem 0.65rem',
+                                    borderRadius: 'var(--radius-sm)',
+                                    fontSize: '0.78rem',
+                                    border: isCurrent
+                                      ? '1px solid var(--accent-primary)'
+                                      : '1px solid var(--border-subtle)',
+                                    background: isCurrent
+                                      ? 'rgba(99, 102, 241, 0.15)'
+                                      : 'var(--bg-card)',
+                                    color: isCurrent
+                                      ? 'var(--accent-primary)'
+                                      : 'var(--text-primary)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.35rem',
+                                  }}
+                                  title={m.description}
+                                >
+                                  <span>{m.name}</span>
+                                  <span
+                                    style={{
+                                      fontSize: '0.7rem',
+                                      padding: '0.1rem 0.35rem',
+                                      borderRadius: '3px',
+                                      background: isCurrent
+                                        ? 'var(--accent-primary)'
+                                        : 'var(--border-subtle)',
+                                      color: isCurrent ? '#fff' : 'var(--text-muted)',
+                                    }}
+                                  >
+                                    Reasoning
+                                  </span>
+                                  {isCurrent && <Check size={12} />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Tailor Model input */}
                     <div style={{ marginBottom: '1.25rem' }}>
                       <label
                         style={{
@@ -1034,11 +1746,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                       </label>
                       <input
                         type="text"
+                        list="tailor-model-suggestions"
                         value={formSettings.tailor_model}
                         onChange={(e) => handleFieldChange('tailor_model', e.target.value)}
                         className="input-text"
-                        placeholder="openrouter/qwen/qwen3.8-max"
+                        placeholder="openrouter/deepseek/deepseek-v4.1-pro"
                       />
+                      <datalist id="tailor-model-suggestions">
+                        {ALL_RECOMMENDED_MODELS.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name} ({m.provider}) - {m.description}
+                          </option>
+                        ))}
+                      </datalist>
                     </div>
 
                     {/* Default Resume Theme */}
@@ -1074,7 +1794,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                     </div>
 
                     {/* Tailor Timeout */}
-                    <div style={{ marginBottom: '1.25rem' }}>
+                    <div style={{ marginBottom: '1.5rem' }}>
                       <div
                         style={{
                           display: 'flex',
@@ -1111,78 +1831,84 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ settings, onSaveSett
                       </span>
                     </div>
 
-                    {/* Tailor API Key */}
-                    <div>
+                    {/* Live Test Tailor LLM Connection */}
+                    <div
+                      style={{
+                        background: 'rgba(99, 102, 241, 0.05)',
+                        border: '1px solid rgba(99, 102, 241, 0.2)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '1rem',
+                      }}
+                    >
                       <div
                         style={{
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
-                          marginBottom: '0.35rem',
                         }}
                       >
-                        <label style={{ fontSize: '0.85rem', fontWeight: 500 }}>
-                          Dedicated Tailor API Key (Optional)
-                        </label>
-                        {renderSourceBadge('tailor_api_key')}
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+                            Test Tailoring Model Connectivity
+                          </div>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                            Verify model access and token generation using{' '}
+                            {tailorSyncWithScorer
+                              ? 'inherited primary provider credentials'
+                              : 'tailor credentials'}
+                            .
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          data-testid="test-tailor-llm-btn"
+                          onClick={() => handleTestLlm('tailor')}
+                          disabled={testingTailorLlm}
+                          className="btn btn-secondary btn-sm"
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                        >
+                          {testingTailorLlm ? (
+                            <>
+                              <RefreshCw size={14} className="animate-spin" /> Testing...
+                            </>
+                          ) : (
+                            <>
+                              <Send size={14} /> Test Tailor Model
+                            </>
+                          )}
+                        </button>
                       </div>
 
-                      {!editingTailorKey ? (
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                          <div
-                            style={{
-                              flex: 1,
-                              padding: '0.55rem 0.75rem',
-                              borderRadius: 'var(--radius-md)',
-                              background: 'var(--bg-input)',
-                              border: '1px solid var(--border-subtle)',
-                              fontFamily: 'monospace',
-                              fontSize: '0.85rem',
-                              color: formSettings.tailor_api_key
-                                ? 'var(--text-primary)'
-                                : 'var(--text-muted)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.5rem',
-                            }}
-                          >
-                            <Lock size={14} style={{ color: 'var(--accent-primary)' }} />
-                            {formSettings.tailor_api_key ||
-                              'Inherited from the configured provider'}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setEditingTailorKey(true)}
-                            className="btn btn-secondary btn-sm"
-                            style={{ whiteSpace: 'nowrap' }}
-                          >
-                            <Unlock size={14} /> Change Key
-                          </button>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                          <input
-                            type="password"
-                            value={newTailorKey}
-                            onChange={(e) => {
-                              setNewTailorKey(e.target.value);
-                              setIsDirty(true);
-                            }}
-                            className="input-text"
-                            placeholder="Enter custom key for tailor service"
-                            style={{ flex: 1 }}
-                            autoFocus
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingTailorKey(false);
-                              setNewTailorKey('');
-                            }}
-                            className="btn btn-secondary btn-sm"
-                          >
-                            Cancel
-                          </button>
+                      {tailorTestResult && (
+                        <div
+                          style={{
+                            marginTop: '0.75rem',
+                            padding: '0.75rem',
+                            borderRadius: 'var(--radius-sm)',
+                            fontSize: '0.85rem',
+                            background: tailorTestResult.success
+                              ? 'var(--color-green-bg)'
+                              : 'rgba(239, 68, 68, 0.1)',
+                            border: `1px solid ${tailorTestResult.success ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                            color: tailorTestResult.success
+                              ? 'var(--color-green)'
+                              : 'var(--color-red)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                          }}
+                        >
+                          {tailorTestResult.success ? (
+                            <CheckCircle2 size={16} />
+                          ) : (
+                            <AlertTriangle size={16} />
+                          )}
+                          <span>
+                            {tailorTestResult.message || tailorTestResult.error}
+                            {tailorTestResult.latencyMs !== undefined
+                              ? ` (${tailorTestResult.latencyMs}ms)`
+                              : ''}
+                          </span>
                         </div>
                       )}
                     </div>

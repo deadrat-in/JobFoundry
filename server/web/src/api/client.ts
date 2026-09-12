@@ -383,6 +383,7 @@ export class ApiClient {
     model?: string;
     apiKey?: string;
     apiBase?: string;
+    provider?: string;
   }): Promise<TestLlmResponse> {
     return this.request<TestLlmResponse>('/api/v1/settings/test-llm', {
       method: 'POST',

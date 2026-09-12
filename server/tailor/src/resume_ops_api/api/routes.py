@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
+import time
+from litellm import acompletion
 from resume_ops_api.api.deps import get_container
 from resume_ops_api.api.models import (
     HealthResponse,
@@ -11,10 +13,13 @@ from resume_ops_api.api.models import (
     TailorResponse,
     TaskError,
     TaskStatusResponse,
+    TestLlmRequest,
+    TestLlmResponse,
     ThemeListResponse,
 )
 from resume_ops_api.services.ats_text import json_to_ats_text
 from resume_ops_api.services.container import ServiceContainer
+from resume_ops_api.services.ssrf_guard import assert_safe_url
 
 router = APIRouter()
 
@@ -123,4 +128,36 @@ async def get_task_status(
         error=error,
         theme=job.theme,
     )
+
+
+@router.post("/api/v1/test-llm", response_model=TestLlmResponse)
+async def test_llm_connection(payload: TestLlmRequest) -> TestLlmResponse:
+    start_time = time.perf_counter()
+    kwargs = {
+        "model": payload.model,
+        "messages": [{"role": "user", "content": "Reply with OK"}],
+        "max_tokens": 5,
+    }
+    if payload.api_key:
+        kwargs["api_key"] = payload.api_key
+    if payload.api_base:
+        assert_safe_url(payload.api_base)
+        kwargs["api_base"] = payload.api_base
+    try:
+        await acompletion(**kwargs)
+        duration_ms = int((time.perf_counter() - start_time) * 1000)
+        return TestLlmResponse(
+            success=True,
+            latencyMs=duration_ms,
+            model=payload.model,
+            message=f"Connected successfully to {payload.model} ({duration_ms}ms)",
+        )
+    except Exception as e:
+        duration_ms = int((time.perf_counter() - start_time) * 1000)
+        return TestLlmResponse(
+            success=False,
+            latencyMs=duration_ms,
+            model=payload.model,
+            error=str(e),
+        )
 

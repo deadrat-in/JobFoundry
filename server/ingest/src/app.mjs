@@ -358,7 +358,7 @@ export function buildApp({
     async (request, reply) => {
       if (!checkRateLimit(request, reply, 15)) return;
       if (!authenticate(request, reply)) return;
-      const { model, apiKey } = request.body || {};
+      const { model, apiKey, apiBase, provider } = request.body || {};
 
       const userId = request.user.id;
       const registered = isRegisteredUser(db, userId);
@@ -374,7 +374,32 @@ export function buildApp({
       const effectiveKey = hasExplicitKey ? apiKey : fallbackKeyAllowed ? keySetting.value : '';
       const effectiveModel =
         model || modelSetting.value || 'openrouter/google/gemini-2.0-flash-exp:free';
-      const effectiveBase = (base.value || 'https://openrouter.ai/api/v1').replace(/\/$/, '');
+
+      let effectiveBase;
+      if (typeof apiBase === 'string' && apiBase.trim()) {
+        effectiveBase = apiBase.trim().replace(/\/$/, '');
+      } else if (base.value && base.value.trim()) {
+        effectiveBase = base.value.trim().replace(/\/$/, '');
+      } else {
+        const m = (effectiveModel || '').toLowerCase();
+        const p = (provider || '').toLowerCase();
+        if (p === 'groq' || m.startsWith('groq/')) {
+          effectiveBase = 'https://api.groq.com/openai/v1';
+        } else if (
+          p === 'openai' ||
+          m.startsWith('openai/') ||
+          m.startsWith('gpt-') ||
+          m.startsWith('o3-')
+        ) {
+          effectiveBase = 'https://api.openai.com/v1';
+        } else if (p === 'deepseek' || m.startsWith('deepseek/')) {
+          effectiveBase = 'https://api.deepseek.com/v1';
+        } else if (p === 'ollama' || m.startsWith('ollama/')) {
+          effectiveBase = 'http://127.0.0.1:11434/v1';
+        } else {
+          effectiveBase = 'https://openrouter.ai/api/v1';
+        }
+      }
 
       if (!effectiveKey) {
         return reply.code(400).send({
@@ -385,6 +410,43 @@ export function buildApp({
         });
       }
       const startTime = Date.now();
+
+      // Try LiteLLM test endpoint in tailor service if running
+      const resumeOpsUrl = process.env.RESUME_OPS_URL || 'http://127.0.0.1:8081';
+      try {
+        const tailorResp = await safeFetch(`${resumeOpsUrl.replace(/\/$/, '')}/api/v1/test-llm`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(10000),
+          body: JSON.stringify({
+            model: effectiveModel,
+            api_key: effectiveKey,
+            api_base: effectiveBase,
+          }),
+        });
+        if (tailorResp.ok) {
+          const data = await tailorResp.json();
+          if (data.success) {
+            return {
+              success: true,
+              latencyMs: data.latencyMs || Date.now() - startTime,
+              model: effectiveModel,
+              message:
+                data.message ||
+                `Connected successfully to ${effectiveModel} (${data.latencyMs || Date.now() - startTime}ms)`,
+            };
+          } else {
+            return reply.code(400).send({
+              success: false,
+              latencyMs: data.latencyMs || Date.now() - startTime,
+              error: data.error || 'LLM connection failed',
+            });
+          }
+        }
+      } catch {
+        // Fallback to direct fetch
+      }
+
       try {
         const resp = await safeFetch(`${effectiveBase}/chat/completions`, {
           method: 'POST',
