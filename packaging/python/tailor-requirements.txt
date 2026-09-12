@@ -230,7 +230,7 @@ requests==2.34.2
     #   tiktoken
 requests-toolbelt==1.0.0
     # via langsmith
-rich==14.3.4
+rich==15.0.0
     # via
     #   instructor
     #   typer

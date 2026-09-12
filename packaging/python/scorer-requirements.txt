@@ -179,7 +179,7 @@ requests==2.34.2
     # via
     #   instructor
     #   tiktoken
-rich==14.3.4
+rich==15.0.0
     # via
     #   instructor
     #   typer
