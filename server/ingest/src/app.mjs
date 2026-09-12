@@ -416,7 +416,8 @@ export function buildApp({
       const startTime = Date.now();
 
       // Try LiteLLM test endpoint in tailor service if running
-      const resumeOpsUrl = process.env.RESUME_OPS_URL || 'http://127.0.0.1:8081';
+      const tailorPort = process.env.TAILOR_PORT || 8081;
+      const resumeOpsUrl = `http://127.0.0.1:${tailorPort}`;
       try {
         const tailorPayload = {
           model: effectiveModel,
@@ -1304,8 +1305,9 @@ export function buildApp({
     writeFileSync(resolve(jobDir, 'resume.txt'), plainText, 'utf-8');
     writeFileSync(resolve(jobDir, 'resume-text.txt'), plainText, 'utf-8');
 
-    // Attempt external resume-ops call for tailoring and PDF rendering
-    const resumeOpsUrl = process.env.RESUME_OPS_URL || 'http://127.0.0.1:8081';
+    // Attempt internal resume-ops call for tailoring and PDF rendering
+    const tailorPort = process.env.TAILOR_PORT || 8081;
+    const resumeOpsUrl = `http://127.0.0.1:${tailorPort}`;
     let tailorSuccess = false;
     let tailorError = null;
     const tailorTheme =

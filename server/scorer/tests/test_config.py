@@ -55,3 +55,11 @@ def test_invalid_threshold_raises(monkeypatch):
     monkeypatch.setenv("SCORER_THRESHOLD", "not_a_number")
     with pytest.raises(ValueError):
         load_config()
+
+
+def test_load_config_tailor_port(monkeypatch):
+    monkeypatch.delenv("RESUME_OPS_URL", raising=False)
+    monkeypatch.setenv("TAILOR_PORT", "8082")
+    config = load_config()
+    assert config.resume_ops_url == "http://127.0.0.1:8082"
+

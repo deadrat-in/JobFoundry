@@ -82,6 +82,10 @@ def _normalize_origin(s: str) -> str | None:
 def trusted_origins() -> set[str]:
     """Operator-trusted origins allowed to be on private/loopback networks."""
     origins = set(TRUSTED_DEFAULT_ORIGINS)
+    tailor_port = os.environ.get("TAILOR_PORT")
+    if tailor_port:
+        origins.add(f"http://127.0.0.1:{tailor_port}")
+        origins.add(f"http://localhost:{tailor_port}")
     sources = os.environ.get("ALLOWED_LLM_BASES", "") + "," + os.environ.get("RESUME_OPS_URL", "")
     extra = {
         origin

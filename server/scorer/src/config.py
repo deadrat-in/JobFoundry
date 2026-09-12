@@ -46,7 +46,11 @@ def load_config() -> ScorerConfig:
     else:
         db_path = "./jobs.db"
 
-    resume_ops_url = os.getenv("RESUME_OPS_URL")
+    tailor_port = os.getenv("TAILOR_PORT")
+    if tailor_port:
+        resume_ops_url = f"http://127.0.0.1:{tailor_port}"
+    else:
+        resume_ops_url = os.getenv("RESUME_OPS_URL")
 
     if os.getenv("ARTIFACTS_DIR"):
         artifacts_dir = os.getenv("ARTIFACTS_DIR").strip()
