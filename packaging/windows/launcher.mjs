@@ -153,11 +153,19 @@ function startService(name, exe, args, envOverrides, logStream) {
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: false,
   });
-  child.stdout.pipe(logStream);
-  child.stderr.pipe(logStream);
+  child.stdout.pipe(logStream, { end: false });
+  child.stderr.pipe(logStream, { end: false });
   children.set(name, child);
-  writePidfile(name, child.pid);
-  logLine(name, `[jobfoundry] spawned pid ${child.pid}`);
+  child.on('spawn', () => {
+    writePidfile(name, child.pid);
+    logLine(name, `[jobfoundry] spawned pid ${child.pid}`);
+  });
+  child.on('error', (err) => {
+    logLine(name, `[jobfoundry] spawn error: ${err.message}`);
+    removePidfile(name);
+    children.delete(name);
+    shutdown(`failed to start ${name}: ${err.message}`, 1);
+  });
   child.on('exit', (code, signal) => {
     logLine(name, `[jobfoundry] exited code=${code} signal=${signal}`);
     removePidfile(name);
@@ -192,8 +200,13 @@ function waitForPort(name, port, maxWaitSeconds) {
   });
 }
 
-const openLogStream = (name) =>
-  fs.createWriteStream(path.join(LOGS_DIR, `${name}.log`), { flags: 'a' });
+const openLogStream = (name) => {
+  const stream = fs.createWriteStream(path.join(LOGS_DIR, `${name}.log`), { flags: 'a' });
+  stream.on('error', () => {
+    // Logging is best-effort.
+  });
+  return stream;
+};
 
 // ------------------------------------------------------------------------------
 // 6. Start services in dependency order
@@ -264,7 +277,7 @@ function shutdown(reason, exitCode = 0) {
   }
   const deadline = Date.now() + 5000;
   const poll = setInterval(() => {
-    const alive = [...children.values()].some((c) => c.exitCode === null && !c.killed);
+    const alive = [...children.values()].some((c) => c.exitCode === null);
     if (!alive || Date.now() >= deadline) {
       clearInterval(poll);
       for (const child of children.values()) {

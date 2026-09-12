@@ -95,6 +95,10 @@ func main() {
 		fmt.Fprintln(os.Stderr, "genicons: source image is not square")
 		os.Exit(1)
 	}
+	if src.Bounds().Dx() < 310 {
+		fmt.Fprintln(os.Stderr, "genicons: source image must be at least 310x310")
+		os.Exit(1)
+	}
 	if err := os.MkdirAll(*out, 0o755); err != nil {
 		fmt.Fprintln(os.Stderr, "genicons:", err)
 		os.Exit(1)

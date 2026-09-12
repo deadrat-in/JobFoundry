@@ -136,14 +136,22 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $ver = (Get-Content package.json -Raw | ConvertFrom-Json).version
           $kits = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin' -Directory |
+            Where-Object { $_.Name -as [version] } |
             Sort-Object { [version]$_.Name } -Descending | Select-Object -First 1
           if (-not $kits) { throw 'Windows SDK not found' }
           $makeappx = Join-Path $kits.FullName 'x64\makeappx.exe'
           $signtool = Join-Path $kits.FullName 'x64\signtool.exe'
           if (-not (Test-Path $makeappx)) { throw "makeappx not found: $makeappx" }
           if (-not (Test-Path $signtool)) { throw "signtool not found: $signtool" }
+
+          # The package Identity version is rendered into AppxManifest.xml by
+          # build-windows.sh (from the release tag when present). Read it from
+          # there so the artifact filename always matches the packaged identity
+          # instead of relying on package.json's value.
+          [xml]$manifest = Get-Content .\payload\AppxManifest.xml
+          $ver = $manifest.Package.Identity.Version
+          $ver = $ver -replace '\.0$', ''
 
           New-Item -ItemType Directory -Force -Path build | Out-Null
           $pfx = Join-Path (Get-Location) 'build\jobfoundry.pfx'

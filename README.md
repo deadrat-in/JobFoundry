@@ -137,7 +137,7 @@ On Windows 11 x64 (22000+), JobFoundry ships as a MSIX package for
 [sideloading](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/develop-sideload-apps).
 
 ```powershell
-# Download JobFoundry-<version>-x64.msix and JobFoundry-<version>-x64.cer
+# Download JobFoundry-<version>-x64.msix and JobFoundry.cer
 # from the GitHub Releases page.
 # 1) Trust the signing certificate ONCE (requires an elevated PowerShell):
 Import-Certificate -FilePath .\JobFoundry.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
