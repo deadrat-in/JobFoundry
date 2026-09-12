@@ -150,7 +150,7 @@ export function isBlockedIp(ip) {
  * - Rejects non-http(s) schemes and embedded credentials (structural).
  * - Requires https for non-trusted origins so API keys are never sent to public
  *   http endpoints; http is only allowed for operator-trusted gateways.
- * - Exempts operator-trusted origins (ALLOWED_LLM_BASES/RESUME_OPS_URL + local gateways).
+ * - Exempts operator-trusted origins (ALLOWED_LLM_BASES + local gateways).
  * - Resolves the hostname and blocks private/loopback/link-local/reserved IPs.
  *
  * @param {string} rawUrl - Target URL to validate.
@@ -323,6 +323,12 @@ export async function safeFetch(url, init = {}, env = process.env) {
 
     const status = response.status;
     if (status >= 300 && status < 400) {
+      if (init.redirect === 'error') {
+        throw new Error(`Redirect blocked by policy for ${current}`);
+      }
+      if (init.redirect === 'manual') {
+        return response;
+      }
       const location = response.headers.get('location');
       if (!location) {
         return response; // cannot follow without a Location header

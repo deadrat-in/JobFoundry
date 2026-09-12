@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 @dataclass
 class ScorerConfig:
+    """Runtime configuration for the scoring service and its worker."""
+
     scorer_model: str = "gpt-4o-mini"
     scorer_provider: str | None = None
     scorer_api_key: str | None = None
@@ -25,6 +27,8 @@ class ScorerConfig:
 
 
 def load_config() -> ScorerConfig:
+    """Load scorer configuration from environment variables."""
+
     scorer_model = os.getenv("SCORER_MODEL", "gpt-4o-mini")
 
 
@@ -46,7 +50,8 @@ def load_config() -> ScorerConfig:
     else:
         db_path = "./jobs.db"
 
-    resume_ops_url = os.getenv("RESUME_OPS_URL")
+    tailor_port = os.getenv("TAILOR_PORT") or "8081"
+    resume_ops_url = f"http://127.0.0.1:{tailor_port}"
 
     if os.getenv("ARTIFACTS_DIR"):
         artifacts_dir = os.getenv("ARTIFACTS_DIR").strip()
@@ -110,4 +115,3 @@ def load_config() -> ScorerConfig:
         worker_enabled=worker_enabled,
         worker_poll_interval_seconds=worker_poll_interval_seconds,
     )
-

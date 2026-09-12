@@ -15,8 +15,10 @@ async def test_tailor_bridge_skips_when_no_base_url():
 
 @pytest.mark.asyncio
 async def test_tailor_bridge_success(monkeypatch):
+    """A trusted Tailor fixture can return a completed result."""
+
     # The bridge destination is operator config; trust this fixture origin the
-    # way RESUME_OPS_URL/ALLOWED_LLM_BASES would in production.
+    # way ALLOWED_LLM_BASES would in production.
     monkeypatch.setenv("ALLOWED_LLM_BASES", "http://testserver")
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/api/v1/tailor"

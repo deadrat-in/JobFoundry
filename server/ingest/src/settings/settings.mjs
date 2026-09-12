@@ -121,19 +121,19 @@ export const SETTINGS_METADATA = {
  * from the private/loopback/link-local blocklist so self-hosted deployments
  * keep working. Extend at runtime via the ALLOWED_LLM_BASES env var
  * (comma-separated origins, e.g. "https://my-proxy.internal,http://localhost:11434").
- * RESUME_OPS_URL is also honoured so the ingest → resume-ops call (which can
- * carry a user BYOK key) stays permitted on internal deployments.
  */
 export function getTrustedApiBaseOrigins(env = process.env) {
+  const tailorPort = env.TAILOR_PORT || 8081;
   const defaults = [
     'http://127.0.0.1:11434',
     'http://localhost:11434',
     'http://127.0.0.1:8081',
     'http://localhost:8081',
+    `http://127.0.0.1:${tailorPort}`,
+    `http://localhost:${tailorPort}`,
   ];
 
-  const sources = [env.ALLOWED_LLM_BASES || '', env.RESUME_OPS_URL || '']
-    .join(',')
+  const sources = (env.ALLOWED_LLM_BASES || '')
     .split(',')
     .map((s) => {
       const trimmed = s.trim();

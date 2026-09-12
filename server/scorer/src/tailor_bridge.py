@@ -42,7 +42,7 @@ class TailorBridge:
         Returns TailorResult on success, or None if skipped/failed.
         """
         if not self.base_url:
-            logger.info("RESUME_OPS_URL is not set; skipping tailoring bridge call.")
+            logger.info("Tailor endpoint is not configured; skipping tailoring bridge call.")
             return None
 
         url = f"{self.base_url}/api/v1/tailor"
