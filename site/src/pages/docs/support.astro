@@ -1,0 +1,65 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import { resolvePath } from '../../utils/paths.js';
+---
+
+<DocsLayout
+  title="Support"
+  description="Where to get help with JobFoundry: docs, discussions, bug reports, provider requests, and security contacts."
+  currentPath={resolvePath('/docs/support/')}
+  category="Trust & Governance"
+>
+  <h1>Support</h1>
+  <p>
+    Stuck? Start here. And if you are new and not technical: the
+    <a href={resolvePath('/docs/getting-started/')}>Getting Started guide</a>
+    needs no terminal and no programming — that is the intended on-ramp.
+  </p>
+
+  <h2>Using JobFoundry</h2>
+  <ul>
+    <li><strong>Docs first:</strong> this portal covers installation, the extension, architecture, providers, and privacy.</li>
+    <li><strong>Ask the community:</strong> open a <a href="https://github.com/deadrat-in/JobFoundry/discussions" target="_blank" rel="noopener noreferrer">GitHub Discussion</a> (Q&amp;A) describing what you tried, what you expected, and what happened. Screenshots beat log pastes.</li>
+    <li><strong>Found a bug?</strong> File a <a href="https://github.com/deadrat-in/JobFoundry/issues" target="_blank" rel="noopener noreferrer">GitHub Issue</a> with your install method (Docker, AppImage, MSIX), OS, browser, and reproduction steps.</li>
+  </ul>
+
+  <div class="doc-callout warning">
+    <div class="callout-title">
+      <span>!</span>
+      <span>Keep secrets secret</span>
+    </div>
+    <p>
+      Never share your <code>.env</code> file, API keys, or full resume in public threads. Maintainers will never ask for your keys.
+    </p>
+  </div>
+
+  <h2>Requesting a job board</h2>
+  <p>
+    Check the <a href={resolvePath('/docs/providers/')}>provider directory</a> first.
+    If your board is missing, file a <strong>provider request</strong> issue with a link
+    to a sample public posting. Developers: the
+    <a href="https://github.com/deadrat-in/JobFoundry/blob/main/extension/src/background/providers/ADDING_A_PROVIDER.md" target="_blank" rel="noopener noreferrer">provider authoring guide</a>
+    covers the full process.
+  </p>
+
+  <h2>Coming from career-ops</h2>
+  <p>
+    Welcome — the tools are complementary. Bring your discoveries over with the import script
+    (deduplication is automatic):
+  </p>
+  <pre><code>node scripts/import-career-ops.mjs --from /path/to/career-ops/data/pipeline.md</code></pre>
+
+  <h2>Security issues</h2>
+  <p>
+    Do <strong>not</strong> open a public issue. Email
+    <a href="mailto:security@covai.org">security@covai.org</a> or open a
+    <a href="https://github.com/deadrat-in/JobFoundry/security/advisories/new" target="_blank" rel="noopener noreferrer">private security advisory</a>.
+  </p>
+
+  <h2>Response expectations</h2>
+  <p>
+    A small team maintains JobFoundry alongside day jobs. Triage order: security reports,
+    data-loss bugs, broken installs, provider breakage, feature requests. If two weeks pass
+    with no response, a polite bump is welcome.
+  </p>
+</DocsLayout>

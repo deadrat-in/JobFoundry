@@ -2,12 +2,82 @@
 
 [![CI](https://github.com/deadrat-in/JobFoundry/actions/workflows/ci.yml/badge.svg)](https://github.com/deadrat-in/JobFoundry/actions/workflows/ci.yml)
 [![Deploy GitHub Pages](https://github.com/deadrat-in/JobFoundry/actions/workflows/pages.yml/badge.svg)](https://github.com/deadrat-in/JobFoundry/actions/workflows/pages.yml)
+[![Release](https://img.shields.io/github/v/release/deadrat-in/JobFoundry)](https://github.com/deadrat-in/JobFoundry/releases)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
-[![Privacy: Local-First](https://img.shields.io/badge/Privacy-Local--First-emerald.svg)](docs/privacy.html)
+[![Privacy: Local-First](https://img.shields.io/badge/Privacy-Local--First-emerald.svg)](https://jobfoundry.covai.org/docs/privacy/)
 
-JobFoundry is an open-source, local-first platform designed to simplify job discovery, fit assessment, and resume tailoring. It pairs a privacy-respecting browser extension with a lightweight local server and web dashboard, keeping your data entirely under your control.
+**Job search for people, not just engineers.** JobFoundry is an open-source,
+local-first platform for job discovery, fit assessment, and resume tailoring.
+If you can browse the web, you can use it — no AI coding assistant, no
+terminal, no prompt skills required. Your data never leaves your machine.
 
-📚 **[Documentation & Guides](docs/index.html)** &bull; 🚀 **[Quickstart Guide](docs/welcome.html)** &bull; 🛠️ **[Development Guide](DEVELOPMENT.md)** &bull; 🤝 **[Contributing](CONTRIBUTING.md)** &bull; 🔒 **[Privacy & Security](SECURITY.md)**
+📚 **[Documentation & Guides](https://jobfoundry.covai.org/docs/)** &bull; 🚀 **[Quickstart Guide](https://jobfoundry.covai.org/docs/getting-started/)** &bull; 🛠️ **[Development Guide](DEVELOPMENT.md)** &bull; 🤝 **[Contributing](CONTRIBUTING.md)** &bull; 🔒 **[Privacy & Security](SECURITY.md)** &bull; 💬 **[Support](SUPPORT.md)**
+
+---
+
+## What it does
+
+| Stage           | What happens                                                                                               | Where             |
+| --------------- | ---------------------------------------------------------------------------------------------------------- | ----------------- |
+| **Capture**     | 87 ATS/job-board providers extract listings inside your browser session — no logins, no LLM calls, no cost | Browser extension |
+| **Deduplicate** | 64-bit SimHash fingerprints collapse cross-posted duplicates                                               | Ingest server     |
+| **Score**       | Local LLM grades fit 0–100 with strengths + gap analysis                                                   | Scorer worker     |
+| **Tailor**      | Your real experience, truthfully rephrased per job; PDF + ATS plaintext                                    | Tailor engine     |
+| **Track**       | Kanban pipeline from Discovered to Offer                                                                   | Web dashboard     |
+
+---
+
+## Why JobFoundry
+
+**Server scrapers lose. Your browser wins.** Datacenter IPs die against
+Cloudflare, CAPTCHAs, login walls, and rate limits every day. Your
+authenticated browser session walks straight through — so JobFoundry captures
+listings inside the browser you already use, and the server never touches a
+job board. The author can use a terminal and still chose the browser, because
+it succeeds more often.
+
+**Built for the jobless, not just the technical.** Job search is stressful
+enough without new barriers. There is no CLI to learn, no prompts to
+engineer, no subscription to buy. Install the app, add the extension, keep
+browsing like always — capture, scoring, tailoring, and tracking happen
+quietly in the background. See [MANIFESTO.md](MANIFESTO.md).
+
+**Honest by construction.** The tailor re-ranks and rephrases _your genuine
+experience_ under strict schema constraints. It never invents employers,
+skills, dates, or metrics — a fabricated resume fails background checks and
+burns your credibility. And JobFoundry never auto-submits: you review, you
+click, you apply.
+
+---
+
+## Where it came from
+
+JobFoundry began as **resume-ops**, a standalone resume-tailoring API built
+to sit alongside job-search tools. It worked — but two things kept nagging:
+scraping belonged in the browser (where it actually succeeds), and the whole
+loop deserved to be usable by anyone, not just people comfortable with
+terminals and AI CLIs. So the tailoring engine was absorbed into a full
+local-first stack, and JobFoundry is the result. The engine lives on as
+`server/tailor/`.
+
+## Relationship to career-ops
+
+[career-ops](https://github.com/career-ops) is an excellent AI-CLI-native
+power tool for running your job search from inside coding assistants, with a
+pioneering evaluation framework and provider collection. If you live in the
+terminal and love agentic workflows, it is genuinely great — and JobFoundry
+can import its discoveries (`node scripts/import-career-ops.mjs --from
+/path/to/career-ops/data/pipeline.md`).
+
+JobFoundry exists for a different audience and a different bet: people who
+would rather drive everything from their familiar browser and a dashboard,
+with capture riding their real session so it succeeds more often. The
+overlap is deliberate and acknowledged — a subset of the browser provider
+layer is adapted from career-ops' MIT-licensed provider collection (original
+headers preserved; browser-incompatible modules are ported, never edited in
+place — see `extension/scripts/ports/README.md`). That file-level reuse is
+the full extent of it: the zero-token extraction philosophy, the
+browser-first architecture, and the tailoring engine are JobFoundry's own.
 
 ---
 
@@ -25,7 +95,7 @@ JobFoundry is an open-source, local-first platform designed to simplify job disc
 ```
                                ┌────────────────────────────────────────────────┐
                                │               Browser Extension                │
-                               │  (84 Providers + Passive/Active DOM Extract)   │
+                               │  (87 Providers + Passive/Active DOM Extract)   │
                                └──────────────────────┬─────────────────────────┘
                                                       │ POST /api/v1/jobs/ingest
                                                       ▼
@@ -47,6 +117,8 @@ JobFoundry is an open-source, local-first platform designed to simplify job disc
                                                └────────────────────────────────┘
 ```
 
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full design document.
+
 ---
 
 ## Repository Layout
@@ -57,7 +129,7 @@ extension/        Browser extension (Chrome MV3 / Firefox MV3 & MV2)
 server/
   ingest/         Node/ESM ingest API, SQLite storage, auth, SimHash dedup
   scorer/         Python fit screener & worker daemon polling SQLite queue
-  tailor/         Python resume-ops engine (LangGraph + folio-export / Puppeteer PDF & ATS)
+  tailor/         Resume tailoring engine (LangGraph + folio-export / Puppeteer PDF & ATS)
   web/            Vite + React 19 web dashboard (Kanban board, feed, resume manager)
 Dockerfile        Multi-stage All-in-One container build
 compose.yaml      Docker Compose single-service configuration
@@ -74,7 +146,7 @@ test/             End-to-end multi-service test suite
 To install and launch the complete JobFoundry stack with one command:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Rat-S/JobFoundry/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/deadrat-in/JobFoundry/main/install.sh | bash
 ```
 
 This script:
@@ -84,6 +156,10 @@ This script:
 3. Automatically creates `.env` with a secure generated API key.
 4. Pulls or builds the **All-in-One container** and launches it in the background.
 5. Verifies service health via `./scripts/healthcheck.sh`.
+
+Prefer no Docker and no terminal? Grab the **AppImage** (Linux) or **MSIX**
+(Windows) from the [Releases page](https://github.com/deadrat-in/JobFoundry/releases)
+— double-click / Start-menu launch, no command line involved.
 
 ---
 
@@ -213,7 +289,7 @@ docker compose up -d
 Or run directly with Docker (no Compose needed):
 
 ```bash
-docker run -d -p 8080:8080 -v jobfoundry-data:/data --env-file .env ghcr.io/rat-s/jobfoundry:latest
+docker run -d -p 8080:8080 -v jobfoundry-data:/data --env-file .env ghcr.io/deadrat-in/jobfoundry:latest
 ```
 
 Verify service health:
@@ -223,7 +299,7 @@ Verify service health:
 ```
 
 - **Web Dashboard & Ingest API**: [http://localhost:8080](http://localhost:8080)
-- **Browser Extension Guide**: [https://deadrat-in.github.io/JobFoundry/extension.html](https://deadrat-in.github.io/JobFoundry/extension.html)
+- **Browser Extension Guide**: [https://jobfoundry.covai.org/docs/extension/](https://jobfoundry.covai.org/docs/extension/)
 
 ### 4. Running Locally for Development
 
@@ -237,7 +313,7 @@ npm --workspace=server/ingest run dev
 # Start Scorer Service
 cd server/scorer && uv run uvicorn src.app:app --port 8001 --reload
 
-# Start Tailor Service (resume-ops)
+# Start Tailor Service (resume-ops engine)
 cd server/tailor && uv run python -m resume_ops_api
 
 # Start Web Dashboard
@@ -247,6 +323,12 @@ npm --workspace=server/web run dev
 ---
 
 ## Browser Extension Setup
+
+No terminal needed: download the prebuilt `.zip` for your browser from the
+[Releases page](https://github.com/deadrat-in/JobFoundry/releases)
+(`jobfoundry-extension-chrome.zip` / `jobfoundry-extension-firefox.zip`, also
+mirrored in `dist-extension/`), then load it as below. Full walkthrough with
+pictures: [Extension guide](https://jobfoundry.covai.org/docs/extension/).
 
 ### Build from Source
 
@@ -275,7 +357,7 @@ npm --workspace=extension run dev
 ## Workflow Overview
 
 1. **User Profile & Master Resume**: Upload your master [JSON Resume](https://jsonresume.org/) in the **Resume Manager** on the web dashboard.
-2. **Capture Listings**: Browse job portals as usual; the extension extracts listings passively or via 84+ portal adapters and sends them to your local ingest API.
+2. **Capture Listings**: Browse job portals as usual; the extension extracts listings passively or via 87 portal adapters and sends them to your local ingest API.
 3. **Fit Evaluation & Tailoring**: Background workers evaluate qualifications against your master resume, generate a match score, and produce tailored PDF and ATS-friendly plaintext resumes.
 4. **Track Applications**: Manage the pipeline via the interactive Kanban board.
 
@@ -303,9 +385,34 @@ npm run format:check
 
 ---
 
+## Documentation Map
+
+| Document                                   | For                                 |
+| ------------------------------------------ | ----------------------------------- |
+| [MANIFESTO.md](MANIFESTO.md)               | Why this exists and who it is for   |
+| [ARCHITECTURE.md](ARCHITECTURE.md)         | How it fits together (design doc)   |
+| [DEVELOPMENT.md](DEVELOPMENT.md)           | Local setup and service debugging   |
+| [CONTRIBUTING.md](CONTRIBUTING.md)         | How to contribute (incl. providers) |
+| [SUPPORT.md](SUPPORT.md)                   | Where to get help                   |
+| [SECURITY.md](SECURITY.md)                 | Vulnerability reporting + privacy   |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)   | Community standards                 |
+| [GOVERNANCE.md](GOVERNANCE.md)             | How the project is run              |
+| [CHANGELOG.md](CHANGELOG.md)               | What changed per release            |
+| [LEGAL_DISCLAIMER.md](LEGAL_DISCLAIMER.md) | No-warranty plain-language notes    |
+| [TRADEMARK.md](TRADEMARK.md)               | Brand policy                        |
+| [HIRED.md](HIRED.md)                       | Success wall (waiting for launch)   |
+| [AGENTS.md](AGENTS.md)                     | Constraints for AI coding agents    |
+
+---
+
 ## Attributions & Acknowledgements
 
-JobFoundry incorporates and builds upon ideas and components from open-source projects including [`career-ops`](https://github.com/career-ops) and [`jobs-auto-apply`](https://github.com/jobs-auto-apply). We are grateful to the open-source community for their foundational work.
+A subset of the browser provider layer is adapted from the MIT-licensed
+[career-ops](https://github.com/career-ops) provider collection — an
+excellent AI-CLI-native job-search tool. Original MIT headers are preserved
+in every lifted file; see [Relationship to career-ops](#relationship-to-career-ops)
+above and `extension/scripts/ports/README.md` for the full picture. We are
+grateful to its maintainers and to the open-source community generally.
 
 ---
 

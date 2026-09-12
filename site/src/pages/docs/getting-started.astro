@@ -6,52 +6,95 @@ import { resolvePath } from '../../utils/paths.js';
 
 <DocsLayout
   title="Getting Started"
-  description="Step-by-step setup guide for JobFoundry with Docker, Podman, or standalone Node.js."
+  description="Install JobFoundry the easy way (AppImage / MSIX, no terminal needed) or with Docker — then add the browser extension and start capturing jobs."
   currentPath={resolvePath('/docs/getting-started/')}
   category="Installation & Setup"
 >
   <h1>Getting Started with JobFoundry</h1>
   <p>
-    JobFoundry runs as a local daemon on your machine or private server. Follow this guide to initialize the server, configure your LLM endpoint, and verify service health.
+    You do <strong>not</strong> need to know programming, Docker, or AI tools to use
+    JobFoundry. Pick the easiest install method for your computer below, add the
+    browser extension, and keep browsing job sites like you always have —
+    capture, scoring, and tailoring happen automatically in the background.
   </p>
 
-  <h2>Prerequisites</h2>
-  <ul>
-    <li><strong>Runtime:</strong> Linux, macOS, or Windows WSL2.</li>
-    <li><strong>Container Engine (Recommended):</strong> Docker or Podman with compose support.</li>
-    <li><strong>Manual Node.js:</strong> Node.js version 22 or higher with npm.</li>
-    <li><strong>LLM Backend (Optional for scoring):</strong> Local Ollama, vLLM, or any OpenAI-compatible API.</li>
-  </ul>
+  <div class="doc-callout success">
+    <div class="callout-title">
+      <span>✓</span>
+      <span>What you need</span>
+    </div>
+    <p>
+      A computer (Linux, Windows 11, or macOS), a browser (Chrome, Edge, Brave,
+      or Firefox), and — only if you want fit scores and tailored resumes — an
+      LLM API key (e.g. OpenRouter) <em>or</em> a free local model via Ollama.
+      Job capture alone needs nothing else.
+    </p>
+  </div>
 
-  <h2>Method 1: One-Line Install Script</h2>
+  <h2>Method 1: Ready-made app (easiest, no terminal)</h2>
   <p>
-    The fastest way to deploy JobFoundry locally on Linux and macOS:
+    Download the latest release from the
+    <a href="https://github.com/deadrat-in/JobFoundry/releases" target="_blank" rel="noopener noreferrer">Releases page</a>:
+  </p>
+  <ul>
+    <li>
+      <strong>Linux:</strong> download <code>JobFoundry-&lt;version&gt;-x86_64.AppImage</code>,
+      right-click → Properties → allow executing (or run
+      <code>chmod +x JobFoundry-*.AppImage</code> once), then double-click to
+      launch. The dashboard opens at
+      <a href="http://localhost:8080" target="_blank" rel="noopener noreferrer"><code>http://localhost:8080</code></a>.
+    </li>
+    <li>
+      <strong>Windows 11:</strong> download <code>JobFoundry-&lt;version&gt;-x64.msix</code>
+      and <code>JobFoundry.cer</code>. Right-click the Start button → Terminal
+      (Admin) and trust the certificate once, then install the package:
+    </li>
+  </ul>
+  <TerminalSnippet
+    command="Import-Certificate -FilePath .\JobFoundry.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople"
+    title="TRUST CERTIFICATE ONCE (ADMIN POWERSHELL)"
+  />
+  <TerminalSnippet
+    command="Add-AppxPackage -Path .\JobFoundry-<version>-x64.msix"
+    title="INSTALL JOBFOUNDRY"
+  />
+  <p>
+    Then launch <strong>JobFoundry</strong> from the Start menu. Your data and
+    settings live under <code>%LOCALAPPDATA%\JobFoundry\</code>, safely outside
+    the app package.
+  </p>
+
+  <h2>Method 2: One-line install with Docker</h2>
+  <p>
+    On Linux, macOS, or Windows (WSL2) with Docker installed, this single command
+    sets up everything — container, configuration, and health check:
   </p>
   <TerminalSnippet
     command="curl -sSL https://raw.githubusercontent.com/deadrat-in/JobFoundry/main/install.sh | bash"
     title="ONE-LINE INSTALL"
   />
   <p>
-    This script verifies container runtimes (Podman or Docker), clones or updates repository assets, initializes <code>.env</code>, and starts the container daemon.
+    Then open <a href="http://localhost:8080" target="_blank" rel="noopener noreferrer"><code>http://localhost:8080</code></a>
+    in your browser to see the dashboard.
   </p>
 
-  <h2>Method 2: Docker Compose or Podman</h2>
+  <h2>Method 3: Manual setup (developers)</h2>
   <p>
-    If you prefer cloning the repository and managing services via compose:
+    If you prefer to manage services yourself or contribute code:
   </p>
   <TerminalSnippet
     command="git clone https://github.com/deadrat-in/JobFoundry.git && cd JobFoundry"
     title="CLONE REPOSITORY"
   />
   <p>
-    Copy the sample configuration and configure your secrets:
+    Copy the sample configuration and add your LLM provider key:
   </p>
   <TerminalSnippet
     command="cp .env.example .env"
     title="CONFIGURE ENVIRONMENT"
   />
   <p>
-    Start the pipeline services in the background:
+    Start everything in the background:
   </p>
   <TerminalSnippet
     command="docker compose up -d"
@@ -62,74 +105,32 @@ import { resolvePath } from '../../utils/paths.js';
     command="podman compose up -d"
     title="START SERVICES (PODMAN)"
   />
-
-  <h2>Method 3: Native Node.js Setup</h2>
   <p>
-    For active development or running without containers:
-  </p>
-  <TerminalSnippet
-    command="npm install && npm test"
-    title="INSTALL DEPENDENCIES & RUN TESTS"
-  />
-  <p>Start the web server and ingestion workers:</p>
-  <TerminalSnippet
-    command="npm start"
-    title="START PIPELINE DAEMON"
-  />
-
-  <h2>Environment Configuration (.env)</h2>
-  <p>
-    JobFoundry stores settings in a local <code>.env</code> file. The key configuration parameters include:
+    For bare-metal development without containers (Node.js 26+, Python 3.12+,
+    <code>uv</code>), see the <a href="https://github.com/deadrat-in/JobFoundry/blob/main/DEVELOPMENT.md" target="_blank" rel="noopener noreferrer">Development Guide</a>
+    for per-service commands.
   </p>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Variable</th>
-        <th>Default</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><code>PORT</code></td>
-        <td><code>8080</code></td>
-        <td>Port for the web dashboard and extension ingestion API.</td>
-      </tr>
-      <tr>
-        <td><code>DATABASE_URL</code></td>
-        <td><code>sqlite://./data/jobfoundry.db</code></td>
-        <td>Local SQLite database or Postgres connection string.</td>
-      </tr>
-      <tr>
-        <td><code>LLM_BASE_URL</code></td>
-        <td><code>http://localhost:11434/v1</code></td>
-        <td>Base URL for your LLM endpoint (Ollama default).</td>
-      </tr>
-      <tr>
-        <td><code>LLM_MODEL</code></td>
-        <td><code>llama3:latest</code></td>
-        <td>Model name used for fit scoring and criteria evaluation.</td>
-      </tr>
-      <tr>
-        <td><code>SIMHASH_THRESHOLD</code></td>
-        <td><code>3</code></td>
-        <td>Hamming distance threshold for detecting duplicate jobs.</td>
-      </tr>
-    </tbody>
-  </table>
+  <h2>Next: add the browser extension</h2>
+  <p>
+    The extension is what captures job postings as you browse — the server
+    cannot do this part (by design). Download the prebuilt
+    <code>.zip</code> for your browser from the
+    <a href="https://github.com/deadrat-in/JobFoundry/releases" target="_blank" rel="noopener noreferrer">Releases page</a>
+    (no building required) and load it:
+  </p>
+  <ul>
+    <li><strong>Chrome / Edge / Brave:</strong> open <code>chrome://extensions/</code>, enable <strong>Developer mode</strong>, click <strong>Load unpacked</strong>, and select the unzipped folder.</li>
+    <li><strong>Firefox:</strong> open <code>about:debugging#/runtime/this-firefox</code>, click <strong>Load Temporary Add-on…</strong>, and select the manifest file.</li>
+  </ul>
 
-  <h2>Verifying Installation</h2>
-  <p>
-    Confirm the daemon is listening and healthy by probing the health check endpoint:
-  </p>
-  <TerminalSnippet
-    command="curl -i http://localhost:8080/health"
-    title="VERIFY HEALTH"
-  />
-  <p>
-    Once healthy, open <a href="http://localhost:8080" target="_blank" rel="noopener noreferrer"><code>http://localhost:8080</code></a> in your browser to view the Kanban dashboard. Next, install the companion browser extension to begin ingesting job postings.
-  </p>
+  <h2>Then: upload your resume and browse</h2>
+  <ol>
+    <li>Open the dashboard at <a href="http://localhost:8080" target="_blank" rel="noopener noreferrer"><code>http://localhost:8080</code></a>.</li>
+    <li>Go to the <strong>Resume Manager</strong> and upload your master resume (JSON Resume format).</li>
+    <li>If you want fit scores and tailored resumes, add your LLM key in <strong>Settings</strong> (or the <code>.env</code> file for manual installs).</li>
+    <li>Browse job sites normally. Listings flow into the dashboard, get scored, and appear on your Kanban board.</li>
+  </ol>
 
   <div class="next-step-box">
     <span class="next-label">NEXT STEP</span>

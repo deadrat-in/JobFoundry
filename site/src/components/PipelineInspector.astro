@@ -6,7 +6,7 @@ const stages = [
     name: 'Browser Ingestion',
     tag: 'LOCAL EXTENSION',
     badgeClass: 'cyan',
-    summary: 'Captures job postings directly within your browser session across 84+ supported ATS and job boards.',
+    summary: 'Captures job postings directly within your browser session across 87 supported ATS and job boards.',
     code: `// extension/content-script.js
 const payload = {
   url: window.location.href,
@@ -68,19 +68,19 @@ if (distance <= 3) {
     id: 'tailor',
     number: '04',
     name: 'Resume Tailoring',
-    tag: 'TYPST / LATEX',
+    tag: 'FOLIO PDF',
     badgeClass: 'amber',
     summary: 'Generates tailored, ATS-compliant PDF and plain-text resumes highlighting matched requirements.',
-    code: `// server/tailor/engine.js
+    code: `// server/tailor → folio-export (jsonresume-theme-folio)
 const tailoredResume = await generateTailoredProfile({
   masterProfile,
   targetJob,
-  template: 'ats-modern'
+  template: 'folio'
 });
-await compileTypst(tailoredResume, 'output.pdf');`,
+await renderPdf(tailoredResume, 'output.pdf');`,
     details: [
       'Deterministic output with zero LLM hallucination of false qualifications.',
-      'High-speed Typst compiler produces clean, pixel-perfect ATS PDFs.',
+      'folio-export (Puppeteer + jsonresume-theme-folio) produces clean, pixel-perfect ATS PDFs.',
       'Multi-theme templates suited for technical roles.',
     ],
   },

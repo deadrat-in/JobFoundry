@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question (Q&A Discussions)
+    url: https://github.com/deadrat-in/JobFoundry/discussions
+    about: Not sure it's a bug? Ask here first — you'll usually get a faster answer.
+  - name: Security vulnerability
+    url: https://github.com/deadrat-in/JobFoundry/security/advisories/new
+    about: Do not file public issues for security problems. Report privately instead (see SECURITY.md).

@@ -41,7 +41,7 @@ import { resolvePath } from '../../utils/paths.js';
   </p>
   <ul>
     <li><strong>Extraction Strategy:</strong> Prefers structured JSON-LD (<code>schema.org/JobPosting</code>) when present. Falls back to curated CSS selector trees for dynamic Single Page Applications (SPAs) like Workday or Ashby.</li>
-    <li><strong>Payload Delivery:</strong> Sends parsed data via <code>POST /api/jobs/ingest</code> to the local daemon, accompanied by an authentication token generated during initial pairing.</li>
+    <li><strong>Payload Delivery:</strong> Sends parsed data via <code>POST /api/v1/jobs/ingest</code> to the local daemon, accompanied by an authentication token generated during initial pairing.</li>
   </ul>
 
   <h2>Stage 2: SimHash & Deduplication Engine</h2>

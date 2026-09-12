@@ -1,8 +1,15 @@
-# Resume Ops API
+# Resume Tailoring Engine (resume-ops)
+
+> **Note:** `resume-ops` began as a standalone resume-tailoring service and is now
+> the integrated tailoring engine of JobFoundry (`server/tailor`). This document
+> describes the engine itself — its API, tailoring rules, and configuration.
+> For the full JobFoundry setup (extension + ingest + scorer + dashboard),
+> start at the [JobFoundry README](../../README.md) and
+> [Development Guide](../../DEVELOPMENT.md).
 
 Podman-first FastAPI service for tailoring a JSON Resume to a job description while protecting immutable resume fields.
 
-[![Documentation](https://img.shields.io/badge/Docs-.env%20Configurator%20%26%20Guide-38bdf8?style=for-the-badge&logo=github)](https://deadrat-in.github.io/resume-ops/)
+[![Documentation](https://img.shields.io/badge/Docs-Tailoring%20Engine%20Guide-38bdf8?style=for-the-badge&logo=github)](https://jobfoundry.covai.org/docs/architecture/)
 
 ## Why resume-ops? (The Ethos)
 
@@ -77,8 +84,7 @@ The service then:
 
 Copy the example environment files to configure model routing, API keys, and theme settings:
 
-1.  **Core API Config (`./.env`)**: Copy from `[./.env.example](./.env.example)`. Note: If you are using vLLM or standard OpenAI endpoints, customize the `DEFAULT_MODEL` (e.g. `ibm-granite/granite-4.1-8b`, prefixing with `openai/` if using an OpenAI key or OpenRouter proxy).
-2.  **Scraper Client Config (`./job-ops/.env`)**: Copy from `[./job-ops/.env.example](./job-ops/.env.example)` and configure the scraper credentials. Ensure `RESUME_GENERATION_BACKEND=resume_ops` and `RESUME_OPS_BASE_URL=http://resume-ops:8000` are configured.
+1.  **Core API Config (`./.env`)**: Copy from `[./.env.example](./.env.example)`. Note: If you are using vLLM or standard OpenAI endpoints, customize the `DEFAULT_MODEL` (e.g. `ibm-granite/granite-4.1-8b`, prefixing with `openai/` if using an OpenAI key or OpenRouter proxy). When running inside JobFoundry, engine settings live in the JobFoundry root `.env` instead.
 
 ---
 
@@ -93,33 +99,43 @@ This flag instructs the container runtime to automatically update host directory
 > [!NOTE]
 > **Docker Compatibility**: This setup has been tested using **Podman**. If you are running under rootless Docker, you may need to adjust your volume mount syntax (e.g., removing the `,U` suffix if not supported) or manually apply permissions (such as `chmod -R 777 data/` or setting ownership manually).
 
-### Option 1: Running with Pre-built Registry Images (Recommended)
+### Option 1: Running as part of JobFoundry (Recommended)
 
-1.  Follow the **Configuration & Environment Setup** steps above.
-2.  **Provide your master resume**: Copy the template from `[master-resume.json.example](./master-resume.json.example)` to `./master-resume.json` in the root `resume-ops` folder.
-3.  **Launch the services**:
+In normal use you never run this engine on its own — the JobFoundry stack
+(Docker Compose, AppImage, or MSIX) starts and supervises it automatically.
+See the [JobFoundry README](../../README.md) for the one-command install.
+Inside the stack the engine listens on `http://127.0.0.1:8081` (internal only;
+the dashboard is served on `:8080`).
+
+1.  Follow the **Configuration & Environment Setup** steps above (or configure
+    the JobFoundry root `.env`).
+2.  **Provide your master resume**: upload it via the JobFoundry dashboard
+    **Resume Manager**, or copy the template from
+    `[master-resume.json.example](./master-resume.json.example)` to
+    `./master-resume.json` in the `server/tailor` directory.
+3.  **Launch the stack** from the JobFoundry repository root:
     ```bash
-    podman compose up -d
+    docker compose up -d
     ```
-    This will pull `ghcr.io/deadrat-in/resume-ops:latest` and `ghcr.io/deadrat-in/job-ops:latest` from the registry and launch them immediately.
+    This pulls `ghcr.io/deadrat-in/jobfoundry:latest` from the registry and
+    launches all services (ingest, scorer, tailor, web) immediately.
 
 Once running:
 
-- **JobOps Web UI**: `http://localhost:3005`
-- **resume-ops API**: `http://localhost:8000`
+- **JobFoundry dashboard**: `http://localhost:8080`
+- **Tailor engine** (internal): `http://127.0.0.1:8081`
 
-### Option 2: Running with Local Development Build
+### Option 2: Running the engine standalone (development only)
 
-If you are developing or want to build/recompile the images locally:
+If you are developing the tailoring engine itself and want to build/recompile
+the image locally:
 
 ```bash
-git clone --recurse-submodules https://github.com/deadrat-in/resume-ops.git
-cd resume-ops
+git clone https://github.com/deadrat-in/JobFoundry.git
+cd JobFoundry/server/tailor
 # Follow the configuration steps (environment and master resume setup) as in Option 1.
-podman compose up -d --build
+docker compose up -d --build
 ```
-
-_(Note: Because `compose.override.yaml` is present, it automatically compiles the images locally instead of pulling from GHCR.)_
 
 ---
 
@@ -127,33 +143,33 @@ _(Note: Because `compose.override.yaml` is present, it automatically compiles th
 
 ### Compose (default)
 
-If you are running the pre-built registry images via `compose.yaml`:
+If you are running the JobFoundry stack via `compose.yaml` from the repository
+root:
 
 ```bash
-podman compose pull && podman compose up -d
+docker compose pull && docker compose up -d
 ```
 
-This pulls the latest `ghcr.io/deadrat-in/resume-ops:latest` and `ghcr.io/deadrat-in/job-ops:latest` images from GHCR and restarts the containers in place. Your data (SQLite databases, uploaded resumes, scraped jobs) is stored in the `./data/` host volume and is **never affected** by image updates.
+This pulls the latest `ghcr.io/deadrat-in/jobfoundry:latest` image from GHCR and restarts the stack in place. Your data (SQLite databases, uploaded resumes, scraped jobs) is stored in the `./data/` host volume and is **never affected** by image updates.
 
 ### Podman Quadlets (systemd)
 
-If you are running the containers as systemd services via [Podman Quadlets](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html), pull the new images and restart the units:
+If you are running the containers as systemd services via [Podman Quadlets](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html), pull the new image and restart the unit:
 
 ```bash
-# Pull the latest images
-podman pull ghcr.io/deadrat-in/resume-ops:latest
-podman pull ghcr.io/deadrat-in/job-ops:latest
+# Pull the latest image
+podman pull ghcr.io/deadrat-in/jobfoundry:latest
 
-# Restart the systemd units (adjust service names to match your .container files)
-systemctl --user restart resume-ops.service job-ops.service
+# Restart the systemd unit (adjust service names to match your .container files)
+systemctl --user restart jobfoundry.service
 ```
 
-**Automatic updates (optional)**: Add `AutoUpdate=registry` to your `.container` quadlet unit files, then enable and run `podman-auto-update`:
+**Automatic updates (optional)**: Add `AutoUpdate=registry` to your `.container` quadlet unit file, then enable and run `podman-auto-update`:
 
 ```ini
 # In your .container file:
 [Container]
-Image=ghcr.io/deadrat-in/resume-ops:latest
+Image=ghcr.io/deadrat-in/jobfoundry:latest
 AutoUpdate=registry
 ```
 
@@ -265,7 +281,7 @@ JSON
 
 ### Data Storage
 
-By default, the SQLite database is stored under `/data`, and rendered PDFs are saved under `/data/jobs/<task_id>/output.pdf`. In the compose stack, `/data` is mapped to the local `./data/resume-ops` host directory.
+By default, the SQLite database is stored under `/data`, and rendered PDFs are saved under `/data/jobs/<task_id>/output.pdf`. In the JobFoundry compose stack, `/data` is mapped to the local `./data/` host directory (standalone development historically used `./data/resume-ops`).
 
 ### Local Development (Without Container)
 

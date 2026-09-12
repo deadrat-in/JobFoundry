@@ -1,0 +1,62 @@
+name: Bug report
+description: Something in JobFoundry isn't working as expected
+title: '[bug]: '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please check the [docs](https://deadrat-in.github.io/JobFoundry/) and [existing issues](https://github.com/deadrat-in/JobFoundry/issues) first — your bug may already be known. Never share API keys, `.env` contents, or your full resume here.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where is the problem?
+      options:
+        - Browser extension (capture, popup, side panel, options)
+        - Web dashboard (Kanban, feed, resume manager, settings)
+        - Ingest server (API, dedup, database)
+        - Fit scorer (scores, worker daemon)
+        - Resume tailor (tailoring quality, PDF/ATS output)
+        - Install / packaging (Docker, AppImage, MSIX)
+        - Documentation / website
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install JobFoundry?
+      options:
+        - Docker Compose (install.sh)
+        - Docker run
+        - Linux AppImage
+        - Windows MSIX
+        - Manual / development setup
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Release tag (e.g. v0.4.0) or commit hash; VERSION file content for manual installs.
+      placeholder: v0.4.0
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: OS and browser
+      placeholder: e.g. Ubuntu 24.04, Chrome 126
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: What you did, what you expected, what happened instead.
+      placeholder: |
+        1. Opened dashboard at http://localhost:8080
+        2. Clicked …
+        3. Expected …, but saw …
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Screenshots, relevant log lines (redact secrets), job-board URL patterns if a provider broke.

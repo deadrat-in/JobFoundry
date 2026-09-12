@@ -2,7 +2,7 @@
 # ==============================================================================
 # JobFoundry - One-Line Installer & Setup Script
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/Rat-S/JobFoundry/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/deadrat-in/JobFoundry/main/install.sh | bash
 #   OR run locally: ./install.sh
 # ==============================================================================
 
@@ -62,7 +62,7 @@ echo -e "  ${GREEN}✔ Found container orchestrator:${NC} $COMPOSE_CMD"
 # ------------------------------------------------------------------------------
 # 2. Determine Installation Directory
 # ------------------------------------------------------------------------------
-REPO_URL="https://github.com/Rat-S/JobFoundry.git"
+REPO_URL="https://github.com/deadrat-in/JobFoundry.git"
 
 if [ -f "compose.yaml" ] && [ -d "server" ]; then
   # Already in JobFoundry repository root
@@ -146,7 +146,7 @@ echo ""
 echo -e "${BOLD}Next Steps:${NC}"
 echo "  1. Open your Dashboard: http://localhost:8080"
 echo "  2. Install the Browser Extension:"
-echo "     👉 View guide & download: https://deadrat-in.github.io/JobFoundry/extension.html"
+echo "     👉 View guide & download: https://jobfoundry.covai.org/extension.html"
 echo "     Or load unpacked from: $TARGET_DIR/extension"
 echo "  3. Configure your LLM API key in:"
 echo -e "     ${BLUE}$TARGET_DIR/.env${NC}"

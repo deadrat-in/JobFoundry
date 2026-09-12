@@ -1,0 +1,39 @@
+name: Provider request
+description: Ask for support for a new job board or ATS platform
+title: '[provider]: '
+labels: ['provider-request']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the [provider directory](https://deadrat-in.github.io/JobFoundry/docs/providers/) first. If your board is missing, tell us about it below. Developers: the [provider authoring guide](https://github.com/deadrat-in/JobFoundry/blob/main/extension/src/background/providers/ADDING_A_PROVIDER.md) walks through contributing it yourself.
+  - type: input
+    id: board
+    attributes:
+      label: Job board / ATS name
+      placeholder: e.g. Example Jobs
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Sample public job posting URL
+      description: A real, public posting we can inspect (no login-walled pages).
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of source is it?
+      options:
+        - Single-company careers page / ATS
+        - Job board / aggregator
+        - Niche / remote / community board
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else?
+      description: API hints you noticed, pagination behavior, anti-bot behavior, etc.
