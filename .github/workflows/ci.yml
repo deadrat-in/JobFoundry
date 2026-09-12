@@ -26,7 +26,7 @@ jobs:
         with:
           node-version: 'lts/*'
           cache: npm
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.1.0
       - run: uv sync --dev
         working-directory: server/scorer
       - run: npm ci
@@ -42,7 +42,7 @@ jobs:
         working-directory: server/scorer
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.1.0
       - run: uv sync --dev
         env:
           UV_EXTRA_BUILD_DEPENDENCIES: hatchling
@@ -58,7 +58,7 @@ jobs:
       DEFAULT_MODEL: test-model
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.0.1
+      - uses: astral-sh/setup-uv@v10.1.0
       - run: uv sync --dev
         env:
           UV_EXTRA_BUILD_DEPENDENCIES: hatchling
