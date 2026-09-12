@@ -61,7 +61,8 @@ jobs:
           files: dist-extension/*.zip
 
   build-appimage:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
+    container: almalinux:10
     permissions:
       contents: write
     steps:
@@ -70,8 +71,7 @@ jobs:
 
       - name: Install build prerequisites
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq file unzip xz-utils
+          dnf -q -y install file unzip xz
 
       - name: Build AppImage
         run: packaging/appimage/build-appimage.sh

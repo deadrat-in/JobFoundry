@@ -22,8 +22,11 @@
 #   BUILD_DIR=<workdir>  OUTPUT_DIR=<artifact dir>  SKIP_WEB_BUILD=1
 #
 # Requirements on the build host: curl, tar, unzip, xz, patchelf-free
-# (we use LD_LIBRARY_PATH instead), python3 (JSON parsing), npm deps via
-# the downloaded Node. Runs on ubuntu-22.04 for a broad glibc baseline.
+# (we use LD_LIBRARY_PATH instead), /usr/bin/file, python3 (JSON parsing), npm deps
+# via the downloaded Node. Distro-agnostic: runs on Debian/Ubuntu or RHEL-family
+# (AlmaLinux/Rocky/Fedora) build hosts. Note that shared libraries copied from the
+# build host (chrome-headless-shell deps) set the AppImage's effective glibc
+# baseline; build on the oldest distro you want to support.
 # ==============================================================================
 
 set -euo pipefail
@@ -263,18 +266,20 @@ ls "$LIB_DIR" | wc -l | xargs echo "[appimage] bundled system libs:"
 # ------------------------------------------------------------------------------
 # 10. Bundle fonts for PDF rendering
 # ------------------------------------------------------------------------------
+# Distro-agnostic: fetch the liberation-fonts TTF release directly from GitHub
+# (SHA-verified) instead of pulling a distro package, so the same script works
+# on Debian/Ubuntu and RHEL-family build hosts.
 echo "[appimage] bundling fonts..."
-if (command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null) || [ "$(id -u)" = "0" ]; then
-  _sudo=""
-  [ "$(id -u)" = "0" ] || _sudo="sudo"
-  (cd "$WORK" && $_sudo apt-get update -qq && $_sudo apt-get download -qq fonts-liberation)
-  mkdir -p "$APPDIR/usr/share/fonts"
-  dpkg-deb -x "$WORK"/fonts-liberation*.deb "$WORK/fontpkg"
-  cp -r "$WORK/fontpkg/usr/share/fonts/"* "$APPDIR/usr/share/fonts/"
-  echo "[appimage] fonts bundled."
-else
-  echo "[appimage] WARN: no root access, skipping font bundling (PDFs may miss glyphs on minimal systems)"
-fi
+FONTS_VERSION="${FONTS_VERSION:-2.1.5}"
+FONTS_SHA256="${FONTS_SHA256:-7191c669bf38899f73a2094ed00f7b800553364f90e2637010a69c0e268f25d0}"
+FONTS_TGZ="$WORK/fonts-liberation-ttf-${FONTS_VERSION}.tar.gz"
+download "https://github.com/liberationfonts/liberation-fonts/files/7261482/liberation-fonts-ttf-${FONTS_VERSION}.tar.gz" \
+  "$FONTS_TGZ"
+echo "${FONTS_SHA256}  $FONTS_TGZ" | sha256sum -c -
+tar -xzf "$FONTS_TGZ" -C "$WORK"
+mkdir -p "$APPDIR/usr/share/fonts/liberation"
+cp "$WORK/liberation-fonts-ttf-${FONTS_VERSION}"/*.ttf "$APPDIR/usr/share/fonts/liberation/"
+echo "[appimage] fonts bundled."
 
 # ------------------------------------------------------------------------------
 # 11. Install launcher, control CLI, desktop integration
