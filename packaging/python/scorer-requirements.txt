@@ -24,7 +24,7 @@ attrs==26.1.0
     #   aiohttp
     #   jsonschema
     #   referencing
-boto3==1.43.91
+boto3==1.43.93
     # via litellm
 botocore==1.43.91
     # via
