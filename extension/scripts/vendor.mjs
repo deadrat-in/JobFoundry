@@ -5,9 +5,11 @@
 // the browser-runnable tree.
 //
 // What is copied:
-//   - providers/* (all 82 *.mjs + _types.js + README.md) EXCEPT _dns-cache.mjs,
+//   - providers/* (all *.mjs + _types.js) EXCEPT _dns-cache.mjs,
 //     which is Node-only (patches node:dns at import time) and is replaced by
 //     an inlined browser no-op inside the _http port.
+//     README.md and ADDING_A_PROVIDER.md are NOT copied: they are
+//     JobFoundry-owned docs (see PRESERVED_DOCS below).
 //   - user-agent.mjs -> src/background/user-agent.mjs
 //   - tests/providers/*.test.mjs EXCEPT the four tests that import Node-only
 //     fixtures we deliberately do not vendor (documented in the plan):
@@ -42,6 +44,13 @@ const LIB_DST = join(EXT, 'src', 'background', 'lib');
 // _dns-cache.mjs patches node:dns at import time — impossible in a browser,
 // and pointless (the browser owns its own DNS). Not vendored.
 const DROP_PROVIDER_FILES = new Set(['_dns-cache.mjs']);
+
+// JobFoundry-owned docs inside providers/ that must NEVER be overwritten by
+// re-vendoring: they describe the extension's browser context (ingest API,
+// build-time index, DOM extractors), while upstream's copies describe
+// upstream's Node/CLI world (scan.mjs, portals.yml). Provider *.mjs code
+// stays byte-identical to upstream; these two markdown files are ours.
+const PRESERVED_DOCS = new Set(['README.md', 'ADDING_A_PROVIDER.md']);
 
 // Node-only provider tests whose fixtures are deliberately not vendored.
 const DROP_TEST_FILES = new Set([
@@ -110,6 +119,10 @@ function copy(fromPath, toPath) {
 let providerFiles = 0;
 for (const name of readdirSync(join(SRC, 'providers')).sort()) {
   if (DROP_PROVIDER_FILES.has(name)) continue;
+  if (PRESERVED_DOCS.has(name)) {
+    console.log(`  preserved (JobFoundry-owned, not overwritten): providers/${name}`);
+    continue;
+  }
   copy(join(SRC, 'providers', name), join(PROVIDERS_DST, name));
   providerFiles++;
 }

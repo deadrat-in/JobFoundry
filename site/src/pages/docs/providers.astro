@@ -6,13 +6,13 @@ import { resolvePath } from '../../utils/paths.js';
 
 <DocsLayout
   title="Supported Providers Directory"
-  description="Catalog of 84+ supported ATS platforms, job boards, and aggregators with extraction modes."
+  description="Catalog of 87 supported ATS platforms, job boards, and aggregators with extraction modes."
   currentPath={resolvePath('/docs/providers/')}
   category="Ecosystem"
 >
   <h1>Supported Job Boards & ATS Providers</h1>
   <p>
-    JobFoundry supports over 84 job boards, Applicant Tracking Systems (ATS), and career portals. All extractions are executed locally within your browser using DOM scrapers and JSON-LD structured schemas.
+    JobFoundry supports 87 job boards, Applicant Tracking Systems (ATS), and career portals. All extractions are executed locally within your browser using DOM scrapers and JSON-LD structured schemas.
   </p>
 
   <div class="doc-callout">
@@ -25,7 +25,7 @@ import { resolvePath } from '../../utils/paths.js';
     </p>
   </div>
 
-  <h2>Provider Directory (84+)</h2>
+  <h2>Provider Directory (87)</h2>
   <p>
     Use the search bar or category filters below to check coverage and extraction mechanics for any platform:
   </p>
@@ -34,15 +34,26 @@ import { resolvePath } from '../../utils/paths.js';
 
   <h2>How Providers Work Under the Hood</h2>
   <p>
-    Each provider extractor lives in <code>extension/src/extractors/</code> and exports a standard interface:
+    Background providers live in <code>extension/src/background/providers/</code> — one
+    <code>{'{name}'}.mjs</code> module per source, each exporting a standard
+    <code>detect()</code> / <code>fetch()</code> contract. In-page extractors for
+    session-gated boards (LinkedIn, Indeed, Glassdoor, Naukri) live in
+    <code>extension/src/content/extractors/</code>:
   </p>
-  <pre><code>{`// Interface: ProviderExtractor
-interface ProviderExtractor {
-  matches(url: URL): boolean;
-  extract(document: Document): ExtractedJobPayload | null;
-}`}</code></pre>
+  <pre><code>{`// Provider contract (background)
+export default {
+  id: 'greenhouse',       // unique across all providers
+  detect(entry) { ... },  // claim a scan target → { url } or null
+  async fetch(entry, ctx) { ... }, // return normalized Job[]
+};`}</code></pre>
   <p>
-    When you open a job listing, the extension checks URL match patterns. If a known provider matches, it parses the document immediately. If an unrecognized site contains standard <code>schema.org/JobPosting</code> JSON-LD, the generic fallback extractor automatically captures it.
+    When a scan runs, the extension resolves each configured target to a provider
+    (explicit <code>provider:</code> id wins, otherwise the first matching
+    <code>detect()</code>), fetches listings inside your browser session, then
+    runs liveness checks, normalization, dedup, and ships the survivors to your
+    local ingest API. If an unrecognized site contains standard
+    <code>schema.org/JobPosting</code> JSON-LD, the generic fallback extractor
+    still captures it.
   </p>
 
   <h2>Contributing a New Extractor</h2>

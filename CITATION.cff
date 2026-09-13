@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+title: JobFoundry
+message: >-
+  If you use JobFoundry in your research, please cite it as below.
+type: software
+authors:
+  - name: deadrat-in
+    website: https://github.com/deadrat-in
+repository-code: https://github.com/deadrat-in/JobFoundry
+url: https://deadrat-in.github.io/JobFoundry/
+abstract: >-
+  Local-first, open-source platform for job discovery, fit assessment, and
+  resume tailoring. Pairs a privacy-respecting browser extension (87 ATS/job
+  board providers, zero-token extraction) with a local server (SimHash
+  dedup, LLM fit scoring, truthful LangGraph resume tailoring) and a Kanban
+  dashboard — keeping all career data under the user's control.
+keywords:
+  - job-search
+  - resume-tailoring
+  - applicant-tracking-system
+  - local-first
+  - privacy
+  - browser-extension
+  - large-language-models
+license: AGPL-3.0-only
+version: 0.4.0

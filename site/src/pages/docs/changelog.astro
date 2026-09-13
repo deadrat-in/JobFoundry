@@ -1,0 +1,46 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import { resolvePath } from '../../utils/paths.js';
+---
+
+<DocsLayout
+  title="Changelog"
+  description="What changed in each JobFoundry release, from the 0.1.0 beginnings to the current packaged distribution."
+  currentPath={resolvePath('/docs/changelog/')}
+  category="Project"
+>
+  <h1>Changelog</h1>
+  <p>
+    JobFoundry follows <a href="https://semver.org" target="_blank" rel="noopener noreferrer">Semantic Versioning</a>.
+    The current version lives in <code>VERSION</code> in the repository root
+    (<strong>0.4.0</strong> at the time of writing). Highlights per release below —
+    the full commit history is in git, and the canonical file is
+    <a href="https://github.com/deadrat-in/JobFoundry/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer"><code>CHANGELOG.md</code></a>.
+  </p>
+
+  <h2>0.4.0 — 2026-09-12</h2>
+  <p>First packaged distribution release.</p>
+  <ul>
+    <li><strong>Windows 11 MSIX sideload package</strong> with Start-menu launch and control CLI.</li>
+    <li><strong>Linux AppImage</strong>: single portable file, no Docker required.</li>
+    <li>Dashboard unification: settings categories, onboarding quickstart, triage station.</li>
+    <li>Per-user LLM settings (multi-tenant BYOK) and multi-model catalog.</li>
+    <li>SSRF + credential-leak guard on the LLM API base URL.</li>
+    <li>Runtime baseline: Node 26.</li>
+  </ul>
+
+  <h2>0.3.0 — 2026-09-02</h2>
+  <p>The "everything local" consolidation.</p>
+  <ul>
+    <li><strong>resume-ops merged into <code>server/tailor</code></strong> — the standalone tailoring service became the integrated engine.</li>
+    <li>Single All-in-One container on GHCR; one-command installer.</li>
+    <li>Extension dashboard, side panel, secure auto-connect; background worker daemon.</li>
+    <li>Docs portal, contributor and security guides.</li>
+  </ul>
+
+  <h2>0.2.x — June–July 2026</h2>
+  <p>Tailoring quality and configurability: ATS plaintext output, configurable retries and caching, folio as the default PDF theme with runtime theme loading.</p>
+
+  <h2>0.1.x — June 2026</h2>
+  <p>Initial history: monorepo scaffold (AGPL-3.0), ingest API with SQLite + SimHash dedup, LangGraph tailoring pipeline, GHCR publishing.</p>
+</DocsLayout>

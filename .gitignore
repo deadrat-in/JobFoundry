@@ -23,6 +23,10 @@ data/
 dist/
 dist-extension/
 build/
+# Legacy committed Astro output dir. The site now builds to site/dist/
+# (covered by `dist/` above) in CI and deploys as a Pages artifact —
+# nothing under /docs/ should be tracked.
+/docs/
 *.AppImage
 .output/
 .wxt/
@@ -52,7 +56,8 @@ Thumbs.db
 *.swp
 *.swo
 *~
-.agents/
+.agents/*
+!.agents/AGENTS.md
 .gemini/
 .claude/
 

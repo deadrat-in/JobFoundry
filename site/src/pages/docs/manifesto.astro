@@ -1,0 +1,67 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import { resolvePath } from '../../utils/paths.js';
+---
+
+<DocsLayout
+  title="Manifesto"
+  description="Why JobFoundry exists and who it is for: browser-first, local-first, truthful, and usable by anyone."
+  currentPath={resolvePath('/docs/manifesto/')}
+  category="Trust & Governance"
+>
+  <h1>The JobFoundry Manifesto</h1>
+  <p><em>Why this tool exists, and who it is for.</em></p>
+
+  <h2>1. Job hunting is hard enough. The tooling should not make it harder.</h2>
+  <p>
+    <strong>JobFoundry meets people where they already are: the browser.</strong> If you
+    can browse job sites, you can use JobFoundry. No AI coding assistant, no terminal, no
+    prompt skills. Install the app, add the extension, keep browsing like always — capture,
+    dedup, scoring, tailoring, and tracking happen quietly, locally, under your control.
+  </p>
+
+  <h2>2. Your career data belongs to you. Entirely.</h2>
+  <p>
+    Your resume is your life on paper. JobFoundry stores everything on your machine, phones
+    home to nobody, and works offline except for the LLM provider <em>you</em> choose.
+    Local-first is not a feature here. It is the premise.
+  </p>
+
+  <h2>3. Reading a public job posting should never cost an LLM call.</h2>
+  <p>
+    Our zero-token philosophy: structured data comes from public ATS endpoints, feeds, and
+    markup — free, fast, private. Models are spent only where judgment is needed: scoring
+    fit and tailoring resumes. No AI subscription required to discover jobs.
+  </p>
+
+  <h2>4. Scrape from where the jobs are visible: the browser.</h2>
+  <p>
+    Server scrapers lose to Cloudflare, CAPTCHAs, and login walls daily. Your browser
+    session walks straight through — so capture happens in your browser and the server
+    never touches a job board. A reliability decision first, a privacy decision second.
+  </p>
+
+  <h2>5. A tailored resume must be true.</h2>
+  <p>
+    Tools that invent employers and skills set candidates up to fail background checks.
+    JobFoundry re-ranks and rephrases <em>your genuine experience</em> under strict schema
+    constraints, with protected fields that never change. Truth over fabrication, always.
+  </p>
+
+  <h2>6. The human applies. The tool prepares.</h2>
+  <p>
+    JobFoundry evaluates, drafts, organizes, and reminds. It never auto-submits, never
+    spams employers. Fewer, better, honest applications beat spray-and-pray.
+  </p>
+
+  <h2>7. Free software, forever.</h2>
+  <p>
+    AGPL-3.0. Inspect every line, self-host, fork, and leave with your data anytime. Tools
+    for vulnerable moments in people's lives must not become traps.
+  </p>
+
+  <p>
+    The canonical version lives in
+    <a href="https://github.com/deadrat-in/JobFoundry/blob/main/MANIFESTO.md" target="_blank" rel="noopener noreferrer"><code>MANIFESTO.md</code></a>.
+  </p>
+</DocsLayout>

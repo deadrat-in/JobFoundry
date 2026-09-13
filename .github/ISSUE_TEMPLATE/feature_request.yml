@@ -1,0 +1,40 @@
+name: Feature request
+description: Propose an idea for JobFoundry
+title: '[feat]: '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea. Please check [existing issues](https://github.com/deadrat-in/JobFoundry/issues) and [discussions](https://github.com/deadrat-in/JobFoundry/discussions) first. Remember the audience: if it can't be explained to a non-technical jobseeker, say so — that shapes the design.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: The jobseeker situation, not just the technical gap.
+      placeholder: When I …, I have to …, which costs me …
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What do you propose?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Browser extension
+        - Web dashboard
+        - Ingest / dedup
+        - Fit scorer
+        - Resume tailor
+        - Packaging / install
+        - Documentation
+        - Other

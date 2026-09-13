@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://resume-ops.covai.org/sitemap.xml

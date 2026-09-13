@@ -1,0 +1,5 @@
+# CODEOWNERS — automatic review requests.
+# Single-maintainer project: everything routes to @deadrat-in for now.
+# Add reviewers here as the contributor ladder (GOVERNANCE.md) grows.
+
+* @deadrat-in
