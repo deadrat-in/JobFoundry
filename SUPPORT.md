@@ -51,7 +51,7 @@ Welcome — the tools are complementary, and migration is supported:
 - Relationship notes: career-ops is an excellent AI-CLI-native power tool;
   JobFoundry exists for people who would rather drive everything from their
   browser and dashboard. See
-  ["Relationship to career-ops" in the README](README.md#relationship-to-career-ops)
+  ["JobFoundry vs career-ops" in the README](README.md#jobfoundry-vs-career-ops)
   for the full story.
 
 ## I found a security vulnerability

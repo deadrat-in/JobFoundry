@@ -53,7 +53,7 @@ Five stages, each independently understandable and replaceable:
 | Fit scorer        | FastAPI, LiteLLM, instructor, Pydantic           | `:8001` (loopback) | Poll SQLite queue, score JD vs resume, structured JSON verdict                      |
 | Tailor engine     | FastAPI, LangGraph, LiteLLM, folio-export        | `:8081` (loopback) | Section-by-section tailoring, schema validation, PDF/ATS render                     |
 | Browser extension | WXT MV3 (Chrome + Firefox)                       | —                  | Capture, liveness, relay leasing, passive/active extraction                         |
-| Docs site         | Astro (static)                                   | GitHub Pages       | `site/` → `docs/`                                                                   |
+| Docs site         | Astro (static)                                   | GitHub Pages       | `site/` source → `site/dist/` build, deployed as a Pages artifact                   |
 
 In containers and packaged builds, `supervisord` runs ingest (`:8080`),
 scorer (`:8001`), and tailor (`:8081`) behind the single public ingress
