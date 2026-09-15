@@ -41,6 +41,54 @@ test('detectPlatform identifies target platforms', () => {
   assert.equal(detectPlatform('https://example.com/jobs'), null);
 });
 
+test('detectPlatform accepts exact domains and subdomains for every supported platform', () => {
+  const cases = [
+    ['linkedin.com', 'linkedin'],
+    ['jobs.linkedin.com:443/path', 'linkedin'],
+    ['indeed.co.uk', 'indeed'],
+    ['jobs.indeed.co.in', 'indeed'],
+    ['glassdoor.co.uk', 'glassdoor'],
+    ['careers.glassdoor.com', 'glassdoor'],
+    ['naukri.com', 'naukri'],
+    ['company.greenhouse.io', 'greenhouse'],
+    ['jobs.lever.co', 'lever'],
+    ['jobs.ashbyhq.com', 'ashby'],
+  ];
+
+  for (const [input, expected] of cases) {
+    assert.equal(detectPlatform(input), expected, input);
+  }
+});
+
+test('detectPlatform rejects supported-domain text outside the parsed hostname', () => {
+  const lookalikes = [
+    'evil-linkedin.com',
+    'linkedin.com.evil.example',
+    'https://linkedin.com@evil.example/jobs',
+    'https://evil.example/jobs?redirect=linkedin.com',
+    'notgreenhouse.io',
+    'lever.co.evil.example',
+    'ashbyhq.com.attacker.example',
+    'naukri.com.invalid.example',
+  ];
+
+  for (const input of lookalikes) {
+    assert.equal(detectPlatform(input), null, input);
+  }
+});
+
+for (const hostname of ['indeed.com.evil.example', 'glassdoor.co.uk.attacker.example']) {
+  test(`detectPlatform rejects country-domain lookalike ${hostname}`, () => {
+    assert.equal(detectPlatform(hostname), null);
+  });
+}
+
+for (const hostname of ['indeed.evil.com', 'glassdoor.evil.com']) {
+  test(`detectPlatform rejects unapproved country-domain lookalike ${hostname}`, () => {
+    assert.equal(detectPlatform(hostname), null);
+  });
+}
+
 test('LinkedIn: extracts single job detail page', () => {
   const doc = loadFixtureDoc(
     'linkedin-detail.html',

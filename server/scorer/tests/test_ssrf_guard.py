@@ -25,8 +25,7 @@ def test_trusted_origins_defaults_and_env(monkeypatch):
 
     monkeypatch.setenv("ALLOWED_LLM_BASES", "http://10.99.0.5:1234, https://gateway.internal:8443")
     extra = trusted_origins()
-    assert "http://10.99.0.5:1234" in extra
-    assert "https://gateway.internal:8443" in extra
+    assert {"http://10.99.0.5:1234", "https://gateway.internal:8443"}.issubset(extra)
 
     monkeypatch.setenv("TAILOR_PORT", "8082")
     assert "http://127.0.0.1:8082" in trusted_origins()

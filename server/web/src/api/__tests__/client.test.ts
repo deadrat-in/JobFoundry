@@ -187,6 +187,28 @@ describe('ApiClient', () => {
     expect((err as ApiError).status).toBe(404);
   });
 
+  it('passes request data as console arguments instead of a dynamic format string', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Server Error',
+      json: async () => ({ error: 'untrusted %s message', detail: 'failure detail' }),
+    });
+    global.fetch = fetchMock;
+
+    await client.getJob('job-%s').catch(() => undefined);
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      '[API Error] %s %s (%s):',
+      'GET',
+      'http://api.test/api/v1/jobs/job-%s',
+      500,
+      'untrusted %s message',
+      { error: 'untrusted %s message', detail: 'failure detail' }
+    );
+  });
+
   it('getDiagnostics fetches health and telemetry data', async () => {
     const mockDiagnostics = {
       status: 'healthy',

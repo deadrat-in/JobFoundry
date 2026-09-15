@@ -17,6 +17,22 @@ interface JobDetailModalProps {
   onDeleteJob?: (jobId: string) => void;
 }
 
+/** Return a browser-safe external link, or a non-navigating fallback. */
+function safeHref(url?: string | null): string {
+  if (!url || typeof url !== 'string') return '#';
+  const trimmed = url.trim();
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return parsed.href;
+    }
+  } catch {
+    // Invalid URLs use the non-navigating fallback.
+  }
+  return '#';
+}
+
+/** Render job details and the available job-management actions. */
 export const JobDetailModal: React.FC<JobDetailModalProps> = ({
   job,
   threshold = 75,
@@ -371,7 +387,7 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({
                         </>
                       )}
                       <a
-                        href={job.url}
+                        href={safeHref(job.url)}
                         target="_blank"
                         rel="noreferrer"
                         className="btn btn-secondary btn-sm"

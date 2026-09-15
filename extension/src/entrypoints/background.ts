@@ -17,6 +17,7 @@ import { dedupJobs, createSessionCache } from '../background/dedup.js';
 import { makeHttpCtx } from '../background/providers/_http.mjs';
 import { extractKeywordsFromResume } from '../background/filters/resume-keywords.js';
 import { createRelayRunner } from '../background/relay.js';
+import { isSupportedIndeedHost } from '../shared/supported-domains.js';
 
 export const SCAN_ALARM_NAME = 'jobfoundry-periodic-scan';
 
@@ -163,17 +164,22 @@ export default defineBackground(() => {
         typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://'));
 
       const isLikelyJobFoundry = (t: any) => {
-        const u = (t.url || '').toLowerCase();
         const title = (t.title || '').toLowerCase();
-        return (
-          u.includes('5173') ||
-          u.includes('8080') ||
-          u.includes('localhost') ||
-          u.includes('127.0.0.1') ||
-          u.includes('jobfoundry') ||
-          u.includes('covai.org') ||
-          title.includes('jobfoundry')
-        );
+        try {
+          const parsed = new URL(t.url || '');
+          const hostname = parsed.hostname.toLowerCase();
+          const port = parsed.port;
+          if (port === '5173' || port === '8080') return true;
+          if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
+          if (
+            hostname === 'jobfoundry' ||
+            hostname.endsWith('.jobfoundry') ||
+            hostname.includes('jobfoundry')
+          )
+            return true;
+          if (hostname === 'covai.org' || hostname.endsWith('.covai.org')) return true;
+        } catch {}
+        return title.includes('jobfoundry');
       };
 
       // Ordered candidates:
@@ -402,6 +408,7 @@ export default defineBackground(() => {
 
               const url = getCanon();
               const host = window.location.hostname.toLowerCase();
+              const isDomain = (d) => host === d || host.endsWith('.' + d);
 
               const decodeEntities = (str) => {
                 if (typeof str !== 'string' || !str) return '';
@@ -480,9 +487,9 @@ export default defineBackground(() => {
                             location: location || null,
                             description,
                             url,
-                            source: host.includes('linkedin.com')
+                            source: isDomain('linkedin.com')
                               ? 'linkedin'
-                              : host.includes('indeed.')
+                              : isSupportedIndeedHost(host)
                                 ? 'indeed'
                                 : 'web',
                             postedAt: item.datePosted ? Date.parse(item.datePosted) || null : null,
@@ -495,7 +502,7 @@ export default defineBackground(() => {
               }
 
               // Tier 2: Platform-Specific Selectors
-              if (host.includes('linkedin.com')) {
+              if (isDomain('linkedin.com')) {
                 const titleEl =
                   document.querySelector('.job-details-jobs-unified-top-card__job-title') ||
                   document.querySelector('.jobs-unified-top-card__job-title') ||
@@ -541,7 +548,7 @@ export default defineBackground(() => {
                 }
               }
 
-              if (host.includes('indeed.')) {
+              if (isSupportedIndeedHost(host)) {
                 const titleEl =
                   document.querySelector('[data-testid="jobsearch-JobInfoHeader-title"]') ||
                   document.querySelector('.jobsearch-JobInfoHeader-title') ||
@@ -577,7 +584,7 @@ export default defineBackground(() => {
                 }
               }
 
-              if (host.includes('greenhouse.io')) {
+              if (isDomain('greenhouse.io')) {
                 const titleEl = document.querySelector('h1.app-title, h1.heading, .job-name, h1');
                 const title = clean(titleEl?.textContent);
                 const companyEl = document.querySelector(

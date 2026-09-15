@@ -7,17 +7,36 @@ import { extractIndeed } from './indeed.js';
 import { extractGlassdoor } from './glassdoor.js';
 import { extractNaukri } from './naukri.js';
 import { extractGreenhouse, extractLever, extractAshby, extractGenericJob } from './ats.js';
+import { isSupportedGlassdoorHost, isSupportedIndeedHost } from '../../shared/supported-domains.js';
 
+/**
+ * Identify the supported job platform represented by a URL or hostname.
+ *
+ * @param {string} urlOrHostname - A complete URL or bare hostname to classify.
+ * @returns {string|null} The platform identifier, or null when the host is unsupported.
+ */
 export function detectPlatform(urlOrHostname) {
   if (!urlOrHostname) return null;
-  const str = String(urlOrHostname).toLowerCase();
-  if (str.includes('linkedin.com')) return 'linkedin';
-  if (str.includes('indeed.com') || str.includes('indeed.')) return 'indeed';
-  if (str.includes('glassdoor.com') || str.includes('glassdoor.')) return 'glassdoor';
-  if (str.includes('naukri.com')) return 'naukri';
-  if (str.includes('greenhouse.io')) return 'greenhouse';
-  if (str.includes('lever.co')) return 'lever';
-  if (str.includes('ashbyhq.com')) return 'ashby';
+  let host = String(urlOrHostname).toLowerCase().trim();
+  try {
+    if (host.includes('://')) {
+      host = new URL(host).hostname.toLowerCase();
+    } else {
+      host = host.split('/')[0].split(':')[0];
+    }
+  } catch {
+    host = host.split('/')[0].split(':')[0];
+  }
+
+  const isDomain = (d) => host === d || host.endsWith('.' + d);
+
+  if (isDomain('linkedin.com')) return 'linkedin';
+  if (isSupportedIndeedHost(host)) return 'indeed';
+  if (isSupportedGlassdoorHost(host)) return 'glassdoor';
+  if (isDomain('naukri.com')) return 'naukri';
+  if (isDomain('greenhouse.io')) return 'greenhouse';
+  if (isDomain('lever.co')) return 'lever';
+  if (isDomain('ashbyhq.com')) return 'ashby';
   return null;
 }
 

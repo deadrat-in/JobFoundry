@@ -1,14 +1,13 @@
 ---
 import MarketingLayout from '../layouts/MarketingLayout.astro';
 import BentoTile from '../components/BentoTile.astro';
-import TerminalSnippet from '../components/TerminalSnippet.astro';
 import PipelineInspector from '../components/PipelineInspector.astro';
 import { resolvePath } from '../utils/paths.js';
 ---
 
 <MarketingLayout
   title="JobFoundry — Local-First Job Search & Resume Tailoring Infrastructure"
-  description="Local-first AI pipeline for 87 job boards: browser ingestion, SimHash deduplication, local LLM fit scoring, and ATS resume tailoring."
+  description="Local-first AI pipeline for 87 job boards, available as a Linux AppImage, Windows MSIX package, or Docker deployment."
   currentPath={resolvePath('/')}
 >
   <!-- Metro-Bento Hero Section -->
@@ -120,23 +119,34 @@ import { resolvePath } from '../utils/paths.js';
           </a>
         </BentoTile>
 
-        <!-- One-Line Quickstart Bar -->
+        <!-- Distribution Quickstart Bar -->
         <BentoTile colSpan={4} class="quickstart-bar-tile">
           <div class="quickstart-inner">
             <div class="quickstart-meta">
-              <span class="site-badge cyan">1-LINE DEPLOYMENT</span>
-              <h3 class="quickstart-title">Install JobFoundry Daemon</h3>
+              <span class="site-badge cyan">CHOOSE YOUR INSTALL</span>
+              <h3 class="quickstart-title">Run JobFoundry your way</h3>
               <p class="quickstart-text">
-                Run the official setup script to configure Podman or Docker Compose automatically:
+                Download a ready-made desktop app or deploy the all-in-one container. The browser extension is added separately.
               </p>
             </div>
-            <div class="quickstart-terminal">
-              <TerminalSnippet
-                command="curl -sSL https://raw.githubusercontent.com/deadrat-in/JobFoundry/main/install.sh | bash"
-                title="BASH INSTALL"
-              />
+            <div class="quickstart-options">
+              <a href="https://github.com/deadrat-in/JobFoundry/releases" target="_blank" rel="noopener noreferrer" class="quickstart-option">
+                <strong>Linux AppImage</strong>
+                <span>Portable, no Docker required</span>
+              </a>
+              <a href="https://github.com/deadrat-in/JobFoundry/releases" target="_blank" rel="noopener noreferrer" class="quickstart-option">
+                <strong>Windows MSIX</strong>
+                <span>Install from the Start menu</span>
+              </a>
+              <div class="quickstart-option quickstart-command">
+                <strong>Docker</strong>
+                <code>curl -sSL https://raw.githubusercontent.com/deadrat-in/JobFoundry/main/install.sh | bash</code>
+              </div>
             </div>
           </div>
+          <a href={resolvePath('/docs/getting-started/')} class="quickstart-guide-link">
+            See installation instructions →
+          </a>
         </BentoTile>
       </div>
     </div>
@@ -361,10 +371,66 @@ import { resolvePath } from '../utils/paths.js';
     min-width: 0;
   }
 
-  .quickstart-terminal {
+  .quickstart-options {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
     min-width: 0;
-    max-width: 100%;
-    overflow: hidden;
+  }
+
+  .quickstart-option {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.3rem;
+    min-width: 0;
+    min-height: 82px;
+    padding: 0.85rem;
+    color: var(--text-primary);
+    text-decoration: none;
+    border: 1px solid var(--border-subtle);
+    border-left: 3px solid var(--accent-cyan);
+    background: var(--bg-surface);
+    border-radius: var(--radius-xs);
+  }
+
+  .quickstart-option:hover {
+    border-color: var(--accent-cyan);
+    background: var(--bg-surface-hover);
+  }
+
+  .quickstart-option strong {
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+  }
+
+  .quickstart-option span {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    line-height: 1.35;
+  }
+
+  .quickstart-option code {
+    display: block;
+    color: var(--accent-cyan);
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .quickstart-guide-link {
+    display: inline-block;
+    margin-top: 1.25rem;
+    color: var(--accent-cyan);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .quickstart-guide-link:hover {
+    text-decoration: underline;
   }
 
   .quickstart-title {
@@ -434,6 +500,10 @@ import { resolvePath } from '../utils/paths.js';
     .quickstart-inner {
       grid-template-columns: 1fr;
       gap: 1rem;
+    }
+
+    .quickstart-options {
+      grid-template-columns: 1fr;
     }
   }
 

@@ -9,7 +9,7 @@ const resumeSchema = JSON.parse(readFileSync(SCHEMA_URL, 'utf8'));
 const AjvClass = Ajv.default || Ajv;
 const addFormatsFn = addFormats.default || addFormats;
 
-const ajv = new AjvClass({ strict: false, allErrors: true, validateSchema: false });
+const ajv = new AjvClass({ strict: false, allErrors: false, validateSchema: false });
 addFormatsFn(ajv);
 const schemaValidator = ajv.compile(resumeSchema);
 

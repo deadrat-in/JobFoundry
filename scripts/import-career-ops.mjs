@@ -103,10 +103,14 @@ for (const rawLine of lines) {
 
     // Infer source from URL
     let source = 'career-ops';
-    if (url.includes('greenhouse.io')) source = 'greenhouse';
-    else if (url.includes('lever.co')) source = 'lever';
-    else if (url.includes('ashbyhq.com')) source = 'ashby';
-    else if (url.includes('workday.com') || url.includes('myworkdayjobs.com')) source = 'workday';
+    try {
+      const host = new URL(url).hostname.toLowerCase();
+      const isDomain = (d) => host === d || host.endsWith('.' + d);
+      if (isDomain('greenhouse.io')) source = 'greenhouse';
+      else if (isDomain('lever.co')) source = 'lever';
+      else if (isDomain('ashbyhq.com')) source = 'ashby';
+      else if (isDomain('workday.com') || isDomain('myworkdayjobs.com')) source = 'workday';
+    } catch {}
 
     jobs.push({
       title,

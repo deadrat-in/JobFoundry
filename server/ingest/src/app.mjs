@@ -8,7 +8,7 @@ import {
   statSync,
   createReadStream,
 } from 'node:fs';
-import { resolve, extname } from 'node:path';
+import { resolve, relative, isAbsolute, extname } from 'node:path';
 
 // Configure global undici dispatcher with 30-minute timeout for multi-stage LLM calls
 try {
@@ -172,6 +172,13 @@ export function buildApp({
     return true;
   }
 
+  function canAccessJob(userId, jobId) {
+    if (!isRegisteredUser(db, userId)) return true;
+    return Boolean(
+      db.prepare('SELECT 1 FROM user_jobs WHERE user_id = ? AND job_id = ?').get(userId, jobId)
+    );
+  }
+
   // Health check
   app.get('/health', async () => ({ ok: true }));
 
@@ -235,6 +242,31 @@ export function buildApp({
     };
   });
 
+  // Rate limiter store and helper to mitigate abuse and satisfy security auditing
+  const rateLimitStore = new Map();
+  /**
+   * Enforce a process-local sliding-window request limit for a client address.
+   *
+   * @param {import('fastify').FastifyRequest} request - The incoming request.
+   * @param {import('fastify').FastifyReply} reply - The response used for limit errors.
+   * @param {number} max - Maximum requests allowed during the window.
+   * @param {number} windowMs - Sliding-window duration in milliseconds.
+   * @returns {boolean} Whether the request may continue.
+   */
+  function checkRateLimit(request, reply, max = 60, windowMs = 60000) {
+    const ip = request.ip || request.headers['x-forwarded-for'] || '127.0.0.1';
+    const now = Date.now();
+    const windowStart = now - windowMs;
+    const timestamps = (rateLimitStore.get(ip) || []).filter((ts) => ts > windowStart);
+    if (timestamps.length >= max) {
+      reply.code(429).send({ error: 'Too many requests, please try again later.' });
+      return false;
+    }
+    timestamps.push(now);
+    rateLimitStore.set(ip, timestamps);
+    return true;
+  }
+
   // PUT /api/v1/extension/config - Update extension configuration (per-user or operator)
   app.put(
     '/api/v1/extension/config',
@@ -279,22 +311,6 @@ export function buildApp({
   );
 
   // --- SYSTEM SETTINGS ROUTES ---
-
-  // Rate limiter for settings endpoints to mitigate abuse and satisfy security auditing
-  const rateLimitStore = new Map();
-  function checkRateLimit(request, reply, max = 60, windowMs = 60000) {
-    const ip = request.ip || request.headers['x-forwarded-for'] || '127.0.0.1';
-    const now = Date.now();
-    const windowStart = now - windowMs;
-    const timestamps = (rateLimitStore.get(ip) || []).filter((ts) => ts > windowStart);
-    if (timestamps.length >= max) {
-      reply.code(429).send({ error: 'Too many requests, please try again later.' });
-      return false;
-    }
-    timestamps.push(now);
-    rateLimitStore.set(ip, timestamps);
-    return true;
-  }
 
   // GET /api/v1/settings - Get effective settings with masked secrets
   app.get(
@@ -933,6 +949,9 @@ export function buildApp({
     if (!authenticate(request, reply)) return;
 
     const { id } = request.params;
+    if (!canAccessJob(request.user.id, id)) {
+      return reply.code(404).send({ error: 'job not found' });
+    }
     const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
     if (!job) {
       return reply.code(404).send({ error: 'job not found' });
@@ -970,6 +989,9 @@ export function buildApp({
     if (!authenticate(request, reply)) return;
 
     const { id } = request.params;
+    if (!canAccessJob(request.user.id, id)) {
+      return reply.code(404).send({ error: 'job not found' });
+    }
     const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
     if (!job) {
       return reply.code(404).send({ error: 'job not found' });
@@ -1009,228 +1031,361 @@ export function buildApp({
   });
 
   // GET /api/v1/relay/tasks/lease - Lease next available task for companion
-  app.get('/api/v1/relay/tasks/lease', async (request, reply) => {
-    if (!authenticate(request, reply)) return;
-    const task = leaseNextTask(db, { userId: request.user.id, leaseDurationMs: 30000 });
-    return { ok: true, task };
-  });
+  app.get(
+    '/api/v1/relay/tasks/lease',
+    {
+      config: {
+        rateLimit: {
+          max: 60,
+          timeWindow: '1 minute',
+        },
+      },
+      rateLimit: {
+        max: 60,
+        timeWindow: '1 minute',
+      },
+    },
+    async (request, reply) => {
+      if (!checkRateLimit(request, reply, 60)) return;
+      if (!authenticate(request, reply)) return;
+      const task = leaseNextTask(db, { userId: request.user.id, leaseDurationMs: 30000 });
+      return { ok: true, task };
+    }
+  );
 
   // POST /api/v1/relay/tasks/:id/fulfill - Companion delivers task result
-  app.post('/api/v1/relay/tasks/:id/fulfill', async (request, reply) => {
-    if (!authenticate(request, reply)) return;
-    const { id } = request.params;
-    const { leaseToken, result, error } = request.body || {};
+  app.post(
+    '/api/v1/relay/tasks/:id/fulfill',
+    {
+      config: {
+        rateLimit: {
+          max: 60,
+          timeWindow: '1 minute',
+        },
+      },
+      rateLimit: {
+        max: 60,
+        timeWindow: '1 minute',
+      },
+    },
+    async (request, reply) => {
+      if (!checkRateLimit(request, reply, 60)) return;
+      if (!authenticate(request, reply)) return;
+      const { id } = request.params;
+      const { leaseToken, result, error } = request.body || {};
 
-    try {
-      const outcome = fulfillTask(db, {
-        taskId: id,
-        leaseToken,
-        result,
-        error,
-        userId: request.user.id,
-      });
-      return { ok: true, ...outcome };
-    } catch (err) {
-      return reply.code(400).send({ error: err.message });
+      try {
+        const outcome = fulfillTask(db, {
+          taskId: id,
+          leaseToken,
+          result,
+          error,
+          userId: request.user.id,
+        });
+        return { ok: true, ...outcome };
+      } catch (err) {
+        return reply.code(400).send({ error: err.message });
+      }
     }
-  });
+  );
 
   // GET /api/v1/relay/tasks/:id - Check status of a specific task
-  app.get('/api/v1/relay/tasks/:id', async (request, reply) => {
-    if (!authenticate(request, reply)) return;
-    const { id } = request.params;
-    const task = getTaskStatus(db, id, request.user.id);
-    if (!task) {
-      return reply.code(404).send({ error: 'task not found' });
+  app.get(
+    '/api/v1/relay/tasks/:id',
+    {
+      config: {
+        rateLimit: {
+          max: 60,
+          timeWindow: '1 minute',
+        },
+      },
+      rateLimit: {
+        max: 60,
+        timeWindow: '1 minute',
+      },
+    },
+    async (request, reply) => {
+      if (!checkRateLimit(request, reply, 60)) return;
+      if (!authenticate(request, reply)) return;
+      const { id } = request.params;
+      const task = getTaskStatus(db, id, request.user.id);
+      if (!task) {
+        return reply.code(404).send({ error: 'task not found' });
+      }
+      return { ok: true, task };
     }
-    return { ok: true, task };
-  });
+  );
 
   // POST /api/v1/jobs/:id/sanitize - Clean existing JD content with LLM (no server-side scraping)
-  app.post('/api/v1/jobs/:id/sanitize', async (request, reply) => {
-    if (!authenticate(request, reply)) return;
+  app.post(
+    '/api/v1/jobs/:id/sanitize',
+    {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: '1 minute',
+        },
+      },
+      rateLimit: {
+        max: 30,
+        timeWindow: '1 minute',
+      },
+    },
+    async (request, reply) => {
+      if (!checkRateLimit(request, reply, 30)) return;
+      if (!authenticate(request, reply)) return;
 
-    const { id } = request.params;
-    const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
-    if (!job) {
-      return reply.code(404).send({ error: 'job not found' });
-    }
-
-    const rawContent = (job.description || '').trim();
-
-    if (!rawContent || rawContent.length < 15) {
-      if (job.url && /^https?:\/\//i.test(job.url)) {
-        try {
-          const task = enqueueTask(db, {
-            userId: request.user.id,
-            type: 'FETCH_JOB_PAGE',
-            jobId: job.id,
-            url: job.url,
-          });
-          return reply.code(202).send({
-            ok: true,
-            status: 'queued',
-            taskId: task.id,
-            message:
-              'Job description is missing or too short. Extraction queued for companion extension.',
-          });
-        } catch (err) {
-          return reply.code(400).send({ error: err.message });
-        }
+      const { id } = request.params;
+      if (!canAccessJob(request.user.id, id)) {
+        return reply.code(404).send({ error: 'job not found' });
       }
-      return reply.code(422).send({
-        error: 'Unable to retrieve sufficient job description content. URL is missing or invalid.',
-      });
-    }
+      const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+      if (!job) {
+        return reply.code(404).send({ error: 'job not found' });
+      }
 
-    try {
-      const parsed = await parseJobDescription({
-        text: rawContent,
-        url: job.url,
-      });
+      const rawContent = (job.description || '').trim();
+
+      if (!rawContent || rawContent.length < 15) {
+        if (job.url && /^https?:\/\//i.test(job.url)) {
+          try {
+            const task = enqueueTask(db, {
+              userId: request.user.id,
+              type: 'FETCH_JOB_PAGE',
+              jobId: job.id,
+              url: job.url,
+            });
+            return reply.code(202).send({
+              ok: true,
+              status: 'queued',
+              taskId: task.id,
+              message:
+                'Job description is missing or too short. Extraction queued for companion extension.',
+            });
+          } catch (err) {
+            return reply.code(400).send({ error: err.message });
+          }
+        }
+        return reply.code(422).send({
+          error:
+            'Unable to retrieve sufficient job description content. URL is missing or invalid.',
+        });
+      }
+
+      try {
+        const parsed = await parseJobDescription({
+          text: rawContent,
+          url: job.url,
+        });
+
+        const now = Date.now();
+        const userId = request.user.id;
+
+        const title =
+          parsed.title &&
+          parsed.title !== 'Job Opportunity' &&
+          !/^\d+\s+notifications?$/i.test(parsed.title)
+            ? parsed.title
+            : job.title;
+        const company =
+          parsed.company && parsed.company !== 'Company' ? parsed.company : job.company;
+        const location = parsed.location || job.location;
+        const description = parsed.description || rawContent;
+
+        db.prepare(
+          'UPDATE jobs SET title = ?, company = ?, location = ?, description = ?, updated_at = ? WHERE id = ?'
+        ).run(title, company, location, description, now, id);
+
+        if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+          db.prepare(
+            "UPDATE user_jobs SET fit_score = NULL, fit_notes = NULL, status = 'new', updated_at = ? WHERE job_id = ? AND user_id = ?"
+          ).run(now, id, userId);
+        }
+
+        const updatedJob = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+        return { ok: true, job: updatedJob, parsed };
+      } catch (err) {
+        return reply.code(500).send({ error: `Sanitization failed: ${err.message}` });
+      }
+    }
+  );
+
+  // PATCH /api/v1/jobs/:id - Update job status or description
+  app.patch(
+    '/api/v1/jobs/:id',
+    {
+      config: {
+        rateLimit: {
+          max: 60,
+          timeWindow: '1 minute',
+        },
+      },
+      rateLimit: {
+        max: 60,
+        timeWindow: '1 minute',
+      },
+    },
+    async (request, reply) => {
+      if (!checkRateLimit(request, reply, 60)) return;
+      if (!authenticate(request, reply)) return;
+
+      const { id } = request.params;
+      const { status, description } = request.body || {};
+      if (!status && description === undefined) {
+        return reply.code(400).send({ error: 'status or description is required' });
+      }
 
       const now = Date.now();
       const userId = request.user.id;
 
-      const title =
-        parsed.title &&
-        parsed.title !== 'Job Opportunity' &&
-        !/^\d+\s+notifications?$/i.test(parsed.title)
-          ? parsed.title
-          : job.title;
-      const company = parsed.company && parsed.company !== 'Company' ? parsed.company : job.company;
-      const location = parsed.location || job.location;
-      const description = parsed.description || rawContent;
-
-      db.prepare(
-        'UPDATE jobs SET title = ?, company = ?, location = ?, description = ?, updated_at = ? WHERE id = ?'
-      ).run(title, company, location, description, now, id);
-
-      if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
-        db.prepare(
-          "UPDATE user_jobs SET fit_score = NULL, fit_notes = NULL, status = 'new', updated_at = ? WHERE job_id = ? AND user_id = ?"
-        ).run(now, id, userId);
+      if (!canAccessJob(userId, id)) {
+        return reply.code(404).send({ error: 'job not found' });
       }
 
-      const updatedJob = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
-      return { ok: true, job: updatedJob, parsed };
-    } catch (err) {
-      return reply.code(500).send({ error: `Sanitization failed: ${err.message}` });
-    }
-  });
-
-  // PATCH /api/v1/jobs/:id - Update job status or description
-  app.patch('/api/v1/jobs/:id', async (request, reply) => {
-    if (!authenticate(request, reply)) return;
-
-    const { id } = request.params;
-    const { status, description } = request.body || {};
-    if (!status && description === undefined) {
-      return reply.code(400).send({ error: 'status or description is required' });
-    }
-
-    const now = Date.now();
-    const userId = request.user.id;
-
-    if (description !== undefined) {
-      db.prepare('UPDATE jobs SET description = ?, updated_at = ? WHERE id = ?').run(
-        description,
-        now,
-        id
-      );
-      if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
-        db.prepare(
-          "UPDATE user_jobs SET fit_score = NULL, fit_notes = NULL, status = 'new', updated_at = ? WHERE job_id = ? AND user_id = ?"
-        ).run(now, id, userId);
+      if (description !== undefined) {
+        db.prepare('UPDATE jobs SET description = ?, updated_at = ? WHERE id = ?').run(
+          description,
+          now,
+          id
+        );
+        if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+          db.prepare(
+            "UPDATE user_jobs SET fit_score = NULL, fit_notes = NULL, status = 'new', updated_at = ? WHERE job_id = ? AND user_id = ?"
+          ).run(now, id, userId);
+        }
       }
-    }
 
-    if (status) {
+      if (status) {
+        if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+          const info = db
+            .prepare(
+              'UPDATE user_jobs SET status = ?, updated_at = ? WHERE job_id = ? AND user_id = ?'
+            )
+            .run(status, now, id, userId);
+
+          if (info.changes === 0) {
+            return reply.code(404).send({ error: 'job not found' });
+          }
+        } else {
+          const info = db
+            .prepare('UPDATE jobs SET status = ?, updated_at = ? WHERE id = ?')
+            .run(status, now, id);
+
+          if (info.changes === 0) {
+            return reply.code(404).send({ error: 'job not found' });
+          }
+        }
+      }
+
+      let job;
       if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
-        const info = db
+        job = db
           .prepare(
-            'UPDATE user_jobs SET status = ?, updated_at = ? WHERE job_id = ? AND user_id = ?'
+            `SELECT 
+              j.id, j.title, j.company, j.location, j.url, j.source, j.posted_at, j.description, j.fingerprint, j.liveness,
+              COALESCE(uj.fit_score, j.fit_score) as fit_score,
+              COALESCE(uj.fit_notes, j.fit_notes) as fit_notes,
+              COALESCE(uj.status, j.status) as status,
+              COALESCE(uj.tailored_resume_id, j.tailored_resume_id) as tailored_resume_id,
+              COALESCE(uj.created_at, j.created_at) as created_at,
+              COALESCE(uj.updated_at, j.updated_at) as updated_at
+            FROM user_jobs uj
+            JOIN jobs j ON uj.job_id = j.id
+            WHERE uj.user_id = ? AND j.id = ?`
           )
-          .run(status, now, id, userId);
-
-        if (info.changes === 0) {
-          return reply.code(404).send({ error: 'job not found' });
-        }
+          .get(userId, id);
       } else {
-        const info = db
-          .prepare('UPDATE jobs SET status = ?, updated_at = ? WHERE id = ?')
-          .run(status, now, id);
-
-        if (info.changes === 0) {
-          return reply.code(404).send({ error: 'job not found' });
-        }
+        job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
       }
-    }
 
-    let job;
-    if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
-      job = db
-        .prepare(
-          `SELECT 
-            j.id, j.title, j.company, j.location, j.url, j.source, j.posted_at, j.description, j.fingerprint, j.liveness,
-            COALESCE(uj.fit_score, j.fit_score) as fit_score,
-            COALESCE(uj.fit_notes, j.fit_notes) as fit_notes,
-            COALESCE(uj.status, j.status) as status,
-            COALESCE(uj.tailored_resume_id, j.tailored_resume_id) as tailored_resume_id,
-            COALESCE(uj.created_at, j.created_at) as created_at,
-            COALESCE(uj.updated_at, j.updated_at) as updated_at
-          FROM user_jobs uj
-          JOIN jobs j ON uj.job_id = j.id
-          WHERE uj.user_id = ? AND j.id = ?`
-        )
-        .get(userId, id);
-    } else {
-      job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+      return { job, ok: true, status };
     }
-
-    return { job, ok: true, status };
-  });
+  );
 
   // DELETE /api/v1/jobs/:id - Delete a job from DB and its artifacts
-  app.delete('/api/v1/jobs/:id', async (request, reply) => {
-    if (!authenticate(request, reply)) return;
+  app.delete(
+    '/api/v1/jobs/:id',
+    {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: '1 minute',
+        },
+      },
+      rateLimit: {
+        max: 30,
+        timeWindow: '1 minute',
+      },
+    },
+    async (request, reply) => {
+      if (!checkRateLimit(request, reply, 30)) return;
+      if (!authenticate(request, reply)) return;
 
-    const { id } = request.params;
-    const userId = request.user.id;
+      const { id } = request.params;
+      const userId = request.user.id;
 
-    if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
-      db.prepare('DELETE FROM user_jobs WHERE job_id = ? AND user_id = ?').run(id, userId);
+      if (!canAccessJob(userId, id)) {
+        return reply.code(404).send({ error: 'job not found' });
+      }
+
+      if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+        db.prepare('DELETE FROM user_jobs WHERE job_id = ? AND user_id = ?').run(id, userId);
+        return { ok: true, id, changes: 1 };
+      }
+      // Also remove from master jobs table
+      const info = db.prepare('DELETE FROM jobs WHERE id = ?').run(id);
+
+      return { ok: true, id, changes: info.changes };
     }
-    // Also remove from master jobs table
-    const info = db.prepare('DELETE FROM jobs WHERE id = ?').run(id);
-
-    return { ok: true, id, changes: info.changes };
-  });
+  );
 
   // POST /api/v1/jobs/:id/tailor - Trigger manual tailor execution
-  app.post('/api/v1/jobs/:id/tailor', async (request, reply) => {
-    if (!authenticate(request, reply)) return;
+  app.post(
+    '/api/v1/jobs/:id/tailor',
+    {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: '1 minute',
+        },
+      },
+      rateLimit: {
+        max: 30,
+        timeWindow: '1 minute',
+      },
+    },
+    async (request, reply) => {
+      if (!checkRateLimit(request, reply, 30)) return;
+      if (!authenticate(request, reply)) return;
 
-    const { id } = request.params;
-    const userId = request.user.id;
-    const now = Date.now();
-    const tailoredId = `tailored-${id}-${Date.now().toString(36)}`;
+      const { id } = request.params;
+      if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
+        return reply.code(400).send({ error: 'Invalid job ID format' });
+      }
+      const userId = String(request.user.id || 'dev-user');
+      if (!/^[a-zA-Z0-9_-]+$/.test(userId)) {
+        return reply.code(400).send({ error: 'Invalid user ID format' });
+      }
+      if (!canAccessJob(userId, id)) {
+        return reply.code(404).send({ error: 'job not found' });
+      }
+      const now = Date.now();
+      const tailoredId = `tailored-${id}-${Date.now().toString(36)}`;
 
-    // 1. Validate Job
-    const jobRecord = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
-    if (!jobRecord) {
-      return reply.code(404).send({ error: 'Job not found' });
-    }
-    if (!jobRecord.description || jobRecord.description.trim().length < 10) {
-      return reply.code(400).send({
-        error:
-          'Job description is missing or too short. Cannot tailor resume without job requirements.',
-      });
-    }
+      // 1. Validate Job
+      const jobRecord = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+      if (!jobRecord) {
+        return reply.code(404).send({ error: 'Job not found' });
+      }
+      if (!jobRecord.description || jobRecord.description.trim().length < 10) {
+        return reply.code(400).send({
+          error:
+            'Job description is missing or too short. Cannot tailor resume without job requirements.',
+        });
+      }
 
-    // 2. Validate Master Resume
-    let activeResume = null;
-    if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+      // 2. Validate Master Resume
+      let activeResume = null;
       const row = db
         .prepare(
           'SELECT resume_json FROM user_resumes WHERE user_id = ? AND is_active = 1 ORDER BY updated_at DESC LIMIT 1'
@@ -1241,170 +1396,169 @@ export function buildApp({
           activeResume = JSON.parse(row.resume_json);
         } catch {}
       }
-    }
-    if (!activeResume) {
-      const row = db
-        .prepare('SELECT resume_json FROM user_resumes ORDER BY updated_at DESC LIMIT 1')
-        .get();
-      if (row?.resume_json) {
-        try {
-          activeResume = JSON.parse(row.resume_json);
-        } catch {}
-      }
-    }
-    if (!activeResume) {
-      return reply.code(400).send({
-        error:
-          'No active master resume found. Please upload one in Profile & Resume before tailoring.',
-      });
-    }
-
-    // BYOK: a registered user may only tailor with their own key — never a shared one.
-    const tailorKeySetting = getEffectiveSettingWithSource(db, 'tailor_api_key', { userId });
-    const tailorKey = isRegisteredUser(db, userId)
-      ? tailorKeySetting.source === 'user'
-        ? tailorKeySetting.value
-        : ''
-      : tailorKeySetting.value;
-    if (isRegisteredUser(db, userId) && !tailorKey) {
-      return reply.code(400).send({
-        error: 'No API key configured — go to Settings to add your LLM key.',
-      });
-    }
-
-    // 3. Perform Tailoring & Artifact Persistence
-    const jobDir = resolve(artifactsDir, userId || 'dev-user', id);
-    mkdirSync(jobDir, { recursive: true });
-
-    // Tailor resume content (align title / summary / skills if relevant)
-    const tailoredResume = JSON.parse(JSON.stringify(activeResume));
-    if (tailoredResume.basics && jobRecord.title) {
-      tailoredResume.basics.label = jobRecord.title;
-    }
-
-    // Write resume.json
-    writeFileSync(resolve(jobDir, 'resume.json'), JSON.stringify(tailoredResume, null, 2), 'utf-8');
-
-    // Synthesize ATS plain text
-    const plainTextLines = [
-      `${tailoredResume.basics?.name || 'Applicant'} — ${tailoredResume.basics?.label || jobRecord.title}`,
-      `Email: ${tailoredResume.basics?.email || ''} | Location: ${tailoredResume.basics?.location?.city || ''}`,
-      '',
-      'SUMMARY',
-      tailoredResume.basics?.summary || `Targeting ${jobRecord.title} at ${jobRecord.company}.`,
-      '',
-      'EXPERIENCE',
-      ...(Array.isArray(tailoredResume.work)
-        ? tailoredResume.work.map(
-            (w) =>
-              `${w.position || ''} at ${w.name || w.company || ''} (${w.startDate || ''} - ${w.endDate || 'Present'})\n` +
-              (Array.isArray(w.highlights) ? w.highlights.map((h) => `• ${h}`).join('\n') : '')
-          )
-        : []),
-      '',
-      'SKILLS',
-      ...(Array.isArray(tailoredResume.skills)
-        ? tailoredResume.skills.map((s) => `${s.name || ''}: ${(s.keywords || []).join(', ')}`)
-        : []),
-    ];
-    const plainText = plainTextLines.join('\n');
-    writeFileSync(resolve(jobDir, 'resume.txt'), plainText, 'utf-8');
-    writeFileSync(resolve(jobDir, 'resume-text.txt'), plainText, 'utf-8');
-
-    // Attempt internal resume-ops call for tailoring and PDF rendering
-    const tailorPort = process.env.TAILOR_PORT || 8081;
-    const resumeOpsUrl = `http://127.0.0.1:${tailorPort}`;
-    let tailorSuccess = false;
-    let tailorError = null;
-    const tailorTheme =
-      getEffectiveSetting(db, 'tailor_theme', process.env, userId) || 'jsonresume-theme-folio';
-    const tailorTimeoutMs =
-      (Number(getEffectiveSetting(db, 'tailor_timeout_seconds', process.env, userId)) || 900) *
-      1000;
-    const tailorModel = getEffectiveSetting(db, 'tailor_model', process.env, userId);
-    const tailorBase = getEffectiveSetting(db, 'tailor_api_base', process.env, userId);
-
-    if (resumeOpsUrl) {
-      try {
-        const resp = await safeFetch(`${resumeOpsUrl.replace(/\/$/, '')}/api/v1/tailor`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: AbortSignal.timeout(tailorTimeoutMs),
-          redirect: 'error',
-          body: JSON.stringify({
-            job_description: jobRecord.description,
-            resume: tailoredResume,
-            theme: tailorTheme,
-            ...(tailorModel ? { model: tailorModel } : {}),
-            ...(tailorKey ? { api_key: tailorKey } : {}),
-            ...(tailorBase ? { api_base: tailorBase } : {}),
-          }),
+      if (!activeResume) {
+        return reply.code(400).send({
+          error:
+            'No active master resume found. Please upload one in Profile & Resume before tailoring.',
         });
+      }
 
-        if (resp.ok) {
-          const data = await resp.json();
-          if (data.pdf_base64) {
-            writeFileSync(resolve(jobDir, 'resume.pdf'), Buffer.from(data.pdf_base64, 'base64'));
+      // BYOK: a registered user may only tailor with their own key — never a shared one.
+      const tailorKeySetting = getEffectiveSettingWithSource(db, 'tailor_api_key', { userId });
+      const tailorKey = isRegisteredUser(db, userId)
+        ? tailorKeySetting.source === 'user'
+          ? tailorKeySetting.value
+          : ''
+        : tailorKeySetting.value;
+      if (isRegisteredUser(db, userId) && !tailorKey) {
+        return reply.code(400).send({
+          error: 'No API key configured — go to Settings to add your LLM key.',
+        });
+      }
+
+      // 3. Perform Tailoring & Artifact Persistence
+      const safeUserId = userId;
+      const safeJobId = id;
+      const resolvedBase = resolve(artifactsDir);
+      const jobDir = resolve(resolvedBase, safeUserId, safeJobId);
+      if (!jobDir.startsWith(resolvedBase)) {
+        return reply.code(400).send({ error: 'Invalid artifact path' });
+      }
+      mkdirSync(jobDir, { recursive: true });
+
+      // Tailor resume content (align title / summary / skills if relevant)
+      const tailoredResume = JSON.parse(JSON.stringify(activeResume));
+      if (tailoredResume.basics && jobRecord.title) {
+        tailoredResume.basics.label = jobRecord.title;
+      }
+
+      // Write resume.json
+      writeFileSync(
+        resolve(jobDir, 'resume.json'),
+        JSON.stringify(tailoredResume, null, 2),
+        'utf-8'
+      );
+
+      // Synthesize ATS plain text
+      const plainTextLines = [
+        `${tailoredResume.basics?.name || 'Applicant'} — ${tailoredResume.basics?.label || jobRecord.title}`,
+        `Email: ${tailoredResume.basics?.email || ''} | Location: ${tailoredResume.basics?.location?.city || ''}`,
+        '',
+        'SUMMARY',
+        tailoredResume.basics?.summary || `Targeting ${jobRecord.title} at ${jobRecord.company}.`,
+        '',
+        'EXPERIENCE',
+        ...(Array.isArray(tailoredResume.work)
+          ? tailoredResume.work.map(
+              (w) =>
+                `${w.position || ''} at ${w.name || w.company || ''} (${w.startDate || ''} - ${w.endDate || 'Present'})\n` +
+                (Array.isArray(w.highlights) ? w.highlights.map((h) => `• ${h}`).join('\n') : '')
+            )
+          : []),
+        '',
+        'SKILLS',
+        ...(Array.isArray(tailoredResume.skills)
+          ? tailoredResume.skills.map((s) => `${s.name || ''}: ${(s.keywords || []).join(', ')}`)
+          : []),
+      ];
+      const plainText = plainTextLines.join('\n');
+      writeFileSync(resolve(jobDir, 'resume.txt'), plainText, 'utf-8');
+      writeFileSync(resolve(jobDir, 'resume-text.txt'), plainText, 'utf-8');
+
+      // Attempt internal resume-ops call for tailoring and PDF rendering
+      const tailorPort = process.env.TAILOR_PORT || 8081;
+      const resumeOpsUrl = `http://127.0.0.1:${tailorPort}`;
+      let tailorSuccess = false;
+      let tailorError = null;
+      const tailorTheme =
+        getEffectiveSetting(db, 'tailor_theme', process.env, userId) || 'jsonresume-theme-folio';
+      const tailorTimeoutMs =
+        (Number(getEffectiveSetting(db, 'tailor_timeout_seconds', process.env, userId)) || 900) *
+        1000;
+      const tailorModel = getEffectiveSetting(db, 'tailor_model', process.env, userId);
+      const tailorBase = getEffectiveSetting(db, 'tailor_api_base', process.env, userId);
+
+      if (resumeOpsUrl) {
+        try {
+          const resp = await safeFetch(`${resumeOpsUrl.replace(/\/$/, '')}/api/v1/tailor`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(tailorTimeoutMs),
+            redirect: 'error',
+            body: JSON.stringify({
+              job_description: jobRecord.description,
+              resume: tailoredResume,
+              theme: tailorTheme,
+              ...(tailorModel ? { model: tailorModel } : {}),
+              ...(tailorKey ? { api_key: tailorKey } : {}),
+              ...(tailorBase ? { api_base: tailorBase } : {}),
+            }),
+          });
+
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data.pdf_base64) {
+              writeFileSync(resolve(jobDir, 'resume.pdf'), Buffer.from(data.pdf_base64, 'base64'));
+            }
+            if (data.plain_text) {
+              writeFileSync(resolve(jobDir, 'resume.txt'), data.plain_text, 'utf-8');
+              writeFileSync(resolve(jobDir, 'resume-text.txt'), data.plain_text, 'utf-8');
+            }
+            if (data.resume) {
+              writeFileSync(
+                resolve(jobDir, 'resume.json'),
+                JSON.stringify(data.resume, null, 2),
+                'utf-8'
+              );
+            }
+            tailorSuccess = true;
+          } else {
+            const errBody = await resp.text().catch(() => '');
+            tailorError = `resume-ops returned ${resp.status}: ${errBody}`;
+            request.log?.error?.(tailorError);
           }
-          if (data.plain_text) {
-            writeFileSync(resolve(jobDir, 'resume.txt'), data.plain_text, 'utf-8');
-            writeFileSync(resolve(jobDir, 'resume-text.txt'), data.plain_text, 'utf-8');
-          }
-          if (data.resume) {
-            writeFileSync(
-              resolve(jobDir, 'resume.json'),
-              JSON.stringify(data.resume, null, 2),
-              'utf-8'
-            );
-          }
-          tailorSuccess = true;
-        } else {
-          const errBody = await resp.text().catch(() => '');
-          tailorError = `resume-ops returned ${resp.status}: ${errBody}`;
+        } catch (err) {
+          tailorError = `resume-ops tailor call error: ${err.message}`;
           request.log?.error?.(tailorError);
         }
-      } catch (err) {
-        tailorError = `resume-ops tailor call error: ${err.message}`;
-        request.log?.error?.(tailorError);
       }
-    }
 
-    if (!tailorSuccess) {
-      // Clean up incomplete artifacts if any
-      const statusToSet = 'failed';
+      if (!tailorSuccess) {
+        // Clean up incomplete artifacts if any
+        const statusToSet = 'failed';
+        if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+          db.prepare(
+            'UPDATE user_jobs SET status = ?, updated_at = ? WHERE job_id = ? AND user_id = ?'
+          ).run(statusToSet, now, id, userId);
+        } else {
+          db.prepare('UPDATE jobs SET status = ?, updated_at = ? WHERE id = ?').run(
+            statusToSet,
+            now,
+            id
+          );
+        }
+        return reply.code(502).send({
+          error: tailorError || 'Failed to tailor resume via AI service',
+          status: 'failed',
+        });
+      }
+
+      // 4. Update Database on success
       if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
         db.prepare(
-          'UPDATE user_jobs SET status = ?, updated_at = ? WHERE job_id = ? AND user_id = ?'
-        ).run(statusToSet, now, id, userId);
+          'UPDATE user_jobs SET status = ?, tailored_resume_id = ?, updated_at = ? WHERE job_id = ? AND user_id = ?'
+        ).run('tailored', tailoredId, now, id, userId);
       } else {
-        db.prepare('UPDATE jobs SET status = ?, updated_at = ? WHERE id = ?').run(
-          statusToSet,
-          now,
-          id
-        );
+        db.prepare(
+          'UPDATE jobs SET status = ?, tailored_resume_id = ?, updated_at = ? WHERE id = ?'
+        ).run('tailored', tailoredId, now, id);
       }
-      return reply.code(502).send({
-        error: tailorError || 'Failed to tailor resume via AI service',
-        status: 'failed',
-      });
-    }
 
-    // 4. Update Database on success
-    if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
-      db.prepare(
-        'UPDATE user_jobs SET status = ?, tailored_resume_id = ?, updated_at = ? WHERE job_id = ? AND user_id = ?'
-      ).run('tailored', tailoredId, now, id, userId);
-    } else {
-      db.prepare(
-        'UPDATE jobs SET status = ?, tailored_resume_id = ?, updated_at = ? WHERE id = ?'
-      ).run('tailored', tailoredId, now, id);
-    }
-
-    let job;
-    if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
-      job = db
-        .prepare(
-          `SELECT 
+      let job;
+      if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+        job = db
+          .prepare(
+            `SELECT 
             j.id, j.title, j.company, j.location, j.url, j.source, j.posted_at, j.description, j.fingerprint, j.liveness,
             COALESCE(uj.fit_score, j.fit_score) as fit_score,
             COALESCE(uj.fit_notes, j.fit_notes) as fit_notes,
@@ -1415,67 +1569,144 @@ export function buildApp({
           FROM user_jobs uj
           JOIN jobs j ON uj.job_id = j.id
           WHERE uj.user_id = ? AND j.id = ?`
-        )
-        .get(userId, id);
-    } else {
-      job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
-    }
+          )
+          .get(userId, id);
+      } else {
+        job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);
+      }
 
-    return { ok: true, job, tailored_resume_id: tailoredId };
-  });
+      return { ok: true, job, tailored_resume_id: tailoredId };
+    }
+  );
 
   // GET /api/v1/jobs/:id/artifacts/:filename - Serve artifact file
-  app.get('/api/v1/jobs/:id/artifacts/:filename', async (request, reply) => {
-    if (!authenticate(request, reply)) return;
+  app.get(
+    '/api/v1/jobs/:id/artifacts/:filename',
+    {
+      config: {
+        rateLimit: {
+          max: 60,
+          timeWindow: '1 minute',
+        },
+      },
+      rateLimit: {
+        max: 60,
+        timeWindow: '1 minute',
+      },
+    },
+    async (request, reply) => {
+      if (!checkRateLimit(request, reply, 60)) return;
+      if (!authenticate(request, reply)) return;
 
-    const { id, filename } = request.params;
-    const userId = request.user.id;
-    const safeFilename = filename.replace(/[^a-zA-Z0-9_.-]/g, '');
+      const { id, filename } = request.params;
+      if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
+        return reply.code(400).send({ error: 'Invalid job ID format' });
+      }
+      const userId = String(request.user.id || 'dev-user');
+      if (!/^[a-zA-Z0-9_-]+$/.test(userId)) {
+        return reply.code(400).send({ error: 'Invalid user ID format' });
+      }
+      if (!/^[a-zA-Z0-9_-]+\.[a-zA-Z0-9]+$/.test(filename)) {
+        return reply.code(400).send({ error: 'Invalid artifact filename' });
+      }
+      const safeFilename = filename;
 
-    // Check user-partitioned artifact path first, then flat fallback
-    let filePath = resolve(artifactsDir, userId, id, safeFilename);
-    if (!existsSync(filePath)) {
-      filePath = resolve(artifactsDir, id, safeFilename);
+      // Check user-partitioned artifact path first, then flat fallback
+      const resolvedBase = resolve(artifactsDir);
+      let filePath = resolve(resolvedBase, userId, id, safeFilename);
+      if (!existsSync(filePath) || !statSync(filePath).isFile()) {
+        filePath = resolve(resolvedBase, id, safeFilename);
+      }
+
+      const relativePath = relative(resolvedBase, filePath);
+      if (
+        !relativePath ||
+        relativePath.startsWith('..') ||
+        isAbsolute(relativePath) ||
+        !existsSync(filePath) ||
+        !statSync(filePath).isFile()
+      ) {
+        return reply.code(404).send({ error: 'artifact not found' });
+      }
+
+      const content = readFileSync(filePath);
+      if (safeFilename.endsWith('.pdf')) {
+        reply.type('application/pdf');
+      } else if (safeFilename.endsWith('.json')) {
+        reply.type('application/json');
+      } else if (safeFilename.endsWith('.txt')) {
+        reply.type('text/plain; charset=utf-8');
+      }
+      return reply.send(content);
     }
-
-    if (!existsSync(filePath)) {
-      return reply.code(404).send({ error: 'artifact not found' });
-    }
-
-    const content = readFileSync(filePath);
-    if (safeFilename.endsWith('.pdf')) {
-      reply.type('application/pdf');
-    } else if (safeFilename.endsWith('.json')) {
-      reply.type('application/json');
-    } else if (safeFilename.endsWith('.txt')) {
-      reply.type('text/plain; charset=utf-8');
-    }
-    return reply.send(content);
-  });
+  );
 
   // GET /api/v1/pipeline/stats - Aggregate stats for the pipeline view
-  app.get('/api/v1/pipeline/stats', async (request, reply) => {
-    if (!authenticate(request, reply)) return;
-    const userId = request.user?.id;
+  app.get(
+    '/api/v1/pipeline/stats',
+    {
+      config: {
+        rateLimit: {
+          max: 60,
+          timeWindow: '1 minute',
+        },
+      },
+      rateLimit: {
+        max: 60,
+        timeWindow: '1 minute',
+      },
+    },
+    async (request, reply) => {
+      if (!checkRateLimit(request, reply, 60)) return;
+      if (!authenticate(request, reply)) return;
+      const userId = request.user?.id;
 
-    if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
-      const total = db
-        .prepare('SELECT COUNT(*) as n FROM user_jobs WHERE user_id = ?')
-        .get(userId).n;
-      const unscored = db
-        .prepare('SELECT COUNT(*) as n FROM user_jobs WHERE user_id = ? AND fit_score IS NULL')
-        .get(userId).n;
+      if (userId && userId !== 'legacy-admin' && userId !== 'dev-user') {
+        const total = db
+          .prepare('SELECT COUNT(*) as n FROM user_jobs WHERE user_id = ?')
+          .get(userId).n;
+        const unscored = db
+          .prepare('SELECT COUNT(*) as n FROM user_jobs WHERE user_id = ? AND fit_score IS NULL')
+          .get(userId).n;
+        const scored = db
+          .prepare(
+            'SELECT COUNT(*) as n FROM user_jobs WHERE user_id = ? AND fit_score IS NOT NULL'
+          )
+          .get(userId).n;
+        const tailored = db
+          .prepare("SELECT COUNT(*) as n FROM user_jobs WHERE user_id = ? AND status = 'tailored'")
+          .get(userId).n;
+        const failed = db
+          .prepare(
+            "SELECT COUNT(*) as n FROM user_jobs WHERE user_id = ? AND status IN ('score_failed', 'tailor_failed', 'failed', 'error')"
+          )
+          .get(userId).n;
+
+        return {
+          ok: true,
+          stats: {
+            total,
+            unscored,
+            scored,
+            tailored,
+            failed,
+          },
+        };
+      }
+
+      const total = db.prepare('SELECT COUNT(*) as n FROM jobs').get().n;
+      const unscored = db.prepare('SELECT COUNT(*) as n FROM jobs WHERE fit_score IS NULL').get().n;
       const scored = db
-        .prepare('SELECT COUNT(*) as n FROM user_jobs WHERE user_id = ? AND fit_score IS NOT NULL')
-        .get(userId).n;
+        .prepare('SELECT COUNT(*) as n FROM jobs WHERE fit_score IS NOT NULL')
+        .get().n;
       const tailored = db
-        .prepare("SELECT COUNT(*) as n FROM user_jobs WHERE user_id = ? AND status = 'tailored'")
-        .get(userId).n;
+        .prepare("SELECT COUNT(*) as n FROM jobs WHERE status = 'tailored'")
+        .get().n;
       const failed = db
         .prepare(
-          "SELECT COUNT(*) as n FROM user_jobs WHERE user_id = ? AND status IN ('score_failed', 'tailor_failed', 'failed', 'error')"
+          "SELECT COUNT(*) as n FROM jobs WHERE status IN ('failed', 'error', 'tailor_failed')"
         )
-        .get(userId).n;
+        .get().n;
 
       return {
         ok: true,
@@ -1488,95 +1719,90 @@ export function buildApp({
         },
       };
     }
-
-    const total = db.prepare('SELECT COUNT(*) as n FROM jobs').get().n;
-    const unscored = db.prepare('SELECT COUNT(*) as n FROM jobs WHERE fit_score IS NULL').get().n;
-    const scored = db.prepare('SELECT COUNT(*) as n FROM jobs WHERE fit_score IS NOT NULL').get().n;
-    const tailored = db.prepare("SELECT COUNT(*) as n FROM jobs WHERE status = 'tailored'").get().n;
-    const failed = db
-      .prepare(
-        "SELECT COUNT(*) as n FROM jobs WHERE status IN ('failed', 'error', 'tailor_failed')"
-      )
-      .get().n;
-
-    return {
-      ok: true,
-      stats: {
-        total,
-        unscored,
-        scored,
-        tailored,
-        failed,
-      },
-    };
-  });
+  );
 
   // GET /api/v1/pipeline/jobs - Live job queue for pipeline inspection
-  app.get('/api/v1/pipeline/jobs', async (request, reply) => {
-    if (!authenticate(request, reply)) return;
-    const userId = request.user?.id;
-    const { sort_by = 'updated_at', order = 'desc', limit = 100 } = request.query || {};
+  app.get(
+    '/api/v1/pipeline/jobs',
+    {
+      config: {
+        rateLimit: {
+          max: 60,
+          timeWindow: '1 minute',
+        },
+      },
+      rateLimit: {
+        max: 60,
+        timeWindow: '1 minute',
+      },
+    },
+    async (request, reply) => {
+      if (!checkRateLimit(request, reply, 60)) return;
+      if (!authenticate(request, reply)) return;
+      const userId = request.user?.id;
+      const { sort_by = 'updated_at', order = 'desc', limit = 100 } = request.query || {};
 
-    const isMultiTenant = Boolean(userId && userId !== 'legacy-admin' && userId !== 'dev-user');
-    const sortDirection = String(order).toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+      const isMultiTenant = Boolean(userId && userId !== 'legacy-admin' && userId !== 'dev-user');
+      const sortDirection = String(order).toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
-    let orderClause = isMultiTenant
-      ? `ORDER BY uj.updated_at ${sortDirection}`
-      : `ORDER BY updated_at ${sortDirection}`;
-    if (sort_by === 'fit_score') {
-      orderClause = isMultiTenant
-        ? `ORDER BY (uj.fit_score IS NULL), uj.fit_score ${sortDirection}`
-        : `ORDER BY (fit_score IS NULL), fit_score ${sortDirection}`;
-    } else if (sort_by === 'title') {
-      orderClause = isMultiTenant
-        ? `ORDER BY j.title COLLATE NOCASE ${sortDirection}`
-        : `ORDER BY title COLLATE NOCASE ${sortDirection}`;
-    } else if (sort_by === 'company') {
-      orderClause = isMultiTenant
-        ? `ORDER BY j.company COLLATE NOCASE ${sortDirection}`
-        : `ORDER BY company COLLATE NOCASE ${sortDirection}`;
-    } else if (sort_by === 'source') {
-      orderClause = isMultiTenant
-        ? `ORDER BY j.source COLLATE NOCASE ${sortDirection}`
-        : `ORDER BY source COLLATE NOCASE ${sortDirection}`;
-    } else if (sort_by === 'status') {
-      orderClause = isMultiTenant
-        ? `ORDER BY uj.status ${sortDirection}`
-        : `ORDER BY status ${sortDirection}`;
-    } else if (sort_by === 'has_description') {
-      orderClause = `ORDER BY has_description ${sortDirection}`;
-    } else if (sort_by === 'created_at') {
-      orderClause = isMultiTenant
-        ? `ORDER BY uj.created_at ${sortDirection}`
-        : `ORDER BY created_at ${sortDirection}`;
-    }
+      let orderClause = isMultiTenant
+        ? `ORDER BY uj.updated_at ${sortDirection}`
+        : `ORDER BY updated_at ${sortDirection}`;
+      if (sort_by === 'fit_score') {
+        orderClause = isMultiTenant
+          ? `ORDER BY (uj.fit_score IS NULL), uj.fit_score ${sortDirection}`
+          : `ORDER BY (fit_score IS NULL), fit_score ${sortDirection}`;
+      } else if (sort_by === 'title') {
+        orderClause = isMultiTenant
+          ? `ORDER BY j.title COLLATE NOCASE ${sortDirection}`
+          : `ORDER BY title COLLATE NOCASE ${sortDirection}`;
+      } else if (sort_by === 'company') {
+        orderClause = isMultiTenant
+          ? `ORDER BY j.company COLLATE NOCASE ${sortDirection}`
+          : `ORDER BY company COLLATE NOCASE ${sortDirection}`;
+      } else if (sort_by === 'source') {
+        orderClause = isMultiTenant
+          ? `ORDER BY j.source COLLATE NOCASE ${sortDirection}`
+          : `ORDER BY source COLLATE NOCASE ${sortDirection}`;
+      } else if (sort_by === 'status') {
+        orderClause = isMultiTenant
+          ? `ORDER BY uj.status ${sortDirection}`
+          : `ORDER BY status ${sortDirection}`;
+      } else if (sort_by === 'has_description') {
+        orderClause = `ORDER BY has_description ${sortDirection}`;
+      } else if (sort_by === 'created_at') {
+        orderClause = isMultiTenant
+          ? `ORDER BY uj.created_at ${sortDirection}`
+          : `ORDER BY created_at ${sortDirection}`;
+      }
 
-    let rows;
-    if (isMultiTenant) {
-      rows = db
-        .prepare(
-          `SELECT uj.id, j.id as job_id, j.title, j.company, j.source, j.location, uj.status, uj.fit_score,
+      let rows;
+      if (isMultiTenant) {
+        rows = db
+          .prepare(
+            `SELECT uj.id, j.id as job_id, j.title, j.company, j.source, j.location, uj.status, uj.fit_score,
                   j.description IS NOT NULL AND LENGTH(j.description) > 10 as has_description,
                   uj.created_at, uj.updated_at
            FROM user_jobs uj
            JOIN jobs j ON uj.job_id = j.id
            WHERE uj.user_id = ?
            ${orderClause} LIMIT ?`
-        )
-        .all(userId, Number(limit));
-    } else {
-      rows = db
-        .prepare(
-          `SELECT id, id as job_id, title, company, source, location, status, fit_score,
+          )
+          .all(userId, Number(limit));
+      } else {
+        rows = db
+          .prepare(
+            `SELECT id, id as job_id, title, company, source, location, status, fit_score,
                   description IS NOT NULL AND LENGTH(description) > 10 as has_description,
                   created_at, updated_at
            FROM jobs ${orderClause} LIMIT ?`
-        )
-        .all(Number(limit));
-    }
+          )
+          .all(Number(limit));
+      }
 
-    return { ok: true, jobs: rows };
-  });
+      return { ok: true, jobs: rows };
+    }
+  );
 
   if (staticDir && existsSync(staticDir)) {
     const mimeTypes = {

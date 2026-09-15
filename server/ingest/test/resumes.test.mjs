@@ -54,6 +54,23 @@ test('validateResumeJson checks JSON Resume v1.0.0 schema compliance', () => {
   );
 });
 
+test('validateResumeJson stops after the first schema error', () => {
+  assert.throws(
+    () =>
+      validateResumeJson({
+        basics: { name: 'Bob' },
+        firstUnexpectedProperty: true,
+        secondUnexpectedProperty: true,
+      }),
+    (error) => {
+      assert.match(error.message, /^JSON Resume validation failed:/);
+      assert.equal(error.message.includes(';'), false);
+      assert.equal((error.message.match(/additional properties/g) || []).length, 1);
+      return true;
+    }
+  );
+});
+
 test('resumes API: upload valid schema, reject invalid schema, switch active, delete', async () => {
   const db = openDb({ path: ':memory:' });
   const app = buildApp({ db, jwtSecret: 'test-secret' });
