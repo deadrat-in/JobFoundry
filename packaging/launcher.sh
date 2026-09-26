@@ -13,6 +13,43 @@
 set -euo pipefail
 
 # ------------------------------------------------------------------------------
+# 0. OS portability layer (Linux + macOS)
+# ------------------------------------------------------------------------------
+_OS="$(uname -s)"
+_IS_MAC=0
+[ "$_OS" = "Darwin" ] && _IS_MAC=1
+
+# Portable "is TCP port open on localhost?" check.
+# Tries bash /dev/tcp first (works on Linux and Homebrew bash 5 on macOS),
+# then nc, then python3. Returns 0 when the port accepts a connection.
+_port_open() {
+  local port="$1"
+  if (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then
+    exec 3>&- 2>/dev/null || true
+    exec 3<&- 2>/dev/null || true
+    return 0
+  fi
+  if command -v nc >/dev/null 2>&1; then
+    nc -z 127.0.0.1 "$port" 2>/dev/null && return 0
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    python3 -c "import socket,sys; s=socket.socket(); s.settimeout(2); s.connect(('127.0.0.1', int(sys.argv[1])))" "$port" 2>/dev/null && return 0
+  fi
+  return 1
+}
+
+_open_url() {
+  local url="$1"
+  if [ "$_IS_MAC" -eq 1 ] && command -v open >/dev/null 2>&1; then
+    open "$url" 2>/dev/null || echo "[jobfoundry] Open your browser at: $url"
+  elif command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "$url" 2>/dev/null || echo "[jobfoundry] Open your browser at: $url"
+  else
+    echo "[jobfoundry] Open your browser at: $url"
+  fi
+}
+
+# ------------------------------------------------------------------------------
 # 1. Locate the package root (works inside a mounted AppImage)
 # ------------------------------------------------------------------------------
 # When running inside an AppImage, $APPDIR is set by the runtime.
@@ -84,7 +121,16 @@ PYTHON_SITE="$("$PYTHON_BIN" -c "import sysconfig; print(sysconfig.get_path('pur
 export PATH="$PKG_ROOT/usr/lib/node/bin:$NODE_TOOLS_BIN:$PKG_ROOT/usr/bin:$PATH"
 export PYTHONPATH="$APP_SRC/server/scorer:$PYTHON_SITE"
 export NODE_PATH="$DATA_DIR/themes/node_modules:$APP_SRC/node_modules:$APP_SRC/node-tools/node_modules"
-export LD_LIBRARY_PATH="$CHROME_LIB_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+# Linux: point the loader at the bundled chrome/node shared libs.
+# macOS: .dylibs resolve via install names / @rpath; never override DYLD_*
+# globally (it breaks System Integrity Protection child processes).
+if [ "$_IS_MAC" -eq 1 ]; then
+  if [ -d "$CHROME_LIB_DIR" ]; then
+    export DYLD_FALLBACK_LIBRARY_PATH="$CHROME_LIB_DIR${DYLD_FALLBACK_LIBRARY_PATH:+:$DYLD_FALLBACK_LIBRARY_PATH}"
+  fi
+else
+  export LD_LIBRARY_PATH="$CHROME_LIB_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+fi
 export XDG_DATA_DIRS="$PKG_ROOT/usr/share${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
 
 # PDF renderer — use bundled chrome-headless-shell (folio-export picks this up).
@@ -140,15 +186,33 @@ done
 # ------------------------------------------------------------------------------
 PIDS=()
 
+_proc_starttime() {
+  # Prints the kernel process start time for PID stability checks.
+  # Linux: field 22 of /proc/<pid>/stat. macOS: no /proc — print 0 so
+  # callers fall back to argv matching (see jobfoundry-ctl.sh).
+  local pid="$1"
+  if [ -r "/proc/$pid/stat" ]; then
+    awk '{print $22}' "/proc/$pid/stat" 2>/dev/null || true
+  elif [ "$_IS_MAC" -eq 1 ]; then
+    ps -p "$pid" -o lstart= 2>/dev/null | tr -d '[:space:]' || true
+  else
+    echo "0"
+  fi
+}
+
 _record_pid() {
   local pid="$1" file="$2"
   local starttime=""
-  if [ -r "/proc/$pid/stat" ]; then
-    starttime="$(awk '{print $22}' "/proc/$pid/stat" 2>/dev/null || true)"
-  fi
-  if [ -z "$starttime" ] || [ "$starttime" = "0" ]; then
-    echo "[jobfoundry] ERROR: could not determine process starttime for PID $pid" >&2
-    return 1
+  starttime="$(_proc_starttime "$pid")"
+  if [ "$_IS_MAC" -eq 0 ]; then
+    if [ -z "$starttime" ] || [ "$starttime" = "0" ]; then
+      echo "[jobfoundry] ERROR: could not determine process starttime for PID $pid" >&2
+      return 1
+    fi
+  else
+    # macOS: keep the ps lstart value so jobfoundry-ctl.sh can compare it.
+    # Fall back to 0 only if ps gave nothing (process already gone).
+    [ -n "$starttime" ] || starttime="0"
   fi
   echo "$pid $starttime" > "$file"
   chmod 600 "$file"
@@ -184,7 +248,7 @@ _wait_for_port() {
   local max_wait="${3:-30}"
   local elapsed=0
   echo "[jobfoundry] Waiting for $name on port $port..."
-  while ! (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; do
+  while ! _port_open "$port"; do
     sleep 1
     elapsed=$(( elapsed + 1 ))
     if [ "$elapsed" -ge "$max_wait" ]; then
@@ -193,7 +257,6 @@ _wait_for_port() {
       exit 1
     fi
   done
-  exec 3>&- 2>/dev/null || true
   echo "[jobfoundry] $name ready"
 }
 
@@ -252,13 +315,21 @@ echo "[jobfoundry]   Dashboard: http://localhost:$INGEST_PORT"
 echo "[jobfoundry]   Logs:      $LOGS_DIR"
 echo ""
 
-if command -v xdg-open >/dev/null 2>&1; then
-  xdg-open "http://localhost:$INGEST_PORT" 2>/dev/null || \
-    echo "[jobfoundry] Open your browser at: http://localhost:$INGEST_PORT"
-else
+if [ "${JOBFOUNDRY_NO_BROWSER:-0}" = "1" ]; then
   echo "[jobfoundry] Open your browser at: http://localhost:$INGEST_PORT"
+else
+  _open_url "http://localhost:$INGEST_PORT"
 fi
 
-# Wait for any child to exit (unexpected crash), then trigger cleanup.
-wait -n "${PIDS[@]}" 2>/dev/null || true
-echo "[jobfoundry] A service exited unexpectedly. Shutting down."
+# Wait for any child to exit (unexpected crash), then trigger cleanup via
+# the EXIT trap. A poll loop is used instead of `wait -n` because macOS
+# ships bash 3.2, which has no `wait -n`.
+while :; do
+  for _pid in "${PIDS[@]}"; do
+    if ! kill -0 "$_pid" 2>/dev/null; then
+      echo "[jobfoundry] A service exited unexpectedly. Shutting down."
+      exit 1
+    fi
+  done
+  sleep 5
+done

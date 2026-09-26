@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# jobfoundry — dispatcher entry point for the macOS tarball / Homebrew install.
+# With no arguments: start all services in the foreground and open the browser.
+# With arguments: forward to the control CLI, e.g. `jobfoundry status`.
+set -euo pipefail
+
+# Resolve the bundle root: Homebrew installs the payload under libexec with
+# bin/jobfoundry symlinked into $HOMEBREW_PREFIX/bin; a manual tarball
+# extract keeps the same bin/../usr layout.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -x "$SCRIPT_DIR/../usr/bin/jobfoundry-launcher" ]; then
+  BUNDLE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+else
+  # Fallback: script placed directly next to the launcher (dev checkout).
+  BUNDLE_ROOT="$SCRIPT_DIR"
+fi
+export JOBFOUNDRY_BUNDLE_ROOT="$BUNDLE_ROOT"
+
+# APPDIR is the indirection hook honoured by launcher.sh / jobfoundry-ctl.sh
+# (same role it plays inside the Linux AppImage): when set, both scripts
+# resolve the bundle from $APPDIR instead of their own directory.
+if [ -z "${APPDIR:-}" ]; then
+  export APPDIR="$BUNDLE_ROOT"
+fi
+
+LAUNCHER="$BUNDLE_ROOT/usr/bin/jobfoundry-launcher"
+CTL="$BUNDLE_ROOT/usr/bin/jobfoundry-ctl"
+
+if [ $# -eq 0 ]; then
+  exec "$LAUNCHER"
+else
+  exec "$CTL" "$@"
+fi
